@@ -1,0 +1,9 @@
+{
+  "name": "noisers",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "npm --prefix frontend ci && npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start"
+  }
+}
