@@ -1,0 +1,33 @@
+# Claude Code tooling (local skill/agent config, not project source)
+.claude/
+.agents/
+skills-lock.json
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+
+# Laravel (future /backend)
+backend/vendor/
+backend/.env
+backend/storage/*.key
+
+# React Native (future /mobile)
+mobile/node_modules/
+mobile/.expo/

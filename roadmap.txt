@@ -1,0 +1,141 @@
+NOISERS FC — PROJECT ROADMAP
+=============================
+Vale 2 Zenith · Est. 2021
+Last updated: 2026-09-22
+
+STACK
+-----
+Web frontend   : React + TypeScript + Vite + Tailwind CSS v4 + React Router
+Mobile app     : React Native (Expo)
+Backend API    : Laravel (PHP), consumed by both web and mobile over REST/JSON
+Database       : MySQL
+Auth           : Laravel Sanctum (token-based, shared by web + mobile)
+Repo layout    : /frontend (web), /backend (Laravel, not yet created),
+                 /mobile (React Native, not yet created)
+
+
+PHASE 0 — SETUP  (DONE)
+------------------------
+[x] Vite + React + TypeScript scaffold in /frontend
+[x] Tailwind CSS v4 wired up via @tailwindcss/vite, brand design tokens
+    defined in src/index.css (ink navy / paper white / mist grey)
+[x] React Router installed, base routes: "/" (home), "/login" (stub)
+[x] Club crest processed into white-on-transparent and navy-on-transparent
+    PNGs (src/assets/brand), plus a favicon
+[x] Big Shoulders Display (headline/stat numerals) + Inter (body/UI) loaded
+    from Google Fonts
+[x] Sample club data module (src/lib/clubData.ts) shaped exactly like the
+    future API response, so swapping in real fetch() calls later is a
+    drop-in change, not a rewrite
+
+
+PHASE 1 — MARKETING HOME PAGE  (DONE)
+--------------------------------------
+[x] Hero section — floodlit match photo, club motto, next-fixture strip
+[x] Stats band — squad size, wins, goals, clean sheets
+[x] Club story section
+[x] Squad preview grid (jersey number, name, position, goals/assists)
+[x] Next fixture + latest result cards
+[x] Matchday photo gallery (mosaic grid, duotone-treated photography)
+[x] Footer with club-login link
+[x] Responsive down to mobile, reduced-motion respected, keyboard focus
+    states, verified with Playwright screenshots at 1440px and 390px
+
+Open item for a later pass: a mobile nav menu (hamburger) once there are
+enough top-level routes to justify one — right now mobile relies on the
+same-page anchor links reachable by scrolling.
+
+
+PHASE 2 — PUBLIC SITE, REMAINING PAGES
+-----------------------------------------
+[ ] Full fixtures & results page (not just the homepage preview) —
+    filter by competition/season
+[ ] Full squad page — every player, filter by position
+[ ] Individual player profile page — season stats, card history
+[ ] Club/about page (longer history, committee, socials)
+[ ] Real photography — swap the placeholder Unsplash duotone shots for
+    the club's own match-day photos once available
+
+
+PHASE 3 — ADMIN DASHBOARD (FRONTEND, AGAINST MOCK DATA FIRST)
+-----------------------------------------------------------------
+Build the admin UI in /frontend under an authenticated /admin section,
+wired to the same mock data layer initially, then swapped to the real
+API in Phase 5. Suggested build order:
+
+[ ] Auth flow — real login form behaviour, session handling, protected
+    route wrapper for everything under /admin
+[ ] Squad management — add/edit/remove players, positions, jersey
+    numbers, contact details, active/inactive status
+[ ] Disciplinary — log yellow/red cards per set/match, attach a fine
+    amount per card type, track paid/unpaid status per player
+[ ] Sets & matches — create a set/match (date, opponent, venue,
+    competition), mark result, assign it to a season
+[ ] Goals & assists — record scorers and assisters per match, feeds the
+    stats band and player profile totals automatically
+[ ] Team randomizer — pick a pool of available players and split them
+    into balanced teams for training/practice sets (e.g. by position mix
+    or simple shuffle), with a re-roll action
+[ ] Admin dashboard home — season-at-a-glance: next fixture, outstanding
+    fines, top scorer, recent cards
+
+
+PHASE 4 — LARAVEL BACKEND
+----------------------------
+[ ] `composer create-project laravel/laravel backend`, connect to MySQL
+[ ] Sanctum auth (token-based) — login endpoint, admin user seeding
+[ ] Core models + migrations:
+      - User (admin/committee accounts, roles)
+      - Player (bio, position, jersey number, status)
+      - Season
+      - Fixture/Match (opponent, competition, venue, date, result)
+      - Card (player, match, type, fine amount, paid status)
+      - GoalEvent / AssistEvent (player, match, minute)
+      - TrainingSession / RandomizedTeam (for the team-randomizer feature)
+[ ] REST API resource controllers + form request validation for each
+    model above
+[ ] Policies/gates so only committee/admin roles can write; public reads
+    for fixtures/results/squad stay open (no auth) for the marketing site
+[ ] API resource (JSON) shaping to match the TypeScript types already
+    used in src/lib/clubData.ts, so the frontend swap is mechanical
+[ ] Seed data + factories for local development
+
+
+PHASE 5 — CONNECT FRONTEND TO THE REAL API
+-----------------------------------------------
+[ ] Replace src/lib/clubData.ts static exports with an API client
+    (fetch/axios) hitting the Laravel backend
+[ ] Add loading/empty/error states to every section that currently
+    renders mock data directly
+[ ] Real authentication against Sanctum from the /login page and the
+    /admin section
+[ ] Environment config for local (XAMPP) vs. production API URLs
+
+
+PHASE 6 — MOBILE APP (REACT NATIVE)
+----------------------------------------
+[ ] Expo project in /mobile
+[ ] Shared API client / types with the web app where practical
+[ ] Priority screens: squad, fixtures/results, player profile,
+    admin login
+[ ] Admin-only screens on mobile (cards/fines, record a match result)
+    once the equivalent web admin flows are stable
+[ ] Push notifications for fixture reminders (stretch goal)
+
+
+PHASE 7 — POLISH & LAUNCH
+------------------------------
+[ ] Accessibility pass (contrast, focus order, screen reader labels)
+    across both the marketing site and the admin dashboard
+[ ] Performance pass — image optimization, code splitting for /admin
+[ ] Deploy backend + MySQL, deploy frontend, point the club's domain at
+    it
+[ ] Handover / short admin-user guide for the committee
+
+
+HOW TO RUN THE FRONTEND RIGHT NOW
+--------------------------------------
+  cd frontend
+  npm install     (already run once)
+  npm run dev
+  → http://localhost:5173

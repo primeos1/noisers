@@ -1,0 +1,64 @@
+import { photos } from "../lib/photos";
+import { nextFixture } from "../lib/clubData";
+import logoWhite from "../assets/brand/logo-white.png";
+
+export default function Hero() {
+  return (
+    <section className="relative flex min-h-[92svh] items-end overflow-hidden border-b border-ink-line">
+      <img
+        src={photos.heroNight}
+        alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
+        className="duotone absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+      />
+      <div className="duotone-wash pointer-events-none absolute inset-0" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
+
+      <img
+        src={logoWhite}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 top-1/2 hidden w-[38rem] -translate-y-1/2 opacity-[0.07] md:block"
+      />
+
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-16 pt-40 md:px-10 md:pb-24">
+        <p className="animate-hero-in text-sm text-paper-dim [animation-delay:0ms]">
+          Est. 2021 · Grassroots five-a-side
+        </p>
+
+        <h1 className="animate-hero-in mt-4 max-w-3xl font-display text-6xl leading-[0.95] tracking-tight text-paper [animation-delay:80ms] sm:text-7xl md:text-8xl">
+          Vale to zenith.
+        </h1>
+
+        <p className="animate-hero-in mt-6 max-w-lg text-lg leading-relaxed text-paper-dim [animation-delay:160ms]">
+          Noisers FC is a small-sided club built on the same pitch we still
+          play on. Every set, every card, every goal — logged, tracked and
+          built into a squad that keeps climbing.
+        </p>
+
+        <div className="animate-hero-in mt-9 flex flex-wrap items-center gap-4 [animation-delay:240ms]">
+          <a
+            href="#squad"
+            className="border border-paper bg-paper px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper"
+          >
+            Meet the squad
+          </a>
+          <a
+            href="#matchday"
+            className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
+          >
+            See fixtures
+          </a>
+        </div>
+
+        <div className="animate-hero-in mt-14 flex items-center gap-4 border-t border-ink-line pt-6 text-sm text-paper-dim [animation-delay:320ms]">
+          <span className="text-paper">Next up</span>
+          <span>
+            Noisers FC v {nextFixture.opponent} · {nextFixture.date}, {nextFixture.time} ·{" "}
+            {nextFixture.location}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
