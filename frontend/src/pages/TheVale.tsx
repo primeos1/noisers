@@ -1,6 +1,7 @@
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { findPlayer } from "../lib/clubData";
+import { useSquad } from "../lib/SquadContext";
 import {
   mostImprovedPlayer,
   playerOfTheWeek,
@@ -9,12 +10,13 @@ import {
 } from "../lib/weeklyAwards";
 
 export default function TheVale() {
-  const lineup = teamOfTheWeek.lineupNumbers.map(findPlayer);
-  const potw = findPlayer(playerOfTheWeek.playerNumber);
-  const mip = findPlayer(mostImprovedPlayer.playerNumber);
-  const topScorer = findPlayer(weeklyLeaders.topScorer.playerNumber);
-  const topAssist = findPlayer(weeklyLeaders.topAssist.playerNumber);
-  const cleanSheetLeaders = weeklyLeaders.cleanSheets.map(findPlayer);
+  const { players } = useSquad();
+  const lineup = teamOfTheWeek.lineupNumbers.map((n) => findPlayer(players, n));
+  const potw = findPlayer(players, playerOfTheWeek.playerNumber);
+  const mip = findPlayer(players, mostImprovedPlayer.playerNumber);
+  const topScorer = findPlayer(players, weeklyLeaders.topScorer.playerNumber);
+  const topAssist = findPlayer(players, weeklyLeaders.topAssist.playerNumber);
+  const cleanSheetLeaders = weeklyLeaders.cleanSheets.map((n) => findPlayer(players, n));
 
   return (
     <Layout>
@@ -40,9 +42,9 @@ export default function TheVale() {
             Team of the week
           </h2>
           <p className="mt-4 max-w-xl text-paper-dim">
-            {teamOfTheWeek.setsWon} of {teamOfTheWeek.setsPlayed} sets won this
-            week, capped by a {teamOfTheWeek.score} win over{" "}
-            {teamOfTheWeek.opponent}.
+            {teamOfTheWeek.sessionsWon} of {teamOfTheWeek.sessionsPlayed} match
+            days won this week, capped by a {teamOfTheWeek.score} win over{" "}
+            {teamOfTheWeek.rivalTeam}.
           </p>
 
           <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-4 lg:grid-cols-8">

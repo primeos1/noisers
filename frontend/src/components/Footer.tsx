@@ -35,15 +35,25 @@ export default function Footer() {
                   Highlights
                 </Link>
               </li>
+              <li>
+                <Link to="/performance" className="hover:text-paper">
+                  Performance
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
-            <p className="text-sm text-paper">Management</p>
+            <p className="text-sm text-paper">Access</p>
             <ul className="mt-3 space-y-2 text-sm text-paper-dim">
               <li>
                 <Link to="/login" className="hover:text-paper">
                   Club login
+                </Link>
+              </li>
+              <li>
+                <Link to="/player-login" className="hover:text-paper">
+                  Player login
                 </Link>
               </li>
             </ul>

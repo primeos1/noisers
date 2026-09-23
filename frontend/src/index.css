@@ -10,6 +10,10 @@
   --color-paper: #f6f6f3;
   --color-paper-dim: #c7cbd6;
   --color-mist: #8a93a6;
+
+  --color-win: #2f9e8a;
+  --color-draw: #a8841f;
+  --color-loss: #c23b6b;
 }
 
 @layer base {
@@ -69,6 +73,209 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  /* Login page: floodlight sweep across the tunnel backdrop */
+  .floodlight-sweep {
+    background: conic-gradient(
+      from 0deg at 50% -10%,
+      transparent 0deg,
+      rgba(246, 246, 243, 0.07) 6deg,
+      transparent 16deg,
+      transparent 168deg,
+      rgba(246, 246, 243, 0.05) 178deg,
+      transparent 188deg,
+      transparent 360deg
+    );
+    mix-blend-mode: screen;
+    animation: sweep-rotate 22s linear infinite;
+  }
+
+  @keyframes sweep-rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Login page: cursor-tracked spotlight, position set via --spot-x/--spot-y */
+  .spotlight {
+    background: radial-gradient(
+      circle at var(--spot-x, 50%) var(--spot-y, 15%),
+      rgba(246, 246, 243, 0.09),
+      transparent 40%
+    );
+    transition: background 120ms linear;
+  }
+
+  /* Login page: faint animated grain, nodding to the club's namesake noise */
+  .grain {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    animation: grain-shift 1s steps(4) infinite;
+  }
+
+  @keyframes grain-shift {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(-2%, 1%);
+    }
+    50% {
+      transform: translate(1%, -2%);
+    }
+    75% {
+      transform: translate(-1%, -1%);
+    }
+  }
+
+  /* Login page: small equalizer mark beside the wordmark */
+  .eq {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+    margin-left: 2px;
+  }
+
+  .eq span {
+    width: 3px;
+    transform-origin: bottom;
+    background: var(--color-paper);
+    animation: eq-bounce 1s ease-in-out infinite;
+  }
+
+  .eq span:nth-child(1) {
+    height: 40%;
+    animation-delay: 0ms;
+  }
+
+  .eq span:nth-child(2) {
+    height: 100%;
+    animation-delay: 150ms;
+  }
+
+  .eq span:nth-child(3) {
+    height: 60%;
+    animation-delay: 300ms;
+  }
+
+  .eq span:nth-child(4) {
+    height: 80%;
+    animation-delay: 450ms;
+  }
+
+  @keyframes eq-bounce {
+    0%,
+    100% {
+      transform: scaleY(0.4);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+
+  /* Login page: viewfinder-style corner brackets on the form card */
+  .corner {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-color: var(--color-paper);
+    opacity: 0;
+    animation: corner-in 0.5s ease-out forwards;
+  }
+
+  .corner-tl {
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+    animation-delay: 0.35s;
+  }
+
+  .corner-tr {
+    top: -1px;
+    right: -1px;
+    border-top: 2px solid;
+    border-right: 2px solid;
+    animation-delay: 0.45s;
+  }
+
+  .corner-bl {
+    bottom: -1px;
+    left: -1px;
+    border-bottom: 2px solid;
+    border-left: 2px solid;
+    animation-delay: 0.45s;
+  }
+
+  .corner-br {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+    animation-delay: 0.55s;
+  }
+
+  @keyframes corner-in {
+    from {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Login page: scoreboard-flap wipe reveal for the heading */
+  .reveal-text {
+    position: relative;
+    display: inline-block;
+  }
+
+  .reveal-text::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--color-paper);
+    transform-origin: right;
+    animation: wipe-off 0.7s cubic-bezier(0.76, 0, 0.24, 1) 0.4s both;
+  }
+
+  @keyframes wipe-off {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  /* Login page: shimmer sweep for the pending sign-in button */
+  .shimmer-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgba(246, 246, 243, 0.16) 50%,
+      transparent 70%
+    );
+    transform: translateX(-100%);
+    animation: shimmer-sweep 2.6s ease-in-out infinite;
+  }
+
+  @keyframes shimmer-sweep {
+    to {
+      transform: translateX(100%);
     }
   }
 

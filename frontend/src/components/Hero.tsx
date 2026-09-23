@@ -1,9 +1,13 @@
 import { Link } from "react-router-dom";
 import { photos } from "../lib/photos";
-import { nextFixture } from "../lib/clubData";
+import { useMatchDay } from "../lib/MatchDayContext";
+import { allGames, scoreOf } from "../lib/matchDay";
 import logoWhite from "../assets/brand/logo-white.png";
 
 export default function Hero() {
+  const { events } = useMatchDay();
+  const last = allGames(events).pop();
+
   return (
     <section className="relative flex min-h-[92svh] items-end overflow-hidden border-b border-ink-line">
       <img
@@ -48,17 +52,19 @@ export default function Hero() {
             href="#matchday"
             className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
           >
-            See fixtures
+            See match days
           </a>
         </div>
 
+        {last && (
         <div className="animate-hero-in mt-14 flex items-center gap-4 border-t border-ink-line pt-6 text-sm text-paper-dim [animation-delay:320ms]">
-          <span className="text-paper">Next up</span>
+          <span className="text-paper">Last match day</span>
           <span>
-            Noisers FC v {nextFixture.opponent} · {nextFixture.date}, {nextFixture.time} ·{" "}
-            {nextFixture.location}
+            {last.game.teams[0].name} {scoreOf(last.game, 0)}–{scoreOf(last.game, 1)}{" "}
+            {last.game.teams[1].name} · {last.event.date}
           </span>
         </div>
+        )}
       </div>
     </section>
   );

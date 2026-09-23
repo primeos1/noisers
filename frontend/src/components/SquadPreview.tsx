@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { squad } from "../lib/clubData";
+import { useSquad } from "../lib/SquadContext";
 
 const positionLabel: Record<string, string> = {
   GK: "Goalkeeper",
@@ -9,7 +9,8 @@ const positionLabel: Record<string, string> = {
 };
 
 export default function SquadPreview() {
-  const featured = squad.slice(0, 8);
+  const { players } = useSquad();
+  const featured = players.slice(0, 8);
 
   return (
     <section id="squad" className="border-b border-ink-line bg-ink">

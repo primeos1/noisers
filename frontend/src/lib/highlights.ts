@@ -27,12 +27,12 @@ export interface HighlightItem {
 }
 
 export const highlights: HighlightItem[] = [
-  { id: "h1", type: "photo", src: photos.keeperSave, alt: "Goalkeeper diving to make a save", caption: "Adaralegbe's full-stretch save vs Dockside", category: "Saves", date: "20 Sep 2026", tall: true },
+  { id: "h1", type: "photo", src: photos.keeperSave, alt: "Goalkeeper diving to make a save", caption: "Adaralegbe's full-stretch save", category: "Saves", date: "20 Sep 2026", tall: true },
   { id: "h2", type: "photo", src: photos.scissorKick, alt: "Player attempting an overhead kick", caption: "Fashola's scissor-kick attempt", category: "Skills", date: "20 Sep 2026", tall: true },
   { id: "h3", type: "photo", src: photos.dribbleClose, alt: "Close-up of a player dribbling the ball", caption: "Owolabi driving through midfield", category: "Skills", date: "20 Sep 2026" },
   { id: "h4", type: "photo", src: photos.tackleChallenge, alt: "Two players challenging for the ball", caption: "Obinna wins the challenge", category: "Matchday", date: "20 Sep 2026" },
   { id: "h5", type: "photo", src: photos.bootOnBall, alt: "Boot striking the ball on turf", caption: "Idehen's second of the afternoon", category: "Goals", date: "20 Sep 2026" },
-  { id: "h6", type: "photo", src: photos.stadiumCrowd, alt: "Crowd watching a match from the stands", caption: "A full touchline for the Dockside away day", category: "Matchday", date: "20 Sep 2026", tall: true },
+  { id: "h6", type: "photo", src: photos.stadiumCrowd, alt: "Crowd watching a match from the stands", caption: "A full touchline for match day", category: "Matchday", date: "20 Sep 2026", tall: true },
   { id: "h7", type: "photo", src: photos.tackleTwo, alt: "Players in a tackle during a match", caption: "Bakare closes it down", category: "Matchday", date: "13 Sep 2026" },
   { id: "h8", type: "photo", src: photos.dribbleAlt, alt: "Player's boots controlling the ball on grass", caption: "Uzo's first touch, under pressure", category: "Skills", date: "13 Sep 2026" },
   { id: "h9", type: "photo", src: photos.ballInNet, alt: "Ball resting in the back of the net", caption: "3-1. Game over.", category: "Goals", date: "13 Sep 2026" },

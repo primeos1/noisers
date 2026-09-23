@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { squad, squadHonours, type Position } from "../lib/clubData";
+import { getSquadHonours, type Position } from "../lib/clubData";
+import { useSquad } from "../lib/SquadContext";
 
 const positionLabel: Record<Position, string> = {
   GK: "Goalkeeper",
@@ -19,12 +21,15 @@ const filters: { label: string; value: Position | "ALL" }[] = [
 ];
 
 export default function Squad() {
+  const { players } = useSquad();
   const [filter, setFilter] = useState<Position | "ALL">("ALL");
 
   const visible = useMemo(
-    () => (filter === "ALL" ? squad : squad.filter((p) => p.position === filter)),
-    [filter],
+    () => (filter === "ALL" ? players : players.filter((p) => p.position === filter)),
+    [players, filter],
   );
+
+  const squadHonours = useMemo(() => getSquadHonours(players), [players]);
 
   return (
     <Layout>
@@ -36,10 +41,20 @@ export default function Squad() {
 
       <section className="border-b border-ink-line bg-ink">
         <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
-          <p className="text-sm text-paper-dim">Squad honours</p>
-          <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
-            Best in position
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm text-paper-dim">Squad honours</p>
+              <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
+                Best in position
+              </h2>
+            </div>
+            <Link
+              to="/performance"
+              className="border border-paper/40 px-5 py-2.5 text-sm text-paper transition-colors hover:border-paper"
+            >
+              View performance dashboard →
+            </Link>
+          </div>
 
           <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line lg:grid-cols-4">
             {squadHonours.map((honour) => (

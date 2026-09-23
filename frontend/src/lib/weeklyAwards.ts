@@ -7,9 +7,9 @@ import { photos } from "./photos";
 export interface TeamOfTheWeek {
   week: string;
   dateRange: string;
-  setsWon: number;
-  setsPlayed: number;
-  opponent: string;
+  sessionsWon: number;
+  sessionsPlayed: number;
+  rivalTeam: string;
   score: string;
   photo: string;
   lineupNumbers: number[];
@@ -18,10 +18,10 @@ export interface TeamOfTheWeek {
 export const teamOfTheWeek: TeamOfTheWeek = {
   week: "Week 12",
   dateRange: "15–21 Sep 2026",
-  setsWon: 4,
-  setsPlayed: 5,
-  opponent: "Dockside Rovers",
-  score: "4–2",
+  sessionsWon: 4,
+  sessionsPlayed: 5,
+  rivalTeam: "Team B",
+  score: "2–1",
   photo: photos.stadiumCrowd,
   lineupNumbers: [1, 4, 5, 7, 8, 9, 10, 14],
 };
@@ -34,7 +34,7 @@ export interface PlayerSpotlight {
 
 export const playerOfTheWeek: PlayerSpotlight = {
   playerNumber: 9,
-  note: "Two goals and the assist that sealed it away at Dockside — Idehen's third player-of-the-week award this season.",
+  note: "Two goals and the assist that sealed the week's closest match day — Idehen's third player-of-the-week award this season.",
   weekRating: 9.1,
 };
 

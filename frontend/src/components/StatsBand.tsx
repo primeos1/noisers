@@ -1,7 +1,11 @@
-import { clubStats } from "../lib/clubData";
+import { seasonStats } from "../lib/clubData";
+import { useSquad } from "../lib/SquadContext";
 import { photos } from "../lib/photos";
 
 export default function StatsBand() {
+  const { players } = useSquad();
+  const clubStats = [{ value: String(players.length), label: "Squad" }, ...seasonStats];
+
   return (
     <section className="relative border-b border-ink-line">
       <img

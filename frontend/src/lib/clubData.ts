@@ -21,7 +21,7 @@ function avatar(id: number) {
   return `https://i.pravatar.cc/400?img=${id}`;
 }
 
-export const squad: Player[] = [
+export const seedSquad: Player[] = [
   { number: 1, name: "Femi Adaralegbe", position: "GK", photo: avatar(12), rating: 7.8, appearances: 14, goals: 0, assists: 1, cleanSheets: 9 },
   { number: 23, name: "Chuka Nwafor", position: "GK", photo: avatar(13), rating: 7.1, appearances: 6, goals: 0, assists: 0, cleanSheets: 3 },
 
@@ -43,68 +43,50 @@ export const squad: Player[] = [
   { number: 17, name: "Kola Adisa", position: "FWD", photo: avatar(54), rating: 6.8, appearances: 10, goals: 3, assists: 1, cleanSheets: 0 },
 ];
 
-export function findPlayer(number: number): Player {
-  const player = squad.find((p) => p.number === number);
+export function findPlayer(players: Player[], number: number): Player {
+  const player = players.find((p) => p.number === number);
   if (!player) throw new Error(`Unknown player number ${number}`);
   return player;
 }
 
-function best(position: Position, key: "goals" | "assists" | "cleanSheets") {
-  return squad
-    .filter((p) => p.position === position)
-    .reduce((top, player) => (player[key] > top[key] ? player : top));
+export function nextJerseyNumber(players: Player[]): number {
+  const taken = new Set(players.map((p) => p.number));
+  for (let n = 1; n < 100; n++) if (!taken.has(n)) return n;
+  return 99;
 }
 
-export const bestStriker = best("FWD", "goals");
-export const bestMidfielder = best("MID", "assists");
-export const bestDefender = best("DEF", "cleanSheets");
-export const bestGoalkeeper = best("GK", "cleanSheets");
-
-export const squadHonours = [
-  { title: "Top striker", statLabel: "goals", value: bestStriker.goals, player: bestStriker },
-  { title: "Top midfielder", statLabel: "assists", value: bestMidfielder.assists, player: bestMidfielder },
-  { title: "Top defender", statLabel: "clean sheets", value: bestDefender.cleanSheets, player: bestDefender },
-  { title: "Top goalkeeper", statLabel: "clean sheets", value: bestGoalkeeper.cleanSheets, player: bestGoalkeeper },
-];
-
-export interface Fixture {
-  opponent: string;
-  competition: string;
-  date: string;
-  time: string;
-  venue: "Home" | "Away";
-  location: string;
+function bestBy(players: Player[], position: Position, key: "goals" | "assists" | "cleanSheets") {
+  const inPosition = players.filter((p) => p.position === position);
+  if (inPosition.length === 0) return null;
+  return inPosition.reduce((top, player) => (player[key] > top[key] ? player : top));
 }
 
-export const nextFixture: Fixture = {
-  opponent: "Kestrel Athletic",
-  competition: "Vale Sunday 5-a-side League",
-  date: "Sat 27 Sep",
-  time: "15:00",
-  venue: "Home",
-  location: "Zenith Astro, Pitch 2",
-};
-
-export interface Result {
-  opponent: string;
-  scoreFor: number;
-  scoreAgainst: number;
-  venue: "Home" | "Away";
-  date: string;
-  scorers: string[];
+export interface SquadHonour {
+  title: string;
+  statLabel: string;
+  value: number;
+  player: Player;
 }
 
-export const latestResult: Result = {
-  opponent: "Dockside Rovers",
-  scoreFor: 4,
-  scoreAgainst: 2,
-  venue: "Away",
-  date: "Sat 20 Sep",
-  scorers: ["Idehen 2'", "Fashola 34'", "Owolabi 61'"],
-};
+export function getSquadHonours(players: Player[]): SquadHonour[] {
+  const striker = bestBy(players, "FWD", "goals");
+  const midfielder = bestBy(players, "MID", "assists");
+  const defender = bestBy(players, "DEF", "cleanSheets");
+  const keeper = bestBy(players, "GK", "cleanSheets");
 
-export const clubStats = [
-  { value: "16", label: "Squad" },
+  return [
+    striker && { title: "Top striker", statLabel: "goals", value: striker.goals, player: striker },
+    midfielder && { title: "Top midfielder", statLabel: "assists", value: midfielder.assists, player: midfielder },
+    defender && { title: "Top defender", statLabel: "clean sheets", value: defender.cleanSheets, player: defender },
+    keeper && { title: "Top goalkeeper", statLabel: "clean sheets", value: keeper.cleanSheets, player: keeper },
+  ].filter((h): h is SquadHonour => h !== null);
+}
+
+export function topByStat(players: Player[], key: "goals" | "assists" | "cleanSheets" | "rating", count = 5) {
+  return [...players].sort((a, b) => b[key] - a[key]).slice(0, count);
+}
+
+export const seasonStats = [
   { value: "14", label: "Wins this season" },
   { value: "38", label: "Goals scored" },
   { value: "9", label: "Clean sheets" },
