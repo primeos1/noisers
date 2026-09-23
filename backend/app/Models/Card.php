@@ -15,8 +15,10 @@ class Card extends Model
         'player_id',
         'fixture_id',
         'type',
+        'reason',
         'fine_amount',
         'paid',
+        'occurred_on',
     ];
 
     protected function casts(): array
@@ -24,6 +26,7 @@ class Card extends Model
         return [
             'fine_amount' => 'decimal:2',
             'paid' => 'boolean',
+            'occurred_on' => 'date',
         ];
     }
 

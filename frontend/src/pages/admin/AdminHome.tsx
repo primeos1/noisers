@@ -1,19 +1,16 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import StatTile from "../../components/admin/StatTile";
 import { useSquad } from "../../lib/SquadContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { scoreOf } from "../../lib/matchDay";
 import { topByStat } from "../../lib/clubData";
-import { cards, outstandingFines, recentCards } from "../../lib/cards";
-import { useAuth } from "../../lib/AuthContext";
+import { outstandingFines, recentCards, formatNaira } from "../../lib/cards";
+import { useCards } from "../../lib/CardsContext";
 
 export default function AdminHome() {
   const { players } = useSquad();
   const { events } = useMatchDay();
-  const { playerPasscode, setPlayerPasscode } = useAuth();
-  const [passcodeDraft, setPasscodeDraft] = useState(playerPasscode);
-  const [saved, setSaved] = useState(false);
+  const { cards } = useCards();
 
   const lastEvent = events[events.length - 1];
   const lastEventWithGame = [...events].reverse().find((e) => e.games.length > 0);
@@ -47,12 +44,12 @@ export default function AdminHome() {
         />
         <StatTile
           label="Outstanding fines"
-          value={`£${fines}`}
+          value={formatNaira(fines)}
           hint={`${cards.filter((c) => !c.paid).length} unpaid card${cards.filter((c) => !c.paid).length === 1 ? "" : "s"}`}
         />
       </div>
 
-      <div className="mt-12 grid gap-px bg-ink-line md:grid-cols-2">
+      <div className="mt-12 grid gap-px bg-ink-line md:grid-cols-2 lg:grid-cols-4">
         <div className="bg-ink p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-paper">Manage squad</h2>
@@ -76,10 +73,39 @@ export default function AdminHome() {
             {events.length} match days logged. View history or start a new one.
           </p>
         </div>
+
+        <div className="bg-ink p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl text-paper">Manage cards</h2>
+            <Link to="/admin/cards" className="text-sm text-paper-dim hover:text-paper">
+              Open →
+            </Link>
+          </div>
+          <p className="mt-2 text-sm text-paper-dim">
+            {cards.length} cards logged. Log a new one or mark a fine paid.
+          </p>
+        </div>
+
+        <div className="bg-ink p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl text-paper">Settings</h2>
+            <Link to="/admin/settings" className="text-sm text-paper-dim hover:text-paper">
+              Open →
+            </Link>
+          </div>
+          <p className="mt-2 text-sm text-paper-dim">
+            Card fines, match day defaults and the player portal passcode.
+          </p>
+        </div>
       </div>
 
       <div className="mt-12">
-        <h2 className="font-display text-2xl text-paper">Recent cards</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-2xl text-paper">Recent cards</h2>
+          <Link to="/admin/cards" className="text-sm text-paper-dim hover:text-paper">
+            View all →
+          </Link>
+        </div>
         <div className="mt-4 border border-ink-line">
           {recent.length === 0 ? (
             <p className="p-6 text-sm text-paper-dim">No cards logged.</p>
@@ -112,7 +138,7 @@ export default function AdminHome() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-paper-dim">{card.reason}</td>
-                      <td className="px-4 py-3 text-paper-dim">£{card.fine}</td>
+                      <td className="px-4 py-3 text-paper-dim">{formatNaira(card.fine)}</td>
                       <td className="px-4 py-3">
                         <span className={card.paid ? "text-win" : "text-paper-dim"}>
                           {card.paid ? "Paid" : "Unpaid"}
@@ -125,38 +151,6 @@ export default function AdminHome() {
             </table>
           )}
         </div>
-      </div>
-
-      <div className="mt-12 max-w-md">
-        <h2 className="font-display text-2xl text-paper">Player portal access</h2>
-        <p className="mt-2 text-sm text-paper-dim">
-          One shared passcode for the whole squad — share it however you
-          normally reach the team, so every player can sign in at{" "}
-          <span className="text-paper">/player-login</span> and see everyone's
-          profile, performance and disciplinary record.
-        </p>
-        <form
-          className="mt-4 flex gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setPlayerPasscode(passcodeDraft.trim() || playerPasscode);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-          }}
-        >
-          <input
-            type="text"
-            value={passcodeDraft}
-            onChange={(e) => setPasscodeDraft(e.target.value)}
-            className="flex-1 border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper"
-          />
-          <button
-            type="submit"
-            className="border border-paper bg-paper px-4 py-2 text-sm font-medium text-ink hover:bg-transparent hover:text-paper"
-          >
-            {saved ? "Saved" : "Save"}
-          </button>
-        </form>
       </div>
     </div>
   );

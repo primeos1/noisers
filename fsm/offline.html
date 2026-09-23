@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Noisers Football Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #00b4db;
+            --secondary: #0083b0;
+            --bg-dark: #050510;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-green: #4ade80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-dark);
+            background: radial-gradient(circle at top right, #1a1a3a, var(--bg-dark));
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Ambient Background Blobs */
+        .ambient-light {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -1;
+            animation: drift 20s infinite alternate ease-in-out;
+        }
+
+        @keyframes drift {
+            from { transform: translate(-30%, -30%); }
+            to { transform: translate(30%, 30%); }
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 3rem 2rem;
+            border-radius: 32px;
+            width: 90%;
+            max-width: 460px;
+            text-align: center;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Animated Icon Section */
+        .status-header {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .fa-wifi-slash {
+            font-size: 4.5rem;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(0, 180, 219, 0.3));
+        }
+
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { width: 80px; height: 80px; opacity: 0.6; }
+            100% { width: 160px; height: 160px; opacity: 0; }
+        }
+
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.5px; }
+        p { color: #b0b0c0; line-height: 1.6; margin-bottom: 2.5rem; font-size: 0.95rem; }
+
+        /* Scrollable Dynamic List */
+        .section-label {
+            text-align: left;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .cache-list {
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 8px;
+            text-align: left;
+        }
+
+        .cache-list::-webkit-scrollbar { width: 4px; }
+        .cache-list::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        .cache-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cache-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            transform: translateX(6px);
+        }
+
+        .item-content { display: flex; align-items: center; gap: 14px; }
+        .item-content i { color: var(--primary); font-size: 1rem; }
+        .item-name { font-weight: 600; font-size: 0.9rem; }
+        
+        .status-badge {
+            font-size: 0.65rem;
+            background: rgba(74, 222, 128, 0.1);
+            color: var(--accent-green);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .btn-retry {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-retry:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 180, 219, 0.4);
+            filter: brightness(1.1);
+        }
+    </style>
+</head><body>
+    <div class="ambient-light"></div>
+    
+    <div class="card">
+        <div class="status-header">
+            <i class="fas fa-wifi-slash"></i>
+            <div class="pulse-ring"></div>
+        </div>
+        
+        <h1>Connection Lost</h1>
+        <p>You're offline, Kindly connect to the internet</p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 2rem;">
+            <button onclick="window.location.reload()" class="btn-retry" style="margin-top: 0;">
+                <i class="fas fa-rotate-right"></i> Try to Reconnect
+            </button>
+            
+       
+        </div>
+
+        <div id="cachedSection" style="display: none; padding-top: 1rem; border-top: 1px solid var(--glass-border);">
+            <div class="section-label">Stored Locally</div>
+            <div class="cache-list" id="dynamicList">
+                </div>
+        </div>
+    </div>
+
+    <style>
+        /* New Secondary Button Style */
+        .btn-secondary {
+            width: 100%;
+            background: var(--glass);
+            color: white;
+            border: 1px solid var(--glass-border);
+            padding: 14px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary);
+        }
+
+        /* Smooth scrolling for the card content */
+        .card {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .card::-webkit-scrollbar { display: none; }
+    </style>
+
+    <script>
+        // Function to scroll down to the saved pages list
+        function scrollToContent() {
+            const section = document.getElementById('cachedSection');
+            if (section.style.display === 'none') {
+                alert("No saved pages found yet. Visit pages while online to save them!");
+            } else {
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+  
+    // Existing function to load cached pages
+    async function loadOfflinePages() {
+        if (!('caches' in window)) return;
+
+        const list = document.getElementById('dynamicList');
+        const section = document.getElementById('cachedSection');
+        list.innerHTML = ''; 
+
+        const cacheNames = ['fsm-static-v3', 'fsm-dynamic-v3'];
+        let foundPages = 0;
+        
+        for (const name of cacheNames) {
+            try {
+                const cache = await caches.open(name);
+                const keys = await cache.keys();
+                
+                keys.forEach(request => {
+                    const url = new URL(request.url);
+                    if (url.pathname.includes('.php') || url.pathname.endsWith('/')) {
+                        foundPages++;
+                        let fileName = url.pathname.split('/').pop() || 'Home';
+                        fileName = fileName.replace('.php', '').toUpperCase();
+
+                        list.innerHTML += `
+                            <div class="cache-item" onclick="window.location.href='${request.url}'">
+                                <div class="item-content">
+                                    <i class="fas fa-file-lines"></i>
+                                    <span class="item-name">${fileName}</span>
+                                </div>
+                                <span class="status-badge">OFFLINE READY</span>
+                            </div>`;
+                    }
+                });
+            } catch (e) { console.log("Cache error", e); }
+        }
+
+        if (foundPages > 0) section.style.display = 'block';
+    }
+
+    // NEW: Automatic Reconnection Logic
+    // This checks the browser's online status every 5 seconds
+    const autoRetry = setInterval(() => {
+        if (navigator.onLine) {
+            clearInterval(autoRetry); // Stop the interval if we are online
+            window.location.reload(); // Refresh to try and reach the server
+        } else {
+            console.log("Still offline... retrying in 5 seconds.");
+            // Optional: You can trigger a small animation on the "Retry" button here
+            const retryBtn = document.querySelector('.btn-retry');
+            if(retryBtn) retryBtn.style.opacity = "0.7";
+            setTimeout(() => { if(retryBtn) retryBtn.style.opacity = "1"; }, 500);
+        }
+    }, 5000);
+
+    // Immediate redirect if the 'online' event fires
+    window.addEventListener('online', () => {
+        clearInterval(autoRetry);
+        window.location.href = 'index.php';
+    });
+
+    function scrollToContent() {
+        const section = document.getElementById('cachedSection');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    loadOfflinePages();
+</script>
+</body>
+</html>

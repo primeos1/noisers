@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import Modal from "./Modal";
 import type { Player } from "../../lib/clubData";
-import { FINE_AMOUNTS, formatNaira, type CardRecord, type CardType } from "../../lib/cards";
+import { formatNaira, type CardRecord, type CardType } from "../../lib/cards";
+import { useSettings } from "../../lib/SettingsContext";
 
 const inputClass =
   "mt-1 w-full border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper";
@@ -24,6 +25,11 @@ export default function CardFormModal({
   onSubmit: (card: CardRecord) => void;
   onClose: () => void;
 }) {
+  const { settings } = useSettings();
+  const fineAmounts: Record<CardType, number> = {
+    yellow: settings.yellowCardFine,
+    red: settings.redCardFine,
+  };
   const sorted = [...players].sort((a, b) => a.number - b.number);
   const [playerNumber, setPlayerNumber] = useState<number>(sorted[0]?.number ?? 0);
   const [type, setType] = useState<CardType>("yellow");
@@ -42,7 +48,7 @@ export default function CardFormModal({
       playerNumber,
       type,
       reason: reason.trim(),
-      fine: FINE_AMOUNTS[type],
+      fine: fineAmounts[type],
       paid: false,
       date,
     });
@@ -81,7 +87,7 @@ export default function CardFormModal({
                 <span className={t === "red" ? "text-loss" : "text-draw"}>
                   {t === "red" ? "Red card" : "Yellow card"}
                 </span>
-                <p className="mt-1 text-xs text-mist">{formatNaira(FINE_AMOUNTS[t])} fine</p>
+                <p className="mt-1 text-xs text-mist">{formatNaira(fineAmounts[t])} fine</p>
               </button>
             ))}
           </div>

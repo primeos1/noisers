@@ -1,22 +1,23 @@
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { findPlayer } from "../lib/clubData";
 import { useSquad } from "../lib/SquadContext";
-import {
-  mostImprovedPlayer,
-  playerOfTheWeek,
-  teamOfTheWeek,
-  weeklyLeaders,
-} from "../lib/weeklyAwards";
+import { useValeContent } from "../lib/ValeContentContext";
+import { photos } from "../lib/photos";
 
 export default function TheVale() {
   const { players } = useSquad();
-  const lineup = teamOfTheWeek.lineupNumbers.map((n) => findPlayer(players, n));
-  const potw = findPlayer(players, playerOfTheWeek.playerNumber);
-  const mip = findPlayer(players, mostImprovedPlayer.playerNumber);
-  const topScorer = findPlayer(players, weeklyLeaders.topScorer.playerNumber);
-  const topAssist = findPlayer(players, weeklyLeaders.topAssist.playerNumber);
-  const cleanSheetLeaders = weeklyLeaders.cleanSheets.map((n) => findPlayer(players, n));
+  const { content } = useValeContent();
+  const { teamOfTheWeek, playerOfTheWeek, mostImproved: mostImprovedPlayer, weeklyLeaders } = content;
+  const lineup = teamOfTheWeek.lineupNumbers
+    .map((n) => players.find((p) => p.number === n))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  const potw = players.find((p) => p.number === playerOfTheWeek.playerNumber);
+  const mip = players.find((p) => p.number === mostImprovedPlayer.playerNumber);
+  const topScorer = players.find((p) => p.number === weeklyLeaders.topScorer.playerNumber);
+  const topAssist = players.find((p) => p.number === weeklyLeaders.topAssist.playerNumber);
+  const cleanSheetLeaders = weeklyLeaders.cleanSheets
+    .map((n) => players.find((p) => p.number === n))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   return (
     <Layout>
@@ -29,7 +30,7 @@ export default function TheVale() {
       {/* Team of the week */}
       <section className="relative border-b border-ink-line">
         <img
-          src={teamOfTheWeek.photo}
+          src={teamOfTheWeek.photo || photos.stadiumCrowd}
           alt="Noisers FC squad celebrating on the pitch"
           className="duotone absolute inset-0 h-full w-full object-cover opacity-40"
           loading="lazy"
@@ -47,24 +48,26 @@ export default function TheVale() {
             {teamOfTheWeek.rivalTeam}.
           </p>
 
-          <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-4 lg:grid-cols-8">
-            {lineup.map((player) => (
-              <div key={player.number} className="bg-ink/70 p-4 backdrop-blur">
-                <div className="relative aspect-square overflow-hidden border border-ink-line">
-                  <img
-                    src={player.photo}
-                    alt={player.name}
-                    className="duotone h-full w-full object-cover"
-                    loading="lazy"
-                  />
+          {lineup.length > 0 && (
+            <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-4 lg:grid-cols-8">
+              {lineup.map((player) => (
+                <div key={player.number} className="bg-ink/70 p-4 backdrop-blur">
+                  <div className="relative aspect-square overflow-hidden border border-ink-line">
+                    <img
+                      src={player.photo}
+                      alt={player.name}
+                      className="duotone h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <p className="mt-3 font-display text-lg leading-none text-paper">
+                    {player.number}
+                  </p>
+                  <p className="mt-1 text-xs text-paper-dim">{player.name}</p>
                 </div>
-                <p className="mt-3 font-display text-lg leading-none text-paper">
-                  {player.number}
-                </p>
-                <p className="mt-1 text-xs text-paper-dim">{player.name}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -72,23 +75,27 @@ export default function TheVale() {
       <section className="border-b border-ink-line bg-ink">
         <div className="mx-auto grid max-w-7xl md:grid-cols-2">
           <div className="flex flex-col gap-6 border-b border-ink-line p-10 sm:flex-row sm:items-start md:border-b-0 md:border-r">
-            <div className="h-28 w-28 shrink-0 overflow-hidden border border-ink-line">
-              <img
-                src={potw.photo}
-                alt={potw.name}
-                className="duotone h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
+            {potw && (
+              <div className="h-28 w-28 shrink-0 overflow-hidden border border-ink-line">
+                <img
+                  src={potw.photo}
+                  alt={potw.name}
+                  className="duotone h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
             <div>
               <p className="text-sm text-paper-dim">Player of the week</p>
               <h3 className="mt-2 font-display text-3xl text-paper">
-                {potw.name}
+                {potw?.name ?? "Coming soon"}
               </h3>
-              <p className="mt-1 text-sm text-mist">
-                #{potw.number} · {potw.position} · Week rating{" "}
-                {playerOfTheWeek.weekRating.toFixed(1)}
-              </p>
+              {potw && (
+                <p className="mt-1 text-sm text-mist">
+                  #{potw.number} · {potw.position} · Week rating{" "}
+                  {playerOfTheWeek.weekRating.toFixed(1)}
+                </p>
+              )}
               <p className="mt-4 max-w-md text-sm leading-relaxed text-paper-dim">
                 {playerOfTheWeek.note}
               </p>
@@ -96,24 +103,28 @@ export default function TheVale() {
           </div>
 
           <div className="flex flex-col gap-6 p-10 sm:flex-row sm:items-start">
-            <div className="h-28 w-28 shrink-0 overflow-hidden border border-ink-line">
-              <img
-                src={mip.photo}
-                alt={mip.name}
-                className="duotone h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
+            {mip && (
+              <div className="h-28 w-28 shrink-0 overflow-hidden border border-ink-line">
+                <img
+                  src={mip.photo}
+                  alt={mip.name}
+                  className="duotone h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
             <div>
               <p className="text-sm text-paper-dim">Most improved player</p>
               <h3 className="mt-2 font-display text-3xl text-paper">
-                {mip.name}
+                {mip?.name ?? "Coming soon"}
               </h3>
-              <p className="mt-1 text-sm text-mist">
-                #{mip.number} · {mip.position} · Rating{" "}
-                {mostImprovedPlayer.previousRating.toFixed(1)} →{" "}
-                {mostImprovedPlayer.currentRating.toFixed(1)}
-              </p>
+              {mip && (
+                <p className="mt-1 text-sm text-mist">
+                  #{mip.number} · {mip.position} · Rating{" "}
+                  {mostImprovedPlayer.previousRating.toFixed(1)} →{" "}
+                  {mostImprovedPlayer.currentRating.toFixed(1)}
+                </p>
+              )}
               <p className="mt-4 max-w-md text-sm leading-relaxed text-paper-dim">
                 {mostImprovedPlayer.note}
               </p>
@@ -139,7 +150,7 @@ export default function TheVale() {
                 {weeklyLeaders.topScorer.value} goals
               </p>
               <p className="mt-2 text-sm text-paper-dim">
-                {topScorer.name} · #{topScorer.number}
+                {topScorer ? `${topScorer.name} · #${topScorer.number}` : "—"}
               </p>
             </div>
 
@@ -151,7 +162,7 @@ export default function TheVale() {
                 {weeklyLeaders.topAssist.value} assists
               </p>
               <p className="mt-2 text-sm text-paper-dim">
-                {topAssist.name} · #{topAssist.number}
+                {topAssist ? `${topAssist.name} · #${topAssist.number}` : "—"}
               </p>
             </div>
 
@@ -163,7 +174,7 @@ export default function TheVale() {
                 {cleanSheetLeaders.length}
               </p>
               <p className="mt-2 text-sm text-paper-dim">
-                {cleanSheetLeaders.map((p) => p.name).join(", ")}
+                {cleanSheetLeaders.map((p) => p.name).join(", ") || "—"}
               </p>
             </div>
           </div>

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePlayerRequest;
 use App\Http\Requests\UpdatePlayerRequest;
 use App\Http\Resources\PlayerResource;
+use App\Models\MatchDayEvent;
 use App\Models\Player;
+use App\Support\PlayerStats;
 use Illuminate\Http\Request;
 
 class PlayerController extends Controller
@@ -16,10 +18,7 @@ class PlayerController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Player::query()->withCount([
-            'goalEvents as goals_count',
-            'assistEvents as assists_count',
-        ]);
+        $query = Player::query();
 
         if ($request->boolean('active_only', true)) {
             $query->where('active', true);
@@ -29,7 +28,11 @@ class PlayerController extends Controller
             $query->where('position', $request->string('position'));
         }
 
-        return PlayerResource::collection($query->orderBy('number')->get());
+        $players = $query->orderBy('number')->get();
+
+        $this->attachMatchDayStats($players);
+
+        return PlayerResource::collection($players);
     }
 
     /**
@@ -49,10 +52,7 @@ class PlayerController extends Controller
      */
     public function show(Player $player)
     {
-        $player->loadCount([
-            'goalEvents as goals_count',
-            'assistEvents as assists_count',
-        ]);
+        $this->attachMatchDayStats(collect([$player]));
 
         return new PlayerResource($player);
     }
@@ -79,5 +79,17 @@ class PlayerController extends Controller
         $player->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Player>  $players
+     */
+    private function attachMatchDayStats($players): void
+    {
+        $stats = PlayerStats::computeAll(MatchDayEvent::query()->get());
+
+        foreach ($players as $player) {
+            $player->setAttribute('match_day_stats', $stats[$player->number] ?? null);
+        }
     }
 }

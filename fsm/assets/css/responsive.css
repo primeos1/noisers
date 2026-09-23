@@ -1,0 +1,95 @@
+/* assets/css/responsive.css */
+
+/* Global responsive helpers */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* Utility: prevent wide elements from breaking layout */
+.responsive-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Layout containers */
+.main-content { padding: 12px; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 12px; }
+
+/* Grid and cards */
+.stats-grid { gap: 12px; }
+.sets-list { gap: 12px; }
+.set-card { word-break: break-word; }
+
+/* Tables: keep table inside scrollable container */
+.players-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.players-table { width: 100%; min-width: 640px; }
+
+/* Buttons and actions */
+.btn-action { white-space: nowrap; }
+
+/* FABs */
+.floating-action, .floating-action-sets { right: 18px; }
+
+/* ── Date inputs: always fill available width ─────────────── */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    width: 100%;
+  }
+}
+
+/* ── Search input: should always grow ────────────────────── */
+.search-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Small screens */
+@media (max-width: 1024px) {
+    .overview-grid { grid-template-columns: 1fr 320px; gap: 12px; }
+}
+
+@media (max-width: 768px) {
+    .match-header { padding: 8px 0; }
+    .match-header-content { display:flex; flex-direction:column; gap:8px; }
+    .match-meta { display:flex; flex-wrap:wrap; gap:8px; }
+    .match-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+    /* Hide large side sections to simplify mobile view */
+    .available-teams-section { display:none !important; }
+
+    .overview-grid { grid-template-columns: 1fr; }
+    .sets-list { display:flex; flex-direction:column; gap:12px; }
+    .set-card { padding:12px; }
+
+    .players-table { min-width: auto; }
+    .players-table-container { width: 100%; }
+
+    .quick-actions { display:flex; flex-direction:column; gap:8px; }
+    .quick-actions .btn-action { width:100%; }
+
+    .floating-action, .floating-action-sets { right: 14px; }
+
+    /* Ensure inline action button rows in mobile cards stay compact */
+    .mobile-card-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .mobile-card-actions .btn { width: auto !important; }
+}
+
+@media (max-width: 480px) {
+    .match-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .match-tabs .match-tab { flex: 0 0 auto; }
+    .set-content { gap:8px; }
+    .player-mini-card { flex: 1 1 48%; min-width: 100px; }
+}
+
+/* Page-specific tweaks (fallbacks) */
+@media (max-width: 360px) {
+    .player-number, .player-name-small { font-size: 0.9rem; }
+}

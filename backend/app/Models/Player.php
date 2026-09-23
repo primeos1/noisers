@@ -15,6 +15,7 @@ class Player extends Model
         'number',
         'name',
         'position',
+        'rating',
         'bio',
         'phone',
         'email',
@@ -30,6 +31,7 @@ class Player extends Model
     {
         return [
             'active' => 'boolean',
+            'rating' => 'decimal:1',
         ];
     }
 

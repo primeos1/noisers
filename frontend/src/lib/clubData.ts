@@ -86,6 +86,38 @@ export function topByStat(players: Player[], key: "goals" | "assists" | "cleanSh
   return [...players].sort((a, b) => b[key] - a[key]).slice(0, count);
 }
 
+const CSV_COLUMNS: { header: string; value: (p: Player) => string | number }[] = [
+  { header: "Number", value: (p) => p.number },
+  { header: "Name", value: (p) => p.name },
+  { header: "Position", value: (p) => p.position },
+  { header: "Rating", value: (p) => p.rating },
+  { header: "Appearances", value: (p) => p.appearances },
+  { header: "Goals", value: (p) => p.goals },
+  { header: "Assists", value: (p) => p.assists },
+  { header: "Clean sheets", value: (p) => p.cleanSheets },
+];
+
+function csvCell(value: string | number): string {
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+export function exportPlayersCsv(players: Player[]) {
+  const rows = [CSV_COLUMNS.map((c) => c.header)];
+  for (const player of [...players].sort((a, b) => a.number - b.number)) {
+    rows.push(CSV_COLUMNS.map((c) => csvCell(c.value(player))));
+  }
+  const csv = rows.map((row) => row.join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `noisers-squad-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export const seasonStats = [
   { value: "14", label: "Wins this season" },
   { value: "38", label: "Goals scored" },

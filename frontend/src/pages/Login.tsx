@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent, type PointerEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
 import { photos } from "../lib/photos";
 import { useAuth } from "../lib/AuthContext";
+import { ApiError } from "../lib/api";
 
 export default function Login() {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -14,13 +15,23 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (login(email, password)) {
-      navigate(from, { replace: true });
-    } else {
+    if (!email.trim() || !password.trim()) {
       setError("Enter both an email and a password to continue.");
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't sign in — try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -124,16 +135,15 @@ export default function Login() {
 
             <button
               type="submit"
-              className="shimmer-btn relative w-full overflow-hidden border border-paper bg-paper px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper"
+              disabled={submitting}
+              className="shimmer-btn relative w-full overflow-hidden border border-paper bg-paper px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="relative z-10">Sign in</span>
+              <span className="relative z-10">{submitting ? "Signing in…" : "Sign in"}</span>
             </button>
           </form>
 
           <p className="mt-6 text-xs text-mist">
-            Admin accounts are provisioned by the club committee. This preview
-            accepts any email and password — real Sanctum authentication
-            lands once the club's backend is connected.
+            Admin accounts are provisioned by the club committee.
           </p>
         </div>
       </div>

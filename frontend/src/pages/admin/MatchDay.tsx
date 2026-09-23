@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
 import { nextJerseyNumber, type Player } from "../../lib/clubData";
 import { useMatchDay } from "../../lib/MatchDayContext";
+import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 import {
   buildTeams,
@@ -11,8 +12,6 @@ import {
   scoreOf,
   todayLabel,
   uniqueEventId,
-  TEAM_SIZE,
-  WIN_GOALS,
   type MatchDayEvent,
   type MatchDayGame,
   type MatchDayGoal,
@@ -38,7 +37,10 @@ function parseParticipant(v: string): ParticipantId {
 
 export default function MatchDay() {
   const { players, addPlayer } = useSquad();
-  const { events, addEvent, updateEvent } = useMatchDay();
+  const { events, addEvent, updateEvent, error: matchDayError } = useMatchDay();
+  const { settings } = useSettings();
+  const TEAM_SIZE = settings.matchTeamSize;
+  const WIN_GOALS = settings.matchWinGoals;
   const timer = useMatchTimer();
 
   const [activeEventId, setActiveEventId] = useState<string | null>(
@@ -145,7 +147,7 @@ export default function MatchDay() {
 
   function handleRandomize() {
     if (!activeEvent) return;
-    const groups = buildTeams(players, activeEvent.presentPlayers, activeEvent.guests, mode);
+    const groups = buildTeams(players, activeEvent.presentPlayers, activeEvent.guests, mode, TEAM_SIZE);
     patch({ groups });
     setPlayA(0);
     setPlayB(groups.length > 1 ? 1 : 0);
@@ -299,6 +301,11 @@ export default function MatchDay() {
       <h1 className="mt-3 font-display text-4xl text-paper md:text-5xl">
         Match Day
       </h1>
+      {matchDayError && (
+        <p className="mt-4 border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">
+          {matchDayError} — check your connection and try the action again.
+        </p>
+      )}
 
       {!activeEvent && (
         <div className="mt-10 max-w-lg space-y-8">

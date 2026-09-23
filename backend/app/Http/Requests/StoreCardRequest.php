@@ -17,11 +17,12 @@ class StoreCardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'player_id' => ['required', 'exists:players,id'],
-            'fixture_id' => ['required', 'exists:fixtures,id'],
+            'player_number' => ['required', 'exists:players,number'],
             'type' => ['required', 'in:yellow,red'],
+            'reason' => ['nullable', 'string', 'max:255'],
             'fine_amount' => ['required', 'numeric', 'min:0'],
             'paid' => ['boolean'],
+            'occurred_on' => ['nullable', 'date'],
         ];
     }
 }

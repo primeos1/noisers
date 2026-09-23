@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { categories, highlights, type HighlightCategory } from "../lib/highlights";
+import { categories, type HighlightCategory } from "../lib/highlights";
+import { useHighlights } from "../lib/HighlightsContext";
 
 type Filter = "All" | "Videos" | HighlightCategory;
 
 const filters: Filter[] = ["All", "Videos", ...categories];
 
 export default function Highlights() {
+  const { highlights } = useHighlights();
   const [filter, setFilter] = useState<Filter>("All");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -15,7 +17,7 @@ export default function Highlights() {
     if (filter === "All") return highlights;
     if (filter === "Videos") return highlights.filter((h) => h.type === "video");
     return highlights.filter((h) => h.category === filter);
-  }, [filter]);
+  }, [filter, highlights]);
 
   const active = openIndex !== null ? visible[openIndex] : null;
 

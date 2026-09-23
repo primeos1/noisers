@@ -6,8 +6,10 @@
 import type { Player, Position } from "./clubData";
 import { findPlayer } from "./clubData";
 
-export const TEAM_SIZE = 6;
-export const WIN_GOALS = 2;
+// Fallbacks used only until SettingsContext's real (admin-configurable)
+// values load — see lib/SettingsContext.tsx.
+export const DEFAULT_TEAM_SIZE = 6;
+export const DEFAULT_WIN_GOALS = 2;
 
 export type MatchDayStatus = "live" | "ended";
 export type GameStatus = "live" | "finished";
@@ -109,13 +111,13 @@ export function participantName(players: Player[], guests: Guest[], id: Particip
   return guest ? guest.name : id;
 }
 
-// Teams fill to TEAM_SIZE before the next one is opened — only the final
+// Teams fill to teamSize before the next one is opened — only the final
 // team (the leftover) can come in under size.
-function teamCapacities(total: number): number[] {
+function teamCapacities(total: number, teamSize: number): number[] {
   if (total <= 0) return [];
-  const teamCount = Math.ceil(total / TEAM_SIZE);
-  const capacities = Array(teamCount).fill(TEAM_SIZE);
-  capacities[teamCount - 1] = total - TEAM_SIZE * (teamCount - 1);
+  const teamCount = Math.ceil(total / teamSize);
+  const capacities = Array(teamCount).fill(teamSize);
+  capacities[teamCount - 1] = total - teamSize * (teamCount - 1);
   return capacities;
 }
 
@@ -236,9 +238,10 @@ export function buildTeams(
   presentSquad: number[],
   guests: Guest[],
   mode: TeamMode,
+  teamSize: number = DEFAULT_TEAM_SIZE,
 ): MatchDayTeam[] {
   const total = presentSquad.length + guests.length;
-  const capacities = teamCapacities(total);
+  const capacities = teamCapacities(total, teamSize);
   if (capacities.length === 0) return [];
 
   let squadTeams: number[][];

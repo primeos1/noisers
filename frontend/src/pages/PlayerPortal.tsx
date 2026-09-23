@@ -2,7 +2,8 @@ import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useSquad } from "../lib/SquadContext";
-import { cards } from "../lib/cards";
+import { formatNaira } from "../lib/cards";
+import { useCards } from "../lib/CardsContext";
 import { useAuth } from "../lib/AuthContext";
 
 const positionLabel: Record<string, string> = {
@@ -14,6 +15,7 @@ const positionLabel: Record<string, string> = {
 
 export default function PlayerPortal() {
   const { players } = useSquad();
+  const { cards } = useCards();
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -81,13 +83,16 @@ export default function PlayerPortal() {
                   return (
                     <tr key={player.number} className="border-b border-ink-line last:border-b-0">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                        <Link
+                          to={`/squad/${player.number}`}
+                          className="flex items-center gap-3 hover:text-paper"
+                        >
                           <img src={player.photo} alt="" className="duotone h-9 w-9 object-cover" />
                           <div>
                             <p className="text-paper">{player.name}</p>
                             <p className="text-xs text-mist">#{player.number}</p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-4 py-3 text-paper-dim">{positionLabel[player.position]}</td>
                       <td className="px-4 py-3 text-paper-dim">{player.rating.toFixed(1)}</td>
@@ -108,9 +113,9 @@ export default function PlayerPortal() {
                       </td>
                       <td className="px-4 py-3">
                         {owed > 0 ? (
-                          <span className="text-loss">£{owed}</span>
+                          <span className="text-loss">{formatNaira(owed)}</span>
                         ) : (
-                          <span className="text-win">£0</span>
+                          <span className="text-win">{formatNaira(0)}</span>
                         )}
                       </td>
                     </tr>

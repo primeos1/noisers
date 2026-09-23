@@ -20,6 +20,7 @@ class StorePlayerRequest extends FormRequest
             'number' => ['required', 'integer', 'min:1', 'max:99', 'unique:players,number'],
             'name' => ['required', 'string', 'max:255'],
             'position' => ['required', 'in:GK,DEF,MID,FWD'],
+            'rating' => ['nullable', 'numeric', 'min:0', 'max:10'],
             'bio' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],

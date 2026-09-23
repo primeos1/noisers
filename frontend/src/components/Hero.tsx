@@ -2,16 +2,19 @@ import { Link } from "react-router-dom";
 import { photos } from "../lib/photos";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf } from "../lib/matchDay";
+import { useHomeContent } from "../lib/HomeContentContext";
 import logoWhite from "../assets/brand/logo-white.png";
 
 export default function Hero() {
   const { events } = useMatchDay();
+  const { content } = useHomeContent();
+  const { hero } = content;
   const last = allGames(events).pop();
 
   return (
     <section className="relative flex min-h-[92svh] items-end overflow-hidden border-b border-ink-line">
       <img
-        src={photos.heroNight}
+        src={hero.imageUrl || photos.heroNight}
         alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
         className="duotone absolute inset-0 h-full w-full object-cover"
         loading="eager"
@@ -28,17 +31,15 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-16 pt-40 md:px-10 md:pb-24">
         <p className="animate-hero-in text-sm text-paper-dim [animation-delay:0ms]">
-          Est. 2021 · Grassroots five-a-side
+          {hero.eyebrow}
         </p>
 
         <h1 className="animate-hero-in mt-4 max-w-3xl font-display text-6xl leading-[0.95] tracking-tight text-paper [animation-delay:80ms] sm:text-7xl md:text-8xl">
-          Vale to zenith.
+          {hero.headline}
         </h1>
 
         <p className="animate-hero-in mt-6 max-w-lg text-lg leading-relaxed text-paper-dim [animation-delay:160ms]">
-          Noisers FC is a small-sided club built on the same pitch we still
-          play on. Every set, every card, every goal — logged, tracked and
-          built into a squad that keeps climbing.
+          {hero.subtext}
         </p>
 
         <div className="animate-hero-in mt-9 flex flex-wrap items-center gap-4 [animation-delay:240ms]">

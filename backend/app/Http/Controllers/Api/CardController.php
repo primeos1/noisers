@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCardRequest;
 use App\Http\Resources\CardResource;
 use App\Models\Card;
+use App\Models\Player;
 use Illuminate\Http\Request;
 
 class CardController extends Controller
@@ -17,10 +18,10 @@ class CardController extends Controller
     {
         $this->authorize('viewAny', Card::class);
 
-        $query = Card::query()->with(['player', 'fixture']);
+        $query = Card::query()->with('player');
 
-        if ($request->filled('player_id')) {
-            $query->where('player_id', $request->integer('player_id'));
+        if ($request->filled('player_number')) {
+            $query->whereHas('player', fn ($q) => $q->where('number', $request->integer('player_number')));
         }
 
         if ($request->filled('paid')) {
@@ -37,9 +38,14 @@ class CardController extends Controller
     {
         $this->authorize('create', Card::class);
 
-        $card = Card::create($request->validated());
+        $validated = $request->validated();
+        $player = Player::where('number', $validated['player_number'])->firstOrFail();
+        unset($validated['player_number']);
+        $validated['player_id'] = $player->id;
 
-        return new CardResource($card->load(['player', 'fixture']));
+        $card = Card::create($validated);
+
+        return new CardResource($card->load('player'));
     }
 
     /**
@@ -49,7 +55,7 @@ class CardController extends Controller
     {
         $this->authorize('view', $card);
 
-        return new CardResource($card->load(['player', 'fixture']));
+        return new CardResource($card->load('player'));
     }
 
     /**
@@ -61,13 +67,15 @@ class CardController extends Controller
 
         $validated = $request->validate([
             'type' => ['sometimes', 'in:yellow,red'],
+            'reason' => ['nullable', 'string', 'max:255'],
             'fine_amount' => ['sometimes', 'numeric', 'min:0'],
             'paid' => ['sometimes', 'boolean'],
+            'occurred_on' => ['nullable', 'date'],
         ]);
 
         $card->update($validated);
 
-        return new CardResource($card->load(['player', 'fixture']));
+        return new CardResource($card->load('player'));
     }
 
     /**

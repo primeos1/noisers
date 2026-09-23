@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import Modal from "./Modal";
 import type { Player, Position } from "../../lib/clubData";
+import ImageUploadField from "./ImageUploadField";
 
 const inputClass =
   "mt-1 w-full border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper";
@@ -84,70 +85,51 @@ export default function PlayerFormModal({
           />
         </label>
 
+        <ImageUploadField
+          label="Photo"
+          value={form.photo}
+          onChange={(url) => setForm({ ...form, photo: url })}
+          maxDim={480}
+        />
+
         <label className={labelClass}>
-          Photo URL
+          Rating
           <input
-            type="text"
+            type="number"
+            step="0.1"
+            min="0"
+            max="10"
             className={inputClass}
-            value={form.photo}
-            onChange={(e) => setForm({ ...form, photo: e.target.value })}
+            value={form.rating}
+            onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
           />
+          <span className="mt-1 block text-xs text-mist">
+            An admin judgment call used to balance Match Day teams.
+          </span>
         </label>
 
-        <div className="grid grid-cols-2 gap-4">
-          <label className={labelClass}>
-            Rating
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="10"
-              className={inputClass}
-              value={form.rating}
-              onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
-            />
-          </label>
-          <label className={labelClass}>
-            Appearances
-            <input
-              type="number"
-              min="0"
-              className={inputClass}
-              value={form.appearances}
-              onChange={(e) => setForm({ ...form, appearances: Number(e.target.value) })}
-            />
-          </label>
-          <label className={labelClass}>
-            Goals
-            <input
-              type="number"
-              min="0"
-              className={inputClass}
-              value={form.goals}
-              onChange={(e) => setForm({ ...form, goals: Number(e.target.value) })}
-            />
-          </label>
-          <label className={labelClass}>
-            Assists
-            <input
-              type="number"
-              min="0"
-              className={inputClass}
-              value={form.assists}
-              onChange={(e) => setForm({ ...form, assists: Number(e.target.value) })}
-            />
-          </label>
-          <label className={labelClass}>
-            Clean sheets
-            <input
-              type="number"
-              min="0"
-              className={inputClass}
-              value={form.cleanSheets}
-              onChange={(e) => setForm({ ...form, cleanSheets: Number(e.target.value) })}
-            />
-          </label>
-        </div>
+        {initial && (
+          <div>
+            <span className={labelClass}>Career stats</span>
+            <p className="mt-2 text-xs text-mist">
+              Calculated automatically from finished Match Day games — not
+              editable here.
+            </p>
+            <div className="mt-2 grid grid-cols-4 gap-px bg-ink-line text-center text-sm">
+              {[
+                { label: "Apps", value: form.appearances },
+                { label: "Goals", value: form.goals },
+                { label: "Assists", value: form.assists },
+                { label: "Clean sheets", value: form.cleanSheets },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-ink py-3">
+                  <p className="text-paper">{stat.value}</p>
+                  <p className="mt-1 text-xs text-mist">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && <p className="text-sm text-loss">{error}</p>}
 

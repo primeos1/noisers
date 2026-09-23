@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { formatNaira, outstandingFines, type CardRecord, type CardType } from "../../lib/cards";
+import { useSettings } from "../../lib/SettingsContext";
 import CardFormModal from "../../components/admin/CardFormModal";
 
 type Filter = "all" | "unpaid" | "paid" | CardType;
@@ -17,6 +18,7 @@ const filters: { label: string; value: Filter }[] = [
 export default function AdminCards() {
   const { players } = useSquad();
   const { cards, addCard, removeCard, togglePaid } = useCards();
+  const { settings } = useSettings();
   const [filter, setFilter] = useState<Filter>("all");
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<CardRecord | null>(null);
@@ -52,8 +54,8 @@ export default function AdminCards() {
           </h1>
           <p className="mt-3 max-w-xl text-sm text-paper-dim">
             Every yellow and red card logged this season, and whether the
-            fine's been paid. Yellow cards are {formatNaira(2000)}, red cards{" "}
-            {formatNaira(5000)}.
+            fine's been paid. Yellow cards are {formatNaira(settings.yellowCardFine)}, red
+            cards {formatNaira(settings.redCardFine)}.
           </p>
         </div>
         <button

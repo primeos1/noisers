@@ -104,7 +104,8 @@ export default function Squad() {
 
           <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-3 lg:grid-cols-4">
             {visible.map((player) => (
-              <article
+              <Link
+                to={`/squad/${player.number}`}
                 key={player.number}
                 className="group flex flex-col bg-ink transition-colors hover:bg-ink-raised"
               >
@@ -151,7 +152,7 @@ export default function Squad() {
                     </div>
                   </dl>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </div>

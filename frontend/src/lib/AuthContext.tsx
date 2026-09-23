@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useLocalStorageState } from "./useLocalStorageState";
+import { apiFetch, setToken } from "./api";
 
 export type UserRole = "admin" | "player";
 
@@ -7,11 +8,18 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  /** Raw backend role, kept so Settings can tell admin apart from committee. */
+  staffRole?: "admin" | "committee";
+}
+
+interface LoginResponse {
+  token: string;
+  user: { id: number; name: string; email: string; role: "admin" | "committee" };
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<void>;
   loginAsPlayer: (passcode: string) => boolean;
   logout: () => void;
   playerPasscode: string;
@@ -50,15 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function login(email: string, password: string) {
-    if (!email.trim() || !password.trim()) return false;
-    const name = email.split("@")[0].replace(/[._]/g, " ");
-    persist({
-      name: name.replace(/\b\w/g, (c) => c.toUpperCase()),
-      email: email.trim(),
-      role: "admin",
+  async function login(email: string, password: string) {
+    const { token, user: staff } = await apiFetch<LoginResponse>("/login", {
+      method: "POST",
+      body: JSON.stringify({ email: email.trim(), password, device_name: "web" }),
     });
-    return true;
+    setToken(token);
+    persist({ name: staff.name, email: staff.email, role: "admin", staffRole: staff.role });
   }
 
   function loginAsPlayer(passcode: string) {
@@ -68,6 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    apiFetch("/logout", { method: "POST" }).catch(() => {
+      // best-effort — clear the local session regardless
+    });
+    setToken(null);
     persist(null);
   }
 

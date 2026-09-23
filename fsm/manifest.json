@@ -1,0 +1,22 @@
+{
+  "name": "Noisers Football Pro",
+  "short_name": "NFP",
+  "start_url": "index.php",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "football.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "football-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

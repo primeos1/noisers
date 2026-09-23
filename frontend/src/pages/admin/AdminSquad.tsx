@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useSquad } from "../../lib/SquadContext";
-import { nextJerseyNumber, type Player } from "../../lib/clubData";
+import { exportPlayersCsv, nextJerseyNumber, type Player } from "../../lib/clubData";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 
 const positionLabel: Record<string, string> = {
@@ -27,13 +28,22 @@ export default function AdminSquad() {
             Squad
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="border border-paper bg-paper px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper"
-        >
-          + Add player
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => exportPlayersCsv(players)}
+            className="border border-ink-line px-5 py-2.5 text-sm text-paper-dim hover:border-paper/60 hover:text-paper"
+          >
+            Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="border border-paper bg-paper px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper"
+          >
+            + Add player
+          </button>
+        </div>
       </div>
 
       <div className="mt-10 overflow-x-auto border border-ink-line">
@@ -56,14 +66,14 @@ export default function AdminSquad() {
               <tr key={player.number} className="border-b border-ink-line last:border-b-0">
                 <td className="px-4 py-3 text-paper">{player.number}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <Link to={`/squad/${player.number}`} className="flex items-center gap-3 hover:text-paper">
                     <img
                       src={player.photo}
                       alt=""
                       className="duotone h-8 w-8 object-cover"
                     />
                     <span className="text-paper">{player.name}</span>
-                  </div>
+                  </Link>
                 </td>
                 <td className="px-4 py-3 text-paper-dim">
                   {positionLabel[player.position]}

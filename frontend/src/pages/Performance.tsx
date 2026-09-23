@@ -6,12 +6,14 @@ import { useSquad } from "../lib/SquadContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf } from "../lib/matchDay";
 import { topByStat } from "../lib/clubData";
-import { cards, outstandingFines } from "../lib/cards";
+import { outstandingFines, formatNaira } from "../lib/cards";
+import { useCards } from "../lib/CardsContext";
 
 export default function Performance() {
   const { players } = useSquad();
   const { events } = useMatchDay();
   const games = allGames(events);
+  const { cards } = useCards();
 
   const totalGoals = players.reduce((sum, p) => sum + p.goals, 0);
   const totalAssists = players.reduce((sum, p) => sum + p.assists, 0);
@@ -141,7 +143,7 @@ export default function Performance() {
             </div>
             <div className="bg-ink p-8">
               <p className="text-xs uppercase tracking-wide text-mist">Outstanding fines</p>
-              <p className="mt-4 font-display text-4xl text-paper">£{fines}</p>
+              <p className="mt-4 font-display text-4xl text-paper">{formatNaira(fines)}</p>
             </div>
           </div>
         </div>

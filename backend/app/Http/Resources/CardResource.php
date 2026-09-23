@@ -17,12 +17,13 @@ class CardResource extends JsonResource
         return [
             'id' => $this->id,
             'playerId' => $this->player_id,
+            'playerNumber' => $this->whenLoaded('player', fn () => $this->player->number),
             'player' => new PlayerResource($this->whenLoaded('player')),
-            'fixtureId' => $this->fixture_id,
-            'fixture' => new FixtureResource($this->whenLoaded('fixture')),
             'type' => $this->type,
+            'reason' => $this->reason,
             'fineAmount' => (float) $this->fine_amount,
             'paid' => $this->paid,
+            'occurredOn' => $this->occurred_on?->toDateString(),
             'createdAt' => $this->created_at?->toIso8601String(),
         ];
     }

@@ -8,6 +8,11 @@ const links = [
   { label: "Matches", to: "/admin/matches", end: false },
   { label: "Match Day", to: "/admin/matchday", end: false },
   { label: "Cards", to: "/admin/cards", end: false },
+  { label: "Reports", to: "/admin/reports", end: false },
+  { label: "Home Page", to: "/admin/home-content", end: false },
+  { label: "The Vale", to: "/admin/vale", end: false },
+  { label: "Highlights", to: "/admin/highlights", end: false },
+  { label: "Settings", to: "/admin/settings", end: false },
 ];
 
 export default function AdminLayout() {

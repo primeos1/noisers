@@ -2,10 +2,13 @@ import { photos } from "../lib/photos";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, participantName, scoreOf } from "../lib/matchDay";
 import { useSquad } from "../lib/SquadContext";
+import { useHomeContent } from "../lib/HomeContentContext";
 
 export default function MatchdaySection() {
   const { events } = useMatchDay();
   const { players } = useSquad();
+  const { content } = useHomeContent();
+  const { matchday } = content;
   const last = allGames(events).pop();
 
   return (
@@ -21,15 +24,12 @@ export default function MatchdaySection() {
           <div className="duotone-wash pointer-events-none absolute inset-0" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink via-ink/70 to-transparent" />
           <div className="relative z-10">
-            <p className="text-sm text-paper-dim">How match day works</p>
+            <p className="text-sm text-paper-dim">{matchday.eyebrow}</p>
             <h3 className="mt-3 font-display text-4xl text-paper md:text-5xl">
-              No opponent. Just the squad.
+              {matchday.headline}
             </h3>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-paper-dim">
-              Every session, whoever's present gets split into balanced
-              six-a-side teams — random, by rating, or by position — then it's
-              first to two goals on a ten-minute clock. Goals, assists and
-              cards all get logged as they happen.
+              {matchday.body}
             </p>
           </div>
         </div>

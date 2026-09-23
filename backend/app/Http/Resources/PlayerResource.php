@@ -24,8 +24,11 @@ class PlayerResource extends JsonResource
             'email' => $this->when($request->user()?->isCommittee(), $this->email),
             'photoUrl' => $this->photo_url,
             'active' => $this->active,
-            'goals' => $this->goals_count ?? $this->goalEvents()->count(),
-            'assists' => $this->assists_count ?? $this->assistEvents()->count(),
+            'rating' => (float) $this->rating,
+            'appearances' => $this->match_day_stats['appearances'] ?? 0,
+            'goals' => $this->match_day_stats['goals'] ?? 0,
+            'assists' => $this->match_day_stats['assists'] ?? 0,
+            'cleanSheets' => $this->match_day_stats['cleanSheets'] ?? 0,
         ];
     }
 }

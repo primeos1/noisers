@@ -1,10 +1,14 @@
-import { seasonStats } from "../lib/clubData";
 import { useSquad } from "../lib/SquadContext";
+import { useHomeContent } from "../lib/HomeContentContext";
 import { photos } from "../lib/photos";
 
 export default function StatsBand() {
   const { players } = useSquad();
-  const clubStats = [{ value: String(players.length), label: "Squad" }, ...seasonStats];
+  const { content } = useHomeContent();
+  const clubStats = [
+    { value: String(players.length), label: "Squad" },
+    ...content.stats.map((s) => ({ value: s.value, label: s.label })),
+  ];
 
   return (
     <section className="relative border-b border-ink-line">

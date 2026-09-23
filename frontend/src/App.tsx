@@ -13,12 +13,20 @@ import AdminHome from "./pages/admin/AdminHome";
 import AdminSquad from "./pages/admin/AdminSquad";
 import AdminMatches from "./pages/admin/AdminMatches";
 import MatchDay from "./pages/admin/MatchDay";
+import AdminCards from "./pages/admin/AdminCards";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminHomeContent from "./pages/admin/AdminHomeContent";
+import AdminVale from "./pages/admin/AdminVale";
+import AdminHighlights from "./pages/admin/AdminHighlights";
+import PlayerProfile from "./pages/PlayerProfile";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/squad" element={<Squad />} />
+      <Route path="/squad/:number" element={<PlayerProfile />} />
       <Route path="/the-vale" element={<TheVale />} />
       <Route path="/highlights" element={<Highlights />} />
       <Route path="/performance" element={<Performance />} />
@@ -46,6 +54,12 @@ export default function App() {
         <Route path="squad" element={<AdminSquad />} />
         <Route path="matches" element={<AdminMatches />} />
         <Route path="matchday" element={<MatchDay />} />
+        <Route path="cards" element={<AdminCards />} />
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="home-content" element={<AdminHomeContent />} />
+        <Route path="vale" element={<AdminVale />} />
+        <Route path="highlights" element={<AdminHighlights />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
     </Routes>
   );
