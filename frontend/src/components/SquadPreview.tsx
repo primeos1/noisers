@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { squad } from "../lib/clubData";
 
 const positionLabel: Record<string, string> = {
@@ -51,6 +52,15 @@ export default function SquadPreview() {
               </div>
             </article>
           ))}
+        </div>
+
+        <div className="mt-10 flex justify-end">
+          <Link
+            to="/squad"
+            className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
+          >
+            View full squad →
+          </Link>
         </div>
       </div>
     </section>

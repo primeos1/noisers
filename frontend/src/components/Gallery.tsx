@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { photos } from "../lib/photos";
 
 const shots = [
@@ -42,6 +43,15 @@ export default function Gallery() {
               <div className="duotone-wash pointer-events-none absolute inset-0" />
             </div>
           ))}
+        </div>
+
+        <div className="mt-10 flex justify-end">
+          <Link
+            to="/highlights"
+            className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
+          >
+            View all highlights →
+          </Link>
         </div>
       </div>
     </section>

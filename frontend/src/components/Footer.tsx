@@ -21,19 +21,19 @@ export default function Footer() {
             <p className="text-sm text-paper">Club</p>
             <ul className="mt-3 space-y-2 text-sm text-paper-dim">
               <li>
-                <a href="#squad" className="hover:text-paper">
+                <Link to="/squad" className="hover:text-paper">
                   Squad
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#matchday" className="hover:text-paper">
-                  Fixtures &amp; results
-                </a>
+                <Link to="/the-vale" className="hover:text-paper">
+                  The Vale
+                </Link>
               </li>
               <li>
-                <a href="#gallery" className="hover:text-paper">
-                  Gallery
-                </a>
+                <Link to="/highlights" className="hover:text-paper">
+                  Highlights
+                </Link>
               </li>
             </ul>
           </div>

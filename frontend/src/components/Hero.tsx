@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { photos } from "../lib/photos";
 import { nextFixture } from "../lib/clubData";
 import logoWhite from "../assets/brand/logo-white.png";
@@ -37,12 +38,12 @@ export default function Hero() {
         </p>
 
         <div className="animate-hero-in mt-9 flex flex-wrap items-center gap-4 [animation-delay:240ms]">
-          <a
-            href="#squad"
+          <Link
+            to="/squad"
             className="border border-paper bg-paper px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper"
           >
             Meet the squad
-          </a>
+          </Link>
           <a
             href="#matchday"
             className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
