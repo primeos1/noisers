@@ -49,6 +49,13 @@
           "backgroundColor": "#0a0e1a"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6eccc79c-06dc-4bf8-9b51-9154da4569d3"
+      }
+    },
+    "owner": "primeos1"
   }
 }

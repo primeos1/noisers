@@ -2,6 +2,10 @@ import { Link } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
 import { useHomeContent } from "../lib/HomeContentContext";
 
+// Latest Android build from EAS (mobile/, `eas build --profile preview`).
+// Update this after each new build.
+const ANDROID_APP_URL = "#";
+
 export default function Footer() {
   const { content } = useHomeContent();
 
@@ -62,6 +66,11 @@ export default function Footer() {
                 <Link to="/join" className="hover:text-paper">
                   Join the squad
                 </Link>
+              </li>
+              <li>
+                <a href={ANDROID_APP_URL} className="hover:text-paper">
+                  Android app (APK)
+                </a>
               </li>
             </ul>
           </div>
