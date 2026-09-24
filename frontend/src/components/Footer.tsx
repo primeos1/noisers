@@ -4,7 +4,8 @@ import { useHomeContent } from "../lib/HomeContentContext";
 
 // Latest Android build from EAS (mobile/, `eas build --profile preview`).
 // Update this after each new build.
-const ANDROID_APP_URL = "#";
+const ANDROID_APP_URL =
+  "https://expo.dev/artifacts/eas/ph6hGL7QPyuimUk3tZ9e8_OAaft2DHxLq_YZwjrlF00.apk";
 
 export default function Footer() {
   const { content } = useHomeContent();
