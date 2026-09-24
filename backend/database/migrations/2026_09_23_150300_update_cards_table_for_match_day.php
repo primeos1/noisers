@@ -10,9 +10,17 @@ return new class extends Migration
     public function up(): void
     {
         // Cards are no longer necessarily tied to an external Fixture — Match
-        // Day cards are standalone disciplinary records. Raw SQL avoids an
-        // extra doctrine/dbal dependency just for one column-nullability change.
-        DB::statement('ALTER TABLE cards MODIFY fixture_id BIGINT UNSIGNED NULL');
+        // Day cards are standalone disciplinary records. MySQL (dev/prod) uses
+        // raw SQL to avoid a doctrine/dbal dependency; SQLite (the test suite,
+        // see phpunit.xml) has no MODIFY COLUMN syntax at all, so it goes
+        // through Schema's own cross-driver column rebuild instead.
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('cards', function (Blueprint $table) {
+                $table->unsignedBigInteger('fixture_id')->nullable()->change();
+            });
+        } else {
+            DB::statement('ALTER TABLE cards MODIFY fixture_id BIGINT UNSIGNED NULL');
+        }
 
         Schema::table('cards', function (Blueprint $table) {
             $table->string('reason')->nullable()->after('type');
@@ -26,6 +34,12 @@ return new class extends Migration
             $table->dropColumn(['reason', 'occurred_on']);
         });
 
-        DB::statement('ALTER TABLE cards MODIFY fixture_id BIGINT UNSIGNED NOT NULL');
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('cards', function (Blueprint $table) {
+                $table->unsignedBigInteger('fixture_id')->nullable(false)->change();
+            });
+        } else {
+            DB::statement('ALTER TABLE cards MODIFY fixture_id BIGINT UNSIGNED NOT NULL');
+        }
     }
 };
