@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.noisersfc.app"
     },
     "android": {
+      "versionCode": 2,
       "package": "com.noisersfc.app",
       "adaptiveIcon": {
         "backgroundColor": "#0a0e1a",

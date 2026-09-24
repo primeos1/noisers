@@ -1,17 +1,14 @@
 import { Link } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
 import { useHomeContent } from "../lib/HomeContentContext";
-
-// Latest Android build from EAS (mobile/, `eas build --profile preview`).
-// Update this after each new build.
-const ANDROID_APP_URL =
-  "https://expo.dev/artifacts/eas/ph6hGL7QPyuimUk3tZ9e8_OAaft2DHxLq_YZwjrlF00.apk";
+import AndroidAppBand from "./AndroidAppBand";
 
 export default function Footer() {
   const { content } = useHomeContent();
 
   return (
     <footer className="bg-ink">
+      <AndroidAppBand />
       <div className="mx-auto flex max-w-7xl flex-col gap-10 px-5 py-10 md:flex-row md:py-16 md:items-start md:justify-between md:px-10">
         <div className="flex items-start gap-4">
           <img src={logoWhite} alt="Noisers FC crest" className="h-14 w-14" />
@@ -67,11 +64,6 @@ export default function Footer() {
                 <Link to="/join" className="hover:text-paper">
                   Join the squad
                 </Link>
-              </li>
-              <li>
-                <a href={ANDROID_APP_URL} className="hover:text-paper">
-                  Android app (APK)
-                </a>
               </li>
             </ul>
           </div>
