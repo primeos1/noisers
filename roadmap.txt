@@ -114,12 +114,14 @@ PHASE 5 — CONNECT FRONTEND TO THE REAL API
 
 PHASE 6 — MOBILE APP (REACT NATIVE)
 ----------------------------------------
-[ ] Expo project in /mobile
-[ ] Shared API client / types with the web app where practical
-[ ] Priority screens: squad, fixtures/results, player profile,
-    admin login
-[ ] Admin-only screens on mobile (cards/fines, record a match result)
-    once the equivalent web admin flows are stable
+[x] Expo project in /mobile (SDK 57, Expo Router) — see mobile/README.md
+[x] API client / types mirroring the web app (derivations ported from
+    frontend/src/lib/portal.ts into mobile/src/lib/derive.ts)
+[x] Priority screens: squad, match-day history + match sheet, player
+    profile, team stats, committee login (Sanctum token in SecureStore)
+[x] Admin cards/fines on mobile — log a card, mark paid, delete
+[ ] Record / run a live match day from the phone
+[ ] App icon + EAS build profiles for store releases
 [ ] Push notifications for fixture reminders (stretch goal)
 
 

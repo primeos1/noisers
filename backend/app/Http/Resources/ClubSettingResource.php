@@ -34,6 +34,8 @@ class ClubSettingResource extends JsonResource
             'ratingCleanSheetDef' => $this->rating_clean_sheet_def,
             'ratingCleanSheetMid' => $this->rating_clean_sheet_mid,
             'ratingCleanSheetFwd' => $this->rating_clean_sheet_fwd,
+            'ratingYellowCard' => $this->rating_yellow_card,
+            'ratingRedCard' => $this->rating_red_card,
             'ratingMaxSwing' => $this->rating_max_swing,
             'valeAutoAwards' => $this->vale_auto_awards,
             'updatedAt' => $this->updated_at,

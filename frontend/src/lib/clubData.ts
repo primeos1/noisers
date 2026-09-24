@@ -15,6 +15,8 @@ export interface Player {
   goals: number;
   assists: number;
   cleanSheets: number;
+  yellowCards: number;
+  redCards: number;
 }
 
 function avatar(id: number) {
@@ -32,25 +34,25 @@ export function isStockPhoto(url: string) {
 }
 
 export const seedSquad: Player[] = [
-  { number: 1, name: "Femi Adaralegbe", position: "GK", photo: avatar(12), rating: 7.8, appearances: 14, goals: 0, assists: 1, cleanSheets: 9 },
-  { number: 23, name: "Chuka Nwafor", position: "GK", photo: avatar(13), rating: 7.1, appearances: 6, goals: 0, assists: 0, cleanSheets: 3 },
+  { number: 1, name: "Femi Adaralegbe", position: "GK", photo: avatar(12), rating: 7.8, appearances: 14, goals: 0, assists: 1, cleanSheets: 9, yellowCards: 0, redCards: 0 },
+  { number: 23, name: "Chuka Nwafor", position: "GK", photo: avatar(13), rating: 7.1, appearances: 6, goals: 0, assists: 0, cleanSheets: 3, yellowCards: 0, redCards: 0 },
 
-  { number: 4, name: "Tunde Bakare", position: "DEF", photo: avatar(14), rating: 7.4, appearances: 16, goals: 1, assists: 2, cleanSheets: 9 },
-  { number: 5, name: "Chike Obinna", position: "DEF", photo: avatar(15), rating: 7.6, appearances: 15, goals: 2, assists: 0, cleanSheets: 8 },
-  { number: 22, name: "Biodun Salako", position: "DEF", photo: avatar(11), rating: 6.9, appearances: 13, goals: 0, assists: 1, cleanSheets: 7 },
-  { number: 3, name: "Wale Ogundipe", position: "DEF", photo: avatar(17), rating: 7.0, appearances: 12, goals: 0, assists: 2, cleanSheets: 6 },
-  { number: 6, name: "Ifeanyi Chukwu", position: "DEF", photo: avatar(18), rating: 6.8, appearances: 10, goals: 1, assists: 0, cleanSheets: 5 },
+  { number: 4, name: "Tunde Bakare", position: "DEF", photo: avatar(14), rating: 7.4, appearances: 16, goals: 1, assists: 2, cleanSheets: 9, yellowCards: 0, redCards: 0 },
+  { number: 5, name: "Chike Obinna", position: "DEF", photo: avatar(15), rating: 7.6, appearances: 15, goals: 2, assists: 0, cleanSheets: 8, yellowCards: 0, redCards: 0 },
+  { number: 22, name: "Biodun Salako", position: "DEF", photo: avatar(11), rating: 6.9, appearances: 13, goals: 0, assists: 1, cleanSheets: 7, yellowCards: 0, redCards: 0 },
+  { number: 3, name: "Wale Ogundipe", position: "DEF", photo: avatar(17), rating: 7.0, appearances: 12, goals: 0, assists: 2, cleanSheets: 6, yellowCards: 0, redCards: 0 },
+  { number: 6, name: "Ifeanyi Chukwu", position: "DEF", photo: avatar(18), rating: 6.8, appearances: 10, goals: 1, assists: 0, cleanSheets: 5, yellowCards: 0, redCards: 0 },
 
-  { number: 7, name: "Segun Owolabi", position: "MID", photo: avatar(33), rating: 8.2, appearances: 17, goals: 6, assists: 8, cleanSheets: 0 },
-  { number: 8, name: "Kelechi Uzo", position: "MID", photo: avatar(56), rating: 7.7, appearances: 16, goals: 4, assists: 5, cleanSheets: 0 },
-  { number: 14, name: "Ola Jegede", position: "MID", photo: avatar(57), rating: 7.5, appearances: 15, goals: 3, assists: 7, cleanSheets: 0 },
-  { number: 16, name: "Tobi Alade", position: "MID", photo: avatar(58), rating: 7.0, appearances: 11, goals: 2, assists: 4, cleanSheets: 0 },
-  { number: 18, name: "Emeka Nnamdi", position: "MID", photo: avatar(59), rating: 6.7, appearances: 9, goals: 1, assists: 3, cleanSheets: 0 },
+  { number: 7, name: "Segun Owolabi", position: "MID", photo: avatar(33), rating: 8.2, appearances: 17, goals: 6, assists: 8, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 8, name: "Kelechi Uzo", position: "MID", photo: avatar(56), rating: 7.7, appearances: 16, goals: 4, assists: 5, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 14, name: "Ola Jegede", position: "MID", photo: avatar(57), rating: 7.5, appearances: 15, goals: 3, assists: 7, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 16, name: "Tobi Alade", position: "MID", photo: avatar(58), rating: 7.0, appearances: 11, goals: 2, assists: 4, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 18, name: "Emeka Nnamdi", position: "MID", photo: avatar(59), rating: 6.7, appearances: 9, goals: 1, assists: 3, cleanSheets: 0, yellowCards: 0, redCards: 0 },
 
-  { number: 9, name: "Marcus Idehen", position: "FWD", photo: avatar(51), rating: 8.6, appearances: 17, goals: 11, assists: 3, cleanSheets: 0 },
-  { number: 10, name: "Dayo Fashola", position: "FWD", photo: avatar(52), rating: 8.1, appearances: 16, goals: 9, assists: 6, cleanSheets: 0 },
-  { number: 11, name: "Rasheed Animashaun", position: "FWD", photo: avatar(53), rating: 7.6, appearances: 14, goals: 7, assists: 4, cleanSheets: 0 },
-  { number: 17, name: "Kola Adisa", position: "FWD", photo: avatar(54), rating: 6.8, appearances: 10, goals: 3, assists: 1, cleanSheets: 0 },
+  { number: 9, name: "Marcus Idehen", position: "FWD", photo: avatar(51), rating: 8.6, appearances: 17, goals: 11, assists: 3, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 10, name: "Dayo Fashola", position: "FWD", photo: avatar(52), rating: 8.1, appearances: 16, goals: 9, assists: 6, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 11, name: "Rasheed Animashaun", position: "FWD", photo: avatar(53), rating: 7.6, appearances: 14, goals: 7, assists: 4, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+  { number: 17, name: "Kola Adisa", position: "FWD", photo: avatar(54), rating: 6.8, appearances: 10, goals: 3, assists: 1, cleanSheets: 0, yellowCards: 0, redCards: 0 },
 ];
 
 export function findPlayer(players: Player[], number: number): Player {
@@ -90,6 +92,29 @@ export function getSquadHonours(players: Player[]): SquadHonour[] {
     defender && { title: "Top defender", statLabel: "clean sheets", value: defender.cleanSheets, player: defender },
     keeper && { title: "Top goalkeeper", statLabel: "clean sheets", value: keeper.cleanSheets, player: keeper },
   ].filter((h): h is SquadHonour => h !== null);
+}
+
+/**
+ * The "roughest player" — most cards, ties going to whoever has more reds.
+ * Null when nobody has been booked.
+ */
+export function roughestPlayer(players: Player[]): Player | null {
+  let top: Player | null = null;
+  for (const p of players) {
+    const cards = p.yellowCards + p.redCards;
+    if (cards === 0) continue;
+    const topCards = top ? top.yellowCards + top.redCards : 0;
+    if (!top || cards > topCards || (cards === topCards && p.redCards > top.redCards)) top = p;
+  }
+  return top;
+}
+
+/** "2 yellows, 1 red" */
+export function formatCards(yellow: number, red: number): string {
+  const parts = [];
+  if (yellow) parts.push(`${yellow} yellow${yellow === 1 ? "" : "s"}`);
+  if (red) parts.push(`${red} red${red === 1 ? "" : "s"}`);
+  return parts.join(", ") || "No cards";
 }
 
 export function topByStat(players: Player[], key: "goals" | "assists" | "cleanSheets" | "rating", count = 5) {

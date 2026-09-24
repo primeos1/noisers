@@ -7,6 +7,7 @@ use App\Http\Resources\ClubSettingResource;
 use App\Models\ClubSetting;
 use App\Support\PlayerRatings;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ClubSettingController extends Controller
 {
@@ -51,6 +52,8 @@ class ClubSettingController extends Controller
             'rating_clean_sheet_def' => ['sometimes', 'numeric', 'min:0', 'max:1'],
             'rating_clean_sheet_mid' => ['sometimes', 'numeric', 'min:0', 'max:1'],
             'rating_clean_sheet_fwd' => ['sometimes', 'numeric', 'min:0', 'max:1'],
+            'rating_yellow_card' => ['sometimes', 'numeric', 'min:0', 'max:1'],
+            'rating_red_card' => ['sometimes', 'numeric', 'min:0', 'max:1'],
             'rating_max_swing' => ['sometimes', 'numeric', 'min:0.05', 'max:2'],
             'vale_auto_awards' => ['sometimes', 'boolean'],
         ]);
@@ -58,5 +61,48 @@ class ClubSettingController extends Controller
         $setting->update($validated);
 
         return (new ClubSettingResource($setting))->response()->setStatusCode(200);
+    }
+
+    /**
+     * The squad passcode, so staff can read it out to players. Any signed-in
+     * staff member can see it; only admins can change it.
+     */
+    public function passcode()
+    {
+        return response()->json(['passcode' => ClubSetting::current()->playerPasscode()]);
+    }
+
+    public function updatePasscode(Request $request)
+    {
+        $setting = ClubSetting::current();
+
+        $this->authorize('update', $setting);
+
+        $validated = $request->validate([
+            'passcode' => ['required', 'string', 'min:4', 'max:64'],
+        ]);
+
+        $setting->update(['player_passcode' => trim($validated['passcode'])]);
+
+        return response()->json(['passcode' => $setting->playerPasscode()]);
+    }
+
+    /**
+     * Check a squad passcode for the player portal. Checked here rather than
+     * in the browser so a change reaches every device at once.
+     */
+    public function checkPasscode(Request $request)
+    {
+        $validated = $request->validate([
+            'passcode' => ['required', 'string', 'max:64'],
+        ]);
+
+        if (! ClubSetting::current()->checkPlayerPasscode($validated['passcode'])) {
+            throw ValidationException::withMessages([
+                'passcode' => ["That passcode isn't right — check with the committee."],
+            ]);
+        }
+
+        return response()->noContent();
     }
 }

@@ -191,6 +191,33 @@ function ValeForm() {
           Clean sheet leaders — jersey numbers, comma separated
           <input className={inputClass} value={cleanSheetsDraft} onChange={(e) => setCleanSheetsDraft(e.target.value)} placeholder="1, 4, 5" />
         </label>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <PlayerSelect
+            label="Roughest player"
+            value={leaders.roughest.playerNumber}
+            onChange={(n) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, playerNumber: n } })}
+          />
+          <label className={labelClass}>
+            Yellow cards
+            <input
+              type="number"
+              min={0}
+              className={inputClass}
+              value={leaders.roughest.yellowCards}
+              onChange={(e) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, yellowCards: Number(e.target.value) } })}
+            />
+          </label>
+          <label className={labelClass}>
+            Red cards
+            <input
+              type="number"
+              min={0}
+              className={inputClass}
+              value={leaders.roughest.redCards}
+              onChange={(e) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, redCards: Number(e.target.value) } })}
+            />
+          </label>
+        </div>
       </div>
 
       {error && <p className="text-sm text-loss">{error}</p>}

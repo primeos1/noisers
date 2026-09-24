@@ -56,6 +56,8 @@ Route::get('/highlights', [HighlightController::class, 'index']);
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
+// Squad passcode for the player portal — throttled so it can't be guessed.
+Route::post('/player-login', [ClubSettingController::class, 'checkPasscode'])->middleware('throttle:10,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -64,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
     Route::put('/settings', [ClubSettingController::class, 'update']);
+    Route::get('/settings/passcode', [ClubSettingController::class, 'passcode']);
+    Route::put('/settings/passcode', [ClubSettingController::class, 'updatePasscode']);
 
     // Writes for the public-facing entities (public reads stay above, no auth).
     Route::post('/players', [PlayerController::class, 'store']);

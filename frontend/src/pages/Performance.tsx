@@ -5,7 +5,7 @@ import BarLeaderboard from "../components/charts/BarLeaderboard";
 import { useSquad } from "../lib/SquadContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf } from "../lib/matchDay";
-import { topByStat } from "../lib/clubData";
+import { formatCards, roughestPlayer, topByStat } from "../lib/clubData";
 import { outstandingFines, formatNaira } from "../lib/cards";
 import { useCards } from "../lib/CardsContext";
 
@@ -33,6 +33,7 @@ export default function Performance() {
   const yellow = cards.filter((c) => c.type === "yellow").length;
   const red = cards.filter((c) => c.type === "red").length;
   const fines = outstandingFines(cards);
+  const roughest = roughestPlayer(players);
 
   return (
     <Layout>
@@ -126,7 +127,7 @@ export default function Performance() {
             Cards & fines
           </h2>
 
-          <div className="mt-8 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-3">
+          <div className="mt-8 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-4">
             <div className="bg-ink p-8">
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 bg-draw" />
@@ -144,6 +145,15 @@ export default function Performance() {
             <div className="bg-ink p-8">
               <p className="text-xs uppercase tracking-wide text-mist">Outstanding fines</p>
               <p className="mt-4 font-display text-4xl text-paper">{formatNaira(fines)}</p>
+            </div>
+            <div className="bg-ink p-8">
+              <p className="text-xs uppercase tracking-wide text-mist">Roughest player</p>
+              <p className="mt-4 font-display text-4xl text-paper">{roughest?.name ?? "—"}</p>
+              <p className="mt-2 text-sm text-paper-dim">
+                {roughest
+                  ? `#${roughest.number} · ${formatCards(roughest.yellowCards, roughest.redCards)}`
+                  : "Nobody booked yet"}
+              </p>
             </div>
           </div>
         </div>

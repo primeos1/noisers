@@ -22,6 +22,8 @@ export interface ClubSettings {
   ratingCleanSheetDef: number;
   ratingCleanSheetMid: number;
   ratingCleanSheetFwd: number;
+  ratingYellowCard: number;
+  ratingRedCard: number;
   ratingMaxSwing: number;
   valeAutoAwards: boolean;
 }
@@ -37,6 +39,8 @@ export const DEFAULT_RATING_WEIGHTS = {
   ratingCleanSheetDef: 0.12,
   ratingCleanSheetMid: 0.05,
   ratingCleanSheetFwd: 0,
+  ratingYellowCard: 0.05,
+  ratingRedCard: 0.15,
   ratingMaxSwing: 0.5,
 } satisfies Partial<ClubSettings>;
 

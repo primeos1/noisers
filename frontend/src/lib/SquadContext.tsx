@@ -15,6 +15,8 @@ interface ApiPlayer {
   goals: number;
   assists: number;
   cleanSheets: number;
+  yellowCards?: number;
+  redCards?: number;
 }
 
 function fromApi(p: ApiPlayer): Player {
@@ -28,6 +30,8 @@ function fromApi(p: ApiPlayer): Player {
     goals: p.goals,
     assists: p.assists,
     cleanSheets: p.cleanSheets,
+    yellowCards: p.yellowCards ?? 0,
+    redCards: p.redCards ?? 0,
   };
 }
 

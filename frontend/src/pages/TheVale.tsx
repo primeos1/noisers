@@ -6,6 +6,7 @@ import { useMatchDay } from "../lib/MatchDayContext";
 import { useValeContent } from "../lib/ValeContentContext";
 import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
+import { formatCards } from "../lib/clubData";
 
 interface TeamOfWeekData {
   title: string;
@@ -60,6 +61,7 @@ export default function TheVale() {
   const mip = players.find((p) => p.number === mostImprovedPlayer.playerNumber);
   const topScorer = players.find((p) => p.number === weeklyLeaders.topScorer.playerNumber);
   const topAssist = players.find((p) => p.number === weeklyLeaders.topAssist.playerNumber);
+  const roughest = players.find((p) => p.number === weeklyLeaders.roughest.playerNumber);
   const cleanSheetLeaders = weeklyLeaders.cleanSheets
     .map((n) => players.find((p) => p.number === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
@@ -211,7 +213,7 @@ export default function TheVale() {
             Stat leaders
           </h2>
 
-          <div className="mt-10 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-4">
             <div className="bg-ink p-8">
               <p className="text-xs uppercase tracking-wide text-mist">
                 Top scorer
@@ -245,6 +247,20 @@ export default function TheVale() {
               </p>
               <p className="mt-2 text-sm text-paper-dim">
                 {cleanSheetLeaders.map((p) => p.name).join(", ") || "—"}
+              </p>
+            </div>
+
+            <div className="bg-ink p-8">
+              <p className="text-xs uppercase tracking-wide text-mist">
+                Roughest player
+              </p>
+              <p className="mt-4 font-display text-4xl text-paper">
+                {roughest ? weeklyLeaders.roughest.yellowCards + weeklyLeaders.roughest.redCards : 0} cards
+              </p>
+              <p className="mt-2 text-sm text-paper-dim">
+                {roughest
+                  ? `${roughest.name} · #${roughest.number} · ${formatCards(weeklyLeaders.roughest.yellowCards, weeklyLeaders.roughest.redCards)}`
+                  : "No bookings — clean week"}
               </p>
             </div>
           </div>

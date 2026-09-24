@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\MatchDayEvent;
 use App\Support\PlayerRatings;
+use App\Support\PlayerStats;
 use PHPUnit\Framework\TestCase;
 
 class PlayerRatingsTest extends TestCase
@@ -58,6 +59,42 @@ class PlayerRatingsTest extends TestCase
         $this->assertEqualsWithDelta(-0.08, $p[4], 1e-9); // draw, own goal
         $this->assertEqualsWithDelta(0.08, $p[9], 1e-9);  // draw, assist to guest; live game ignored
         $this->assertArrayNotHasKey('guest-1', $p);
+    }
+
+    public function test_cards_cost_a_little_rating(): void
+    {
+        $game = $this->game([]);
+        $game['cards'] = [
+            ['teamIndex' => 0, 'playerId' => 4, 'type' => 'yellow'],
+            ['teamIndex' => 1, 'playerId' => 8, 'type' => 'red'],
+            ['teamIndex' => 0, 'playerId' => 'guest-1', 'type' => 'red'],
+        ];
+        $p = $this->points([$game]);
+
+        $this->assertEqualsWithDelta(0.12 - 0.05, $p[4], 1e-9); // draw, DEF clean sheet, yellow
+        $this->assertEqualsWithDelta(0.05 - 0.15, $p[8], 1e-9); // draw, MID clean sheet, red
+        $this->assertArrayNotHasKey('guest-1', $p);
+    }
+
+    public function test_roughest_player_has_most_cards_with_reds_breaking_ties(): void
+    {
+        $game = $this->game([]);
+        $game['cards'] = [
+            ['playerId' => 4, 'type' => 'yellow'],
+            ['playerId' => 7, 'type' => 'red'],
+            ['playerId' => 9, 'type' => 'yellow'],
+            ['playerId' => 9, 'type' => 'yellow'],
+        ];
+        $stats = PlayerStats::computeAll([new MatchDayEvent(['games' => [$game]])]);
+
+        $this->assertSame(2, $stats[9]['yellowCards']);
+        $this->assertSame(1, $stats[7]['redCards']);
+        $this->assertSame(9, PlayerStats::roughest($stats));
+
+        unset($stats[9]);
+        $this->assertSame(7, PlayerStats::roughest($stats)); // 1 red beats 1 yellow
+
+        $this->assertNull(PlayerStats::roughest(PlayerStats::computeAll([new MatchDayEvent(['games' => [$this->game([])]])])));
     }
 
     public function test_adjust_respects_bounds_and_diminishing_returns(): void

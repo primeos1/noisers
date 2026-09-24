@@ -92,6 +92,9 @@ class MatchDayFinalizer
             'leader_top_assist_number' => null,
             'leader_top_assist_value' => null,
             'leader_clean_sheet_numbers' => null,
+            'leader_roughest_number' => null,
+            'leader_roughest_yellow' => null,
+            'leader_roughest_red' => null,
         ]);
 
         $previous = MatchDayEvent::query()
@@ -248,6 +251,13 @@ class MatchDayFinalizer
             'leader_top_assist_number' => $assister,
             'leader_top_assist_value' => $assister ? $stats[$assister]['assists'] : 0,
             'leader_clean_sheet_numbers' => array_keys(array_filter($stats, fn ($s) => $s['cleanSheets'] > 0)),
+        ];
+
+        $roughest = PlayerStats::roughest($stats);
+        $changes += [
+            'leader_roughest_number' => $roughest,
+            'leader_roughest_yellow' => $roughest ? $stats[$roughest]['yellowCards'] : 0,
+            'leader_roughest_red' => $roughest ? $stats[$roughest]['redCards'] : 0,
         ];
 
         $potw = null;

@@ -14,7 +14,8 @@ use App\Models\PlayerRatingChange;
  *  - every game: a win nudges the whole side up, a loss nudges it down;
  *  - goals and assists reward whoever made them (own goals cost a little);
  *  - a clean sheet rewards the back line most — keepers, then defenders,
- *    then midfielders.
+ *    then midfielders;
+ *  - each card costs the player a little, a red more than a yellow.
  *
  * The day's points are scaled so gains shrink as a rating nears the ceiling
  * and losses shrink as it nears the floor, capped per match day, then clamped
@@ -43,6 +44,10 @@ class PlayerRatings
     private const OWN_GOAL = -0.08;
 
     private const CLEAN_SHEET = ['GK' => 0.15, 'DEF' => 0.12, 'MID' => 0.05, 'FWD' => 0.0];
+
+    private const YELLOW_CARD = -0.05;
+
+    private const RED_CARD = -0.15;
 
     /** Most a rating can move in a single match day, either way. */
     private const MAX_SWING = 0.5;
@@ -77,7 +82,7 @@ class PlayerRatings
     }
 
     /**
-     * @return array{win: float, loss: float, goal: float, assist: float, own_goal: float, clean_sheet: array<string, float>, max_swing: float}
+     * @return array{win: float, loss: float, goal: float, assist: float, own_goal: float, clean_sheet: array<string, float>, yellow_card: float, red_card: float, max_swing: float}
      */
     public static function defaultWeights(): array
     {
@@ -88,6 +93,8 @@ class PlayerRatings
             'assist' => self::ASSIST,
             'own_goal' => self::OWN_GOAL,
             'clean_sheet' => self::CLEAN_SHEET,
+            'yellow_card' => self::YELLOW_CARD,
+            'red_card' => self::RED_CARD,
             'max_swing' => self::MAX_SWING,
         ];
     }
@@ -141,6 +148,11 @@ class PlayerRatings
                 $ownGoal = (bool) ($goal['ownGoal'] ?? false);
                 $add($goal['playerId'] ?? null, $ownGoal ? $weights['own_goal'] : $weights['goal']);
                 $add($goal['assistPlayerId'] ?? null, $weights['assist']);
+            }
+
+            foreach (($game['cards'] ?? []) as $card) {
+                $red = ($card['type'] ?? 'yellow') === 'red';
+                $add($card['playerId'] ?? null, $red ? $weights['red_card'] : $weights['yellow_card']);
             }
         }
 

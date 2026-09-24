@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePlayerRequest;
 use App\Http\Requests\UpdatePlayerRequest;
 use App\Http\Resources\PlayerResource;
+use App\Models\Card;
 use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
@@ -92,8 +93,24 @@ class PlayerController extends Controller
     {
         $stats = PlayerStats::computeAll(MatchDayEvent::query()->get());
 
+        // Cards logged by hand (fixtures, not match days) count towards the
+        // season's discipline too. Match-day cards are already in $stats, so
+        // their Card records are skipped to avoid counting them twice.
+        $manualCards = Card::query()
+            ->whereNull('match_day_ref')
+            ->whereIn('player_id', $players->pluck('id'))
+            ->selectRaw('player_id, type, count(*) as total')
+            ->groupBy('player_id', 'type')
+            ->get()
+            ->groupBy('player_id');
+
         foreach ($players as $player) {
-            $player->setAttribute('match_day_stats', $stats[$player->number] ?? null);
+            $row = $stats[$player->number] ?? null;
+            foreach ($manualCards[$player->id] ?? [] as $count) {
+                $row ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'yellowCards' => 0, 'redCards' => 0];
+                $row[$count->type === 'red' ? 'redCards' : 'yellowCards'] += (int) $count->total;
+            }
+            $player->setAttribute('match_day_stats', $row);
         }
     }
 }

@@ -29,6 +29,9 @@ class ValeContent extends Model
         'leader_top_assist_number',
         'leader_top_assist_value',
         'leader_clean_sheet_numbers',
+        'leader_roughest_number',
+        'leader_roughest_yellow',
+        'leader_roughest_red',
     ];
 
     protected function casts(): array

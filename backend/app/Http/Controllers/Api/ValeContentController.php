@@ -55,6 +55,9 @@ class ValeContentController extends Controller
             'leader_top_assist_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'leader_clean_sheet_numbers' => ['sometimes', 'nullable', 'array'],
             'leader_clean_sheet_numbers.*' => ['integer'],
+            'leader_roughest_number' => ['sometimes', 'nullable', 'integer', 'exists:players,number'],
+            'leader_roughest_yellow' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'leader_roughest_red' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ]);
 
         $content->update($validated);

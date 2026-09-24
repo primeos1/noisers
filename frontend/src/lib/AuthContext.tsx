@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { useLocalStorageState } from "./useLocalStorageState";
 import { apiFetch, setToken } from "./api";
 
 export type UserRole = "admin" | "player";
@@ -20,16 +19,13 @@ interface LoginResponse {
 interface AuthContextValue {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
-  loginAsPlayer: (passcode: string) => boolean;
+  loginAsPlayer: (passcode: string) => Promise<void>;
   logout: () => void;
-  playerPasscode: string;
-  setPlayerPasscode: (passcode: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const STORAGE_KEY = "noisers_auth_user";
-const DEFAULT_PASSCODE = "vale2zenith";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -40,10 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
-  const [playerPasscode, setPlayerPasscode] = useLocalStorageState(
-    "noisers_player_passcode",
-    DEFAULT_PASSCODE,
-  );
 
   function persist(nextUser: AuthUser | null) {
     setUser(nextUser);
@@ -67,10 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persist({ name: staff.name, email: staff.email, role: "admin", staffRole: staff.role });
   }
 
-  function loginAsPlayer(passcode: string) {
-    if (passcode.trim() !== playerPasscode) return false;
+  // Checked by the API, so a passcode changed in Settings applies on every device.
+  async function loginAsPlayer(passcode: string) {
+    await apiFetch("/player-login", {
+      method: "POST",
+      body: JSON.stringify({ passcode: passcode.trim() }),
+    });
     persist({ name: "Squad access", email: "players@noisersfc.com", role: "player" });
-    return true;
   }
 
   function logout() {
@@ -82,9 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{ user, login, loginAsPlayer, logout, playerPasscode, setPlayerPasscode }}
-    >
+    <AuthContext.Provider value={{ user, login, loginAsPlayer, logout }}>
       {children}
     </AuthContext.Provider>
   );

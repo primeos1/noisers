@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Modal from "../../components/admin/Modal";
 import { useAuth } from "../../lib/AuthContext";
+import { apiFetch } from "../../lib/api";
 import { DEFAULT_RATING_WEIGHTS, useSettings, type ClubSettings } from "../../lib/SettingsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSquad } from "../../lib/SquadContext";
@@ -150,9 +151,10 @@ function signed(n: number) {
 // Its own component, remounted (via `key`, below) once the real settings
 // arrive, so the draft starts from live values without an effect syncing
 // state after render.
-function SettingsForm({ canEdit }: { canEdit: boolean }) {
+function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: string }) {
   const { settings, loading, updateSettings } = useSettings();
-  const { user, playerPasscode, setPlayerPasscode } = useAuth();
+  const { user } = useAuth();
+  const [playerPasscode, setPlayerPasscode] = useState(passcode);
 
   const [draft, setDraft] = useState<ClubSettings>(settings);
   const [passcodeDraft, setPasscodeDraft] = useState(playerPasscode);
@@ -180,7 +182,14 @@ function SettingsForm({ canEdit }: { canEdit: boolean }) {
       if (changed.length > 0) {
         await updateSettings(Object.fromEntries(changed.map((k) => [k, draft[k]])));
       }
-      if (passcodeChanged) setPlayerPasscode(passcodeDraft.trim());
+      if (passcodeChanged) {
+        const res = await apiFetch<{ passcode: string }>("/settings/passcode", {
+          method: "PUT",
+          body: JSON.stringify({ passcode: passcodeDraft.trim() }),
+        });
+        setPlayerPasscode(res.passcode);
+        setPasscodeDraft(res.passcode);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -386,6 +395,8 @@ function SettingsForm({ canEdit }: { canEdit: boolean }) {
               <NumberField label="Goal" value={draft.ratingGoal} onChange={(v) => set("ratingGoal", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
               <NumberField label="Assist" value={draft.ratingAssist} onChange={(v) => set("ratingAssist", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
               <NumberField label="Own goal" value={draft.ratingOwnGoal} onChange={(v) => set("ratingOwnGoal", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
+              <NumberField label="Yellow card" value={draft.ratingYellowCard} onChange={(v) => set("ratingYellowCard", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
+              <NumberField label="Red card" value={draft.ratingRedCard} onChange={(v) => set("ratingRedCard", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
             </div>
 
             <p className="mt-6 text-sm text-paper">Clean sheet bonus by position</p>
@@ -626,6 +637,17 @@ export default function AdminSettings() {
   const { user } = useAuth();
   const { loading } = useSettings();
   const canEdit = user?.staffRole !== "committee";
+  // The squad passcode lives on the server (it's checked there at sign-in),
+  // and isn't part of the public settings, so it's fetched on its own.
+  const [passcode, setPasscode] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ passcode: string }>("/settings/passcode")
+      .then((res) => setPasscode(res.passcode))
+      .catch(() => setPasscode(""));
+  }, []);
+
+  const ready = !loading && passcode !== null;
 
   return (
     <div>
@@ -636,7 +658,7 @@ export default function AdminSettings() {
         every admin and device.
       </p>
 
-      <SettingsForm key={loading ? "loading" : "loaded"} canEdit={canEdit} />
+      <SettingsForm key={ready ? "loaded" : "loading"} canEdit={canEdit} passcode={passcode ?? ""} />
     </div>
   );
 }

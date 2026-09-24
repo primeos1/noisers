@@ -23,6 +23,7 @@ export interface ValeContentData {
     topScorer: { playerNumber: number; value: number };
     topAssist: { playerNumber: number; value: number };
     cleanSheets: number[];
+    roughest: { playerNumber: number; yellowCards: number; redCards: number };
   };
 }
 
@@ -48,6 +49,7 @@ interface ApiValeContent {
     topScorer: { playerNumber: number | null; value: number | null };
     topAssist: { playerNumber: number | null; value: number | null };
     cleanSheets: number[];
+    roughest?: { playerNumber: number | null; yellowCards: number | null; redCards: number | null };
   };
 }
 
@@ -68,6 +70,7 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
     topScorer: { playerNumber: 0, value: 0 },
     topAssist: { playerNumber: 0, value: 0 },
     cleanSheets: [],
+    roughest: { playerNumber: 0, yellowCards: 0, redCards: 0 },
   },
 };
 
@@ -104,6 +107,11 @@ function fromApi(data: ApiValeContent): ValeContentData {
         value: data.weeklyLeaders.topAssist.value ?? 0,
       },
       cleanSheets: data.weeklyLeaders.cleanSheets ?? [],
+      roughest: {
+        playerNumber: data.weeklyLeaders.roughest?.playerNumber ?? 0,
+        yellowCards: data.weeklyLeaders.roughest?.yellowCards ?? 0,
+        redCards: data.weeklyLeaders.roughest?.redCards ?? 0,
+      },
     },
   };
 }
@@ -148,6 +156,9 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (w.topAssist?.playerNumber !== undefined) body.leader_top_assist_number = playerNumberOrNull(w.topAssist.playerNumber);
     if (w.topAssist?.value !== undefined) body.leader_top_assist_value = w.topAssist.value;
     if (w.cleanSheets !== undefined) body.leader_clean_sheet_numbers = w.cleanSheets;
+    if (w.roughest?.playerNumber !== undefined) body.leader_roughest_number = playerNumberOrNull(w.roughest.playerNumber);
+    if (w.roughest?.yellowCards !== undefined) body.leader_roughest_yellow = w.roughest.yellowCards;
+    if (w.roughest?.redCards !== undefined) body.leader_roughest_red = w.roughest.redCards;
   }
   return body;
 }

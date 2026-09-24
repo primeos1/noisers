@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent, type PointerEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
 import { photos } from "../lib/photos";
 import { useAuth } from "../lib/AuthContext";
+import { ApiError } from "../lib/api";
 
 export default function PlayerLogin() {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -13,13 +14,18 @@ export default function PlayerLogin() {
 
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (loginAsPlayer(passcode)) {
+    setError("");
+    setSubmitting(true);
+    try {
+      await loginAsPlayer(passcode);
       navigate(from, { replace: true });
-    } else {
-      setError("That passcode isn't right — check with the committee.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't reach the club server — try again.");
+      setSubmitting(false);
     }
   }
 
@@ -109,9 +115,10 @@ export default function PlayerLogin() {
 
             <button
               type="submit"
-              className="shimmer-btn relative w-full overflow-hidden border border-paper bg-paper px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper"
+              disabled={submitting}
+              className="shimmer-btn relative w-full overflow-hidden border border-paper bg-paper px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper disabled:opacity-60"
             >
-              <span className="relative z-10">Enter the portal</span>
+              <span className="relative z-10">{submitting ? "Checking…" : "Enter the portal"}</span>
             </button>
           </form>
 
