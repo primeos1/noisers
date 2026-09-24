@@ -34,12 +34,13 @@ class MediaController extends Controller
         ]);
 
         $file = $validated['file'];
-        $path = $file->store('media', 'public');
+        $disk = config('filesystems.media_disk');
+        $path = $file->store('media', $disk);
 
         $media = Media::create([
-            'disk' => 'public',
+            'disk' => $disk,
             'path' => $path,
-            'url' => Storage::disk('public')->url($path),
+            'url' => Storage::disk($disk)->url($path),
             'original_filename' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),

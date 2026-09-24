@@ -60,7 +60,35 @@ return [
             'report' => false,
         ],
 
+        // Cloudflare R2 (S3-compatible). R2_URL is the bucket's public base
+        // URL, e.g. https://media.noisersfc.com.
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => 'auto',
+            'bucket' => env('R2_BUCKET'),
+            'url' => env('R2_URL'),
+            'endpoint' => env('R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'visibility' => 'public',
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Media Disk
+    |--------------------------------------------------------------------------
+    |
+    | Disk that admin media uploads are written to. "public" locally,
+    | "r2" in production so uploads survive redeploys.
+    |
+    */
+
+    'media_disk' => env('MEDIA_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------
