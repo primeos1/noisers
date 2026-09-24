@@ -12,11 +12,11 @@ export default function Hero() {
   const last = allGames(events).pop();
 
   return (
-    <section className="relative flex min-h-[92svh] items-end overflow-hidden border-b border-ink-line">
+    <section className="relative flex min-h-[78svh] flex-col overflow-hidden border-b border-ink-line md:min-h-[92svh] md:flex-row md:items-end">
       <img
         src={hero.imageUrl || photos.heroNight}
         alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
-        className="duotone absolute inset-0 h-full w-full object-cover"
+        className="duotone absolute inset-0 h-full w-full object-cover object-top"
         loading="eager"
       />
       <div className="duotone-wash pointer-events-none absolute inset-0" />
@@ -29,36 +29,48 @@ export default function Hero() {
         className="pointer-events-none absolute -right-24 top-1/2 hidden w-[38rem] -translate-y-1/2 opacity-[0.07] md:block"
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-16 pt-40 md:px-10 md:pb-24">
+      {/* Mobile: logo centered (both axes) in the space above the text —
+          flex-1 claims exactly the leftover room in the column, whatever
+          the text block's height turns out to be. */}
+      <div className="relative z-10 flex flex-1 items-center justify-center md:hidden">
+        <img
+          src={logoWhite}
+          alt=""
+          aria-hidden="true"
+          className="animate-logo-breathe mt-16 w-80 opacity-[0.16] sm:w-96"
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-10 pt-8 md:px-10 md:pb-24 md:pt-40">
         <p className="animate-hero-in text-sm text-paper-dim [animation-delay:0ms]">
           {hero.eyebrow}
         </p>
 
-        <h1 className="animate-hero-in mt-4 max-w-3xl font-display text-6xl leading-[0.95] tracking-tight text-paper [animation-delay:80ms] sm:text-7xl md:text-8xl">
+        <h1 className="animate-hero-in mt-4 max-w-3xl font-display text-[3.5rem] leading-[0.92] tracking-tight text-paper [animation-delay:80ms] sm:text-7xl md:text-8xl">
           {hero.headline}
         </h1>
 
-        <p className="animate-hero-in mt-6 max-w-lg text-lg leading-relaxed text-paper-dim [animation-delay:160ms]">
+        <p className="animate-hero-in mt-5 max-w-lg text-base leading-relaxed md:mt-6 md:text-lg text-paper-dim [animation-delay:160ms]">
           {hero.subtext}
         </p>
 
-        <div className="animate-hero-in mt-9 flex flex-wrap items-center gap-4 [animation-delay:240ms]">
+        <div className="animate-hero-in mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4 [animation-delay:240ms]">
           <Link
             to="/squad"
-            className="border border-paper bg-paper px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper"
+            className="border border-paper bg-paper px-6 py-3.5 text-center text-sm font-medium text-ink sm:py-3 transition-colors hover:bg-transparent hover:text-paper"
           >
             Meet the squad
           </Link>
           <a
             href="#matchday"
-            className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
+            className="border border-paper/40 px-6 py-3.5 text-center text-sm text-paper sm:py-3 transition-colors hover:border-paper"
           >
             See match days
           </a>
         </div>
 
         {last && (
-        <div className="animate-hero-in mt-14 flex items-center gap-4 border-t border-ink-line pt-6 text-sm text-paper-dim [animation-delay:320ms]">
+        <div className="animate-hero-in mt-10 flex flex-col gap-1 border-t md:mt-14 md:flex-row md:items-center md:gap-4 border-ink-line pt-6 text-sm text-paper-dim [animation-delay:320ms]">
           <span className="text-paper">Last match day</span>
           <span>
             {last.game.teams[0].name} {scoreOf(last.game, 0)}–{scoreOf(last.game, 1)}{" "}

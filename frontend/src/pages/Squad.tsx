@@ -40,7 +40,7 @@ export default function Squad() {
       />
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm text-paper-dim">Squad honours</p>
@@ -58,7 +58,7 @@ export default function Squad() {
 
           <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line lg:grid-cols-4">
             {squadHonours.map((honour) => (
-              <div key={honour.title} className="bg-ink px-6 py-8">
+              <div key={honour.title} className="bg-ink px-4 py-6 md:px-6 md:py-8">
                 <div className="relative h-20 w-20 overflow-hidden border border-ink-line">
                   <img
                     src={honour.player.photo}
@@ -84,7 +84,7 @@ export default function Squad() {
       </section>
 
       <section className="bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <div className="flex flex-wrap gap-2">
             {filters.map((f) => (
               <button
@@ -121,7 +121,7 @@ export default function Squad() {
                     {player.number}
                   </span>
                   <span className="absolute right-3 top-3 border border-paper/40 bg-ink/70 px-2 py-1 text-xs text-paper backdrop-blur">
-                    {player.rating.toFixed(1)}
+                    {player.rating.toFixed(2)}
                   </span>
                 </div>
 

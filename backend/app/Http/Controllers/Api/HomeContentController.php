@@ -53,10 +53,13 @@ class HomeContentController extends Controller
             'matchday_eyebrow' => ['sometimes', 'nullable', 'string', 'max:255'],
             'matchday_headline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'matchday_body' => ['sometimes', 'nullable', 'string'],
+            'footer_tagline' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'footer_copyright' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
         $content->update($validated);
 
-        return new HomeContentResource($content);
+        // Force 200 — see ValeContentController::show() for why.
+        return (new HomeContentResource($content))->response()->setStatusCode(200);
     }
 }

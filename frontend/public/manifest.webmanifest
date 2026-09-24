@@ -1,0 +1,14 @@
+{
+  "name": "Noisers FC",
+  "short_name": "Noisers",
+  "description": "Squad, match days and stats for Noisers FC.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0E1A",
+  "theme_color": "#0A0E1A",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "256x256", "type": "image/png", "purpose": "any" }
+  ]
+}

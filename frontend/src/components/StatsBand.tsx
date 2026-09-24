@@ -22,7 +22,7 @@ export default function StatsBand() {
 
       <div className="relative mx-auto grid max-w-7xl grid-cols-2 gap-px bg-ink-line md:grid-cols-4">
         {clubStats.map((stat) => (
-          <div key={stat.label} className="bg-ink/60 px-6 py-10 md:px-10 md:py-14">
+          <div key={stat.label} className="bg-ink/60 px-4 py-8 md:px-10 md:py-14">
             <div className="font-display text-6xl leading-none text-paper md:text-7xl">
               {stat.value}
             </div>

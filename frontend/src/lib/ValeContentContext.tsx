@@ -108,6 +108,13 @@ function fromApi(data: ApiValeContent): ValeContentData {
   };
 }
 
+// "— None —" is represented as 0 in the UI (keeps player-number fields a
+// plain number instead of a nullable union) but the backend's nullable FK
+// validation (`exists:players,number`) rejects 0 — only null passes through.
+function playerNumberOrNull(n: number): number | null {
+  return n > 0 ? n : null;
+}
+
 function toApiBody(patch: Partial<ValeContentData>) {
   const body: Record<string, unknown> = {};
   if (patch.teamOfTheWeek) {
@@ -123,22 +130,22 @@ function toApiBody(patch: Partial<ValeContentData>) {
   }
   if (patch.playerOfTheWeek) {
     const p = patch.playerOfTheWeek;
-    if (p.playerNumber !== undefined) body.potw_player_number = p.playerNumber;
+    if (p.playerNumber !== undefined) body.potw_player_number = playerNumberOrNull(p.playerNumber);
     if (p.note !== undefined) body.potw_note = p.note;
     if (p.weekRating !== undefined) body.potw_rating = p.weekRating;
   }
   if (patch.mostImproved) {
     const m = patch.mostImproved;
-    if (m.playerNumber !== undefined) body.improved_player_number = m.playerNumber;
+    if (m.playerNumber !== undefined) body.improved_player_number = playerNumberOrNull(m.playerNumber);
     if (m.note !== undefined) body.improved_note = m.note;
     if (m.previousRating !== undefined) body.improved_prev_rating = m.previousRating;
     if (m.currentRating !== undefined) body.improved_curr_rating = m.currentRating;
   }
   if (patch.weeklyLeaders) {
     const w = patch.weeklyLeaders;
-    if (w.topScorer?.playerNumber !== undefined) body.leader_top_scorer_number = w.topScorer.playerNumber;
+    if (w.topScorer?.playerNumber !== undefined) body.leader_top_scorer_number = playerNumberOrNull(w.topScorer.playerNumber);
     if (w.topScorer?.value !== undefined) body.leader_top_scorer_value = w.topScorer.value;
-    if (w.topAssist?.playerNumber !== undefined) body.leader_top_assist_number = w.topAssist.playerNumber;
+    if (w.topAssist?.playerNumber !== undefined) body.leader_top_assist_number = playerNumberOrNull(w.topAssist.playerNumber);
     if (w.topAssist?.value !== undefined) body.leader_top_assist_value = w.topAssist.value;
     if (w.cleanSheets !== undefined) body.leader_clean_sheet_numbers = w.cleanSheets;
   }
@@ -150,6 +157,7 @@ interface ValeContentContextValue {
   loading: boolean;
   error: string;
   updateContent: (patch: Partial<ValeContentData>) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const ValeContentContext = createContext<ValeContentContextValue | null>(null);
@@ -159,13 +167,18 @@ export function ValeContentProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    apiFetch<{ data: ApiValeContent }>("/vale-content")
+  // Also re-run after a match day ends — the backend rewrites the weekly
+  // awards from that day's results.
+  function refresh() {
+    return apiFetch<{ data: ApiValeContent }>("/vale-content")
       .then((res) => setContent(fromApi(res.data)))
       .catch(() => {
-        // API unreachable — keep the defaults, app still works.
-      })
-      .finally(() => setLoading(false));
+        // API unreachable — keep the current content, app still works.
+      });
+  }
+
+  useEffect(() => {
+    refresh().finally(() => setLoading(false));
   }, []);
 
   async function updateContent(patch: Partial<ValeContentData>) {
@@ -183,7 +196,7 @@ export function ValeContentProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ValeContentContext.Provider value={{ content, loading, error, updateContent }}>
+    <ValeContentContext.Provider value={{ content, loading, error, updateContent, refresh }}>
       {children}
     </ValeContentContext.Provider>
   );

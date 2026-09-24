@@ -36,12 +36,18 @@ Route::get('/fixtures/{fixture}', [FixtureController::class, 'show']);
 Route::get('/goal-events', [GoalEventController::class, 'index']);
 Route::get('/assist-events', [AssistEventController::class, 'index']);
 
+// Disciplinary cards and fines � public read (the player portal signs in
+// with a shared passcode, not a token), committee/admin write below.
+Route::get('/cards', [CardController::class, 'index']);
+Route::get('/cards/{card}', [CardController::class, 'show']);
+
 // Club-wide fine amounts and match defaults — public read, admin write below.
 Route::get('/settings', [ClubSettingController::class, 'show']);
 
 // Match Day events — public read (powers the "latest match day" teasers),
 // committee/admin write below.
 Route::get('/match-day-events', [MatchDayEventController::class, 'index']);
+Route::get('/match-day-events/{matchDayEvent}/team-of-week', [MatchDayEventController::class, 'teamOfWeek']);
 
 // Site content CMS — public read, committee/admin write below.
 Route::get('/home-content', [HomeContentController::class, 'show']);
@@ -80,8 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/assist-events/{assistEvent}', [AssistEventController::class, 'update']);
     Route::delete('/assist-events/{assistEvent}', [AssistEventController::class, 'destroy']);
 
-    // Internal-only: disciplinary, training, and the team randomizer.
-    Route::apiResource('cards', CardController::class);
+    // Internal-only: card writes, training, and the team randomizer.
+    Route::apiResource('cards', CardController::class)->except(['index', 'show']);
 
     Route::post('/match-day-events', [MatchDayEventController::class, 'store']);
     Route::put('/match-day-events/{matchDayEvent}', [MatchDayEventController::class, 'update']);

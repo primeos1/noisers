@@ -37,7 +37,36 @@ export default function AdminMatches() {
           No match days recorded yet — start one from the Match Day tab.
         </p>
       ) : (
-        <div className="mt-10 overflow-x-auto border border-ink-line">
+        <>
+        {/* Phones: card list */}
+        <ul className="mt-6 divide-y divide-ink-line overflow-hidden rounded-2xl border border-ink-line bg-ink-raised md:hidden">
+          {sorted.map((event) => (
+            <li key={event.id} className="flex items-center gap-3 px-4 py-3">
+              <button type="button" onClick={() => setViewing(event)} className="min-w-0 flex-1 text-left">
+                <p className="flex items-center gap-2 text-[0.95rem] text-paper">
+                  <span className="truncate">{event.title}</span>
+                  {event.status !== "ended" && (
+                    <span className="shrink-0 rounded-full bg-win/20 px-2 py-0.5 text-[0.65rem] font-semibold uppercase text-win">
+                      Live
+                    </span>
+                  )}
+                </p>
+                <p className="truncate text-xs text-mist">
+                  {event.venue} · {event.date} · {event.games.length} {event.games.length === 1 ? "game" : "games"}
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(event)}
+                className="shrink-0 rounded-full px-3 py-1.5 text-xs text-loss"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-10 hidden overflow-x-auto border border-ink-line md:block">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-ink-line text-xs uppercase tracking-wide text-mist">
@@ -82,6 +111,7 @@ export default function AdminMatches() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {viewing && (
@@ -178,18 +208,18 @@ export default function AdminMatches() {
 
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 p-4 backdrop-blur"
+          className="sheet-backdrop"
           onClick={() => setConfirmDelete(null)}
         >
           <div
-            className="w-full max-w-sm border border-ink-line bg-ink-raised p-6"
+            role="dialog" aria-modal="true" className="sheet md:max-w-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-xl text-paper">Remove match day</h2>
             <p className="mt-2 text-sm text-paper-dim">
               Remove "{confirmDelete.title}"? This can't be undone.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="sheet-actions mt-6 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(null)}

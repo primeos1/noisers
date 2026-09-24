@@ -14,11 +14,11 @@ export default function SquadPreview() {
 
   return (
     <section id="squad" className="border-b border-ink-line bg-ink">
-      <div className="mx-auto max-w-7xl px-6 py-20 md:px-10">
+      <div className="mx-auto max-w-7xl px-5 py-12 md:px-10 md:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-line pb-6">
           <div>
             <p className="text-sm text-paper-dim">This season</p>
-            <h2 className="mt-3 font-display text-5xl text-paper md:text-6xl">
+            <h2 className="mt-2 font-display text-[2.75rem] leading-none text-paper md:mt-3 md:text-6xl">
               The squad
             </h2>
           </div>
@@ -28,37 +28,47 @@ export default function SquadPreview() {
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-3 lg:grid-cols-4">
+        <div className="no-scrollbar -mx-5 mt-6 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 pb-1 sm:mx-0 sm:mt-10 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-px sm:overflow-visible sm:bg-ink-line sm:px-0 sm:pb-0 lg:grid-cols-4">
           {featured.map((player) => (
-            <article
+            <Link
+              to={`/squad/${player.number}`}
               key={player.number}
-              className="group flex aspect-[3/4] flex-col justify-between bg-ink p-6 transition-colors hover:bg-ink-raised"
+              className="group relative flex aspect-[3/4] w-[42vw] max-w-[14rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-2xl border border-ink-line bg-ink-raised p-4 transition-colors hover:bg-ink-raised sm:w-auto sm:max-w-none sm:rounded-none sm:border-0 sm:bg-ink sm:p-6"
             >
-              <div className="flex items-start justify-between">
-                <span className="font-display text-7xl leading-none text-paper-dim transition-colors group-hover:text-paper md:text-8xl">
+              <img
+                src={player.photo}
+                alt={player.name}
+                loading="lazy"
+                className="duotone absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="duotone-wash pointer-events-none absolute inset-0" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-ink/60" />
+
+              <div className="relative flex items-start justify-between">
+                <span className="font-display text-6xl leading-none text-paper drop-shadow sm:text-7xl md:text-8xl">
                   {player.number}
                 </span>
-                <span className="mt-1 text-xs text-mist">
+                <span className="mt-1 text-[0.65rem] text-paper drop-shadow sm:text-xs">
                   {positionLabel[player.position]}
                 </span>
               </div>
 
-              <div>
-                <h3 className="font-display text-2xl leading-tight text-paper">
+              <div className="relative">
+                <h3 className="font-display text-xl leading-tight text-paper sm:text-2xl">
                   {player.name}
                 </h3>
-                <p className="mt-2 text-sm text-paper-dim">
+                <p className="mt-1 text-xs text-paper-dim sm:mt-2 sm:text-sm">
                   {player.goals} goals · {player.assists} assists
                 </p>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 
-        <div className="mt-10 flex justify-end">
+        <div className="mt-8 flex sm:mt-10 sm:justify-end">
           <Link
             to="/squad"
-            className="border border-paper/40 px-6 py-3 text-sm text-paper transition-colors hover:border-paper"
+            className="w-full border border-paper/40 px-6 py-3.5 text-center text-sm text-paper transition-colors hover:border-paper sm:w-auto sm:py-3"
           >
             View full squad →
           </Link>

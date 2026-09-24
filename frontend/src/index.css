@@ -23,16 +23,68 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    background: var(--color-ink);
+    overflow-x: clip;
   }
 
   body {
     margin: 0;
+    min-height: 100dvh;
     background: var(--color-ink);
     color: var(--color-paper);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overscroll-behavior-x: none;
+    /* Nothing may widen the page sideways (e.g. mid-transition screens). */
+    overflow-x: clip;
+  }
+
+  /* No 300ms delay / double-tap zoom on controls. */
+  a,
+  button,
+  [role="button"],
+  label,
+  summary,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  button,
+  [role="button"],
+  nav a {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  /* Phones: iOS zooms into any field under 16px — keep inputs at 16px. */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Touch screens: native-feeling press feedback instead of hover. */
+  @media (hover: none) {
+    button:not(:disabled):active,
+    a:active,
+    [role="button"]:active {
+      opacity: 0.6;
+      transition: opacity 0s;
+    }
   }
 
   ::selection {
@@ -73,6 +125,24 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  /* Mobile hero: a large, faint watermark crest fills the gap under the nav
+     bar instead of leaving it empty, with a slow breathing scale/opacity. */
+  .animate-logo-breathe {
+    animation: logo-breathe 5s ease-in-out infinite;
+  }
+
+  @keyframes logo-breathe {
+    0%,
+    100% {
+      opacity: 0.12;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.22;
+      transform: scale(1.05);
     }
   }
 
@@ -290,6 +360,178 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* App shell: safe areas, tab bars, sheets and screen transitions. */
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Room under page content for the floating tab bar on phones. */
+  .pb-tabbar {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 6.5rem);
+  }
+
+  @media (min-width: 768px) {
+    .pb-tabbar {
+      padding-bottom: 0;
+    }
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Floating translucent tab bar, iOS style. */
+  .tabbar {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 40;
+  }
+
+  .glass {
+    background: rgb(19 26 43 / 0.82);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  .glass-bar {
+    background: rgb(10 14 26 / 0.78);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  /* Screens slide in lightly on navigation. */
+  .screen-in {
+    animation: screen-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  @keyframes screen-in {
+    from {
+      opacity: 0;
+      transform: translateX(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Dialogs: bottom sheet on phones, centred card from md up. */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgb(10 14 26 / 0.7);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    animation: fade-in 0.2s ease-out both;
+  }
+
+  .sheet {
+    position: relative;
+    width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    border-top: 1px solid var(--color-ink-line);
+    border-radius: 1.5rem 1.5rem 0 0;
+    background: var(--color-ink-raised);
+    padding: 1.75rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+    animation: sheet-up 0.38s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+
+  /* Grabber handle */
+  .sheet::before {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    width: 2.25rem;
+    height: 0.3rem;
+    border-radius: 999px;
+    background: var(--color-ink-line);
+    transform: translateX(-50%);
+  }
+
+  @media (min-width: 768px) {
+    .sheet-backdrop {
+      align-items: center;
+      padding: 1rem;
+    }
+
+    .sheet {
+      max-height: 90vh;
+      border: 1px solid var(--color-ink-line);
+      border-radius: 0;
+      padding: 2rem;
+      animation: fade-in 0.2s ease-out both;
+    }
+
+    .sheet::before {
+      display: none;
+    }
+  }
+
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Phones: dialog buttons stack full width like an action sheet. */
+  @media (max-width: 767px) {
+    .sheet-actions {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .sheet-actions > * {
+      width: 100%;
+      padding-top: 0.85rem;
+      padding-bottom: 0.85rem;
+      border-radius: 0.85rem;
+      text-align: center;
+    }
+  }
+}
+
+/* Player portal: the rating bar fills in once when a profile opens. */
+@layer utilities {
+  .rating-fill {
+    transform-origin: left;
+    animation: rating-fill 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes rating-fill {
+    from {
+      transform: scaleX(0);
     }
   }
 }

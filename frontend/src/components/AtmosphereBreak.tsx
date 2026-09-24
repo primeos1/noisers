@@ -6,7 +6,7 @@ export default function AtmosphereBreak() {
   const { atmosphere } = content;
 
   return (
-    <section className="relative h-[60vh] min-h-[22rem] overflow-hidden border-b border-ink-line md:h-[80vh]">
+    <section className="relative h-[60svh] min-h-[22rem] overflow-hidden border-b border-ink-line md:h-[80svh]">
       <img
         src={atmosphere.imageUrl || photos.tunnel}
         alt="Players walking out through the tunnel before a match"

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { seedSquad, type Player, type Position } from "./clubData";
+import { isStockPhoto, seedSquad, stockPhoto, type Player, type Position } from "./clubData";
 import { apiFetch, ApiError } from "./api";
 
 interface ApiPlayer {
@@ -22,7 +22,7 @@ function fromApi(p: ApiPlayer): Player {
     number: p.number,
     name: p.name,
     position: p.position,
-    photo: p.photoUrl || `https://i.pravatar.cc/400?img=${(p.number % 70) + 1}`,
+    photo: p.photoUrl && !isStockPhoto(p.photoUrl) ? p.photoUrl : stockPhoto(p.number),
     rating: p.rating,
     appearances: p.appearances,
     goals: p.goals,
@@ -37,7 +37,7 @@ function toApiBody(player: Partial<Player>) {
   if (player.name !== undefined) body.name = player.name;
   if (player.position !== undefined) body.position = player.position;
   if (player.rating !== undefined) body.rating = player.rating;
-  if (player.photo !== undefined) body.photo_url = player.photo || null;
+  if (player.photo !== undefined) body.photo_url = player.photo && !isStockPhoto(player.photo) ? player.photo : null;
   return body;
 }
 
@@ -48,6 +48,7 @@ interface SquadContextValue {
   addPlayer: (player: Player) => void;
   updatePlayer: (number: number, patch: Partial<Player>) => void;
   removePlayer: (number: number) => void;
+  refresh: () => Promise<void>;
 }
 
 const SquadContext = createContext<SquadContextValue | null>(null);
@@ -59,13 +60,18 @@ export function SquadProvider({ children }: { children: ReactNode }) {
   const playersRef = useRef(players);
   playersRef.current = players;
 
-  useEffect(() => {
-    apiFetch<{ data: ApiPlayer[] }>("/players?active_only=false")
+  // Stats are computed server-side from finished Match Day games, so this
+  // is re-run whenever a game or match day ends (see pages/admin/MatchDay).
+  function refresh() {
+    return apiFetch<{ data: ApiPlayer[] }>("/players?active_only=false")
       .then((res) => setPlayers(res.data.map(fromApi)))
       .catch(() => {
-        // API unreachable — keep the seed squad, app still works.
-      })
-      .finally(() => setLoading(false));
+        // API unreachable — keep the current squad, app still works.
+      });
+  }
+
+  useEffect(() => {
+    refresh().finally(() => setLoading(false));
   }, []);
 
   function addPlayer(player: Player) {
@@ -81,7 +87,13 @@ export function SquadProvider({ children }: { children: ReactNode }) {
   function updatePlayer(number: number, patch: Partial<Player>) {
     setError("");
     const previous = playersRef.current;
-    setPlayers((prev) => prev.map((p) => (p.number === number ? { ...p, ...patch } : p)));
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.number !== number) return p;
+        const next = { ...p, ...patch };
+        return next.photo ? next : { ...next, photo: stockPhoto(next.number) };
+      }),
+    );
     apiFetch<{ data: ApiPlayer }>(`/players/${number}`, {
       method: "PUT",
       body: JSON.stringify(toApiBody(patch)),
@@ -107,7 +119,7 @@ export function SquadProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SquadContext.Provider value={{ players, loading, error, addPlayer, updatePlayer, removePlayer }}>
+    <SquadContext.Provider value={{ players, loading, error, addPlayer, updatePlayer, removePlayer, refresh }}>
       {children}
     </SquadContext.Provider>
   );

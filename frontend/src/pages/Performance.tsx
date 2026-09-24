@@ -43,30 +43,30 @@ export default function Performance() {
       />
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <div className="grid grid-cols-2 gap-px bg-ink-line lg:grid-cols-4">
-            <div className="bg-ink px-6 py-8">
+            <div className="bg-ink px-4 py-6 md:px-6 md:py-8">
               <p className="text-xs uppercase tracking-wide text-mist">Goals scored</p>
               <p className="mt-3 font-display text-5xl text-paper">{totalGoals}</p>
             </div>
-            <div className="bg-ink px-6 py-8">
+            <div className="bg-ink px-4 py-6 md:px-6 md:py-8">
               <p className="text-xs uppercase tracking-wide text-mist">Assists</p>
               <p className="mt-3 font-display text-5xl text-paper">{totalAssists}</p>
             </div>
-            <div className="bg-ink px-6 py-8">
+            <div className="bg-ink px-4 py-6 md:px-6 md:py-8">
               <p className="text-xs uppercase tracking-wide text-mist">Clean sheets</p>
               <p className="mt-3 font-display text-5xl text-paper">{totalCleanSheets}</p>
             </div>
-            <div className="bg-ink px-6 py-8">
+            <div className="bg-ink px-4 py-6 md:px-6 md:py-8">
               <p className="text-xs uppercase tracking-wide text-mist">Squad avg. rating</p>
-              <p className="mt-3 font-display text-5xl text-paper">{avgRating.toFixed(1)}</p>
+              <p className="mt-3 font-display text-5xl text-paper">{avgRating.toFixed(2)}</p>
             </div>
           </div>
         </div>
       </section>
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <p className="text-sm text-paper-dim">Last {recentGames.length} games</p>
           <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
             Recent match days
@@ -92,7 +92,7 @@ export default function Performance() {
       </section>
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <p className="text-sm text-paper-dim">This season</p>
           <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
             Goals per match day
@@ -104,7 +104,7 @@ export default function Performance() {
       </section>
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <p className="text-sm text-paper-dim">Leaderboards</p>
           <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
             Squad leaders
@@ -120,7 +120,7 @@ export default function Performance() {
       </section>
 
       <section className="bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <p className="text-sm text-paper-dim">Discipline</p>
           <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
             Cards & fines

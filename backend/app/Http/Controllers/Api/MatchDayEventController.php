@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MatchDayEventResource;
 use App\Models\MatchDayEvent;
+use App\Models\Player;
+use App\Support\MatchDayFinalizer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MatchDayEventController extends Controller
 {
@@ -65,9 +68,41 @@ class MatchDayEventController extends Controller
             'games' => ['sometimes', 'array'],
         ]);
 
-        $matchDayEvent->update($validated);
+        $wasLive = $matchDayEvent->status !== 'ended';
+
+        DB::transaction(function () use ($matchDayEvent, $validated, $wasLive) {
+            $matchDayEvent->update($validated);
+
+            if ($wasLive && $matchDayEvent->status === 'ended') {
+                MatchDayFinalizer::finalize($matchDayEvent);
+            }
+        });
 
         return new MatchDayEventResource($matchDayEvent);
+    }
+
+    /**
+     * Public — the winning side (and its lineup/rival/score) for any single
+     * match day, computed on demand. Powers The Vale's "pick a match day"
+     * selector, which shows the latest by default but lets a visitor look
+     * at an older one without that overwriting the persisted current award.
+     */
+    public function teamOfWeek(MatchDayEvent $matchDayEvent)
+    {
+        $squadNumbers = Player::pluck('number')->all();
+        $team = MatchDayFinalizer::computeTeamOfWeek($matchDayEvent, $squadNumbers);
+
+        return response()->json([
+            'data' => $team ? [
+                'title' => $matchDayEvent->title,
+                'dateRange' => $matchDayEvent->date,
+                'sessionsWon' => $team['sessionsWon'],
+                'sessionsPlayed' => $team['sessionsPlayed'],
+                'rivalTeam' => $team['rivalTeam'],
+                'score' => $team['score'],
+                'lineupNumbers' => $team['lineupNumbers'],
+            ] : null,
+        ]);
     }
 
     /**

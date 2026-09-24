@@ -34,7 +34,7 @@ export default function PlayerProfile() {
       <Layout>
         <PageHeader eyebrow="Squad" title="Player not found" />
         <section className="bg-ink">
-          <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+          <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
             <p className="text-sm text-paper-dim">
               No player wears #{number} for Noisers FC.{" "}
               <Link to="/squad" className="text-paper underline underline-offset-4">
@@ -59,11 +59,11 @@ export default function PlayerProfile() {
       <PageHeader
         eyebrow={positionLabel[player.position]}
         title={player.name}
-        description={`#${player.number} — rated ${player.rating.toFixed(1)}`}
+        description={`#${player.number} — rated ${player.rating.toFixed(2)}`}
       />
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <div className="flex flex-col gap-8 md:flex-row">
             <div className="relative aspect-square w-full max-w-xs shrink-0 overflow-hidden border border-ink-line">
               <img
@@ -92,7 +92,7 @@ export default function PlayerProfile() {
       </section>
 
       <section className="border-b border-ink-line bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <p className="text-sm text-paper-dim">Discipline</p>
           <h2 className="mt-2 font-display text-2xl text-paper md:text-3xl">
             Cards & fines
@@ -108,13 +108,13 @@ export default function PlayerProfile() {
                   <span className="text-win">All fines paid</span>
                 )}
               </p>
-              <div className="mt-4 overflow-x-auto border border-ink-line">
-                <table className="w-full min-w-[520px] text-left text-sm">
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-ink-line md:rounded-none">
+                <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-ink-line text-xs uppercase tracking-wide text-mist">
                       <th className="px-4 py-3 font-normal">Card</th>
                       <th className="px-4 py-3 font-normal">Reason</th>
-                      <th className="px-4 py-3 font-normal">Date</th>
+                      <th className="hidden px-4 py-3 font-normal sm:table-cell">Date</th>
                       <th className="px-4 py-3 font-normal">Fine</th>
                       <th className="px-4 py-3 font-normal">Status</th>
                     </tr>
@@ -128,7 +128,7 @@ export default function PlayerProfile() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-paper-dim">{card.reason}</td>
-                        <td className="px-4 py-3 text-paper-dim">{card.date}</td>
+                        <td className="hidden px-4 py-3 text-paper-dim sm:table-cell">{card.date}</td>
                         <td className="px-4 py-3 text-paper-dim">{formatNaira(card.fine)}</td>
                         <td className="px-4 py-3">
                           <span className={card.paid ? "text-win" : "text-paper-dim"}>
@@ -146,7 +146,7 @@ export default function PlayerProfile() {
       </section>
 
       <section className="bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <p className="text-sm text-paper-dim">Match days</p>
           <h2 className="mt-2 font-display text-2xl text-paper md:text-3xl">
             Match history

@@ -35,6 +35,10 @@ class HomeContentResource extends JsonResource
                 'headline' => $this->matchday_headline,
                 'body' => $this->matchday_body,
             ],
+            'footer' => [
+                'tagline' => $this->footer_tagline,
+                'copyright' => $this->footer_copyright,
+            ],
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ];
     }

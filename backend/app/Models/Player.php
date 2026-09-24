@@ -25,13 +25,14 @@ class Player extends Model
 
     protected $attributes = [
         'active' => true,
+        'rating' => 6.0,
     ];
 
     protected function casts(): array
     {
         return [
             'active' => 'boolean',
-            'rating' => 'decimal:1',
+            'rating' => 'decimal:2',
         ];
     }
 
@@ -48,5 +49,10 @@ class Player extends Model
     public function cards(): HasMany
     {
         return $this->hasMany(Card::class);
+    }
+
+    public function ratingChanges(): HasMany
+    {
+        return $this->hasMany(PlayerRatingChange::class);
     }
 }

@@ -43,7 +43,7 @@ export default function AdminReports() {
     [players],
   );
   const topRated = useMemo(
-    () => topByStat(players, "rating", 6).map((p) => ({ label: p.name, value: p.rating, display: p.rating.toFixed(1) })),
+    () => topByStat(players, "rating", 6).map((p) => ({ label: p.name, value: p.rating, display: p.rating.toFixed(2) })),
     [players],
   );
 

@@ -177,11 +177,11 @@ export default function AdminHighlights() {
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 p-4 backdrop-blur" onClick={() => setConfirmDelete(null)}>
-          <div className="w-full max-w-sm border border-ink-line bg-ink-raised p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-backdrop" onClick={() => setConfirmDelete(null)}>
+          <div role="dialog" aria-modal="true" className="sheet md:max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-display text-xl text-paper">Remove highlight</h2>
             <p className="mt-2 text-sm text-paper-dim">Remove "{confirmDelete.caption}"? This can't be undone.</p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="sheet-actions mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => setConfirmDelete(null)} className="border border-ink-line px-4 py-2 text-sm text-paper-dim hover:text-paper">
                 Cancel
               </button>

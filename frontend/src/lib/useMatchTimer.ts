@@ -1,52 +1,67 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import type { MatchDayGame } from "./matchDay";
 
 export const GAME_SECONDS = 10 * 60;
 
-export function useMatchTimer() {
-  const [secondsLeft, setSecondsLeft] = useState(GAME_SECONDS);
-  const [running, setRunning] = useState(false);
-  const intervalRef = useRef<number | null>(null);
+type ClockFields = Pick<MatchDayGame, "clockStartedAt" | "clockElapsed">;
+
+function elapsedAt(clock: ClockFields, now: number) {
+  const base = clock.clockElapsed ?? 0;
+  const run = clock.clockStartedAt ? (now - clock.clockStartedAt) / 1000 : 0;
+  return Math.min(GAME_SECONDS, base + Math.max(0, run));
+}
+
+/**
+ * The clock lives on the game record (persisted to the API), not in component
+ * state, so it keeps running when the admin navigates away, reloads or logs out.
+ */
+export function useMatchTimer(game: MatchDayGame | null, save: (clock: ClockFields) => void) {
+  const [now, setNow] = useState(() => Date.now());
+  const clockRunning = !!game?.clockStartedAt;
 
   useEffect(() => {
-    if (!running) return;
-    intervalRef.current = window.setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          setRunning(false);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => {
-      if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
-    };
-  }, [running]);
+    if (!clockRunning) return;
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [clockRunning]);
+
+  const elapsedSeconds = game ? elapsedAt(game, Math.max(now, Date.now())) : 0;
+  const secondsLeft = Math.ceil(GAME_SECONDS - elapsedSeconds);
+  const isFinished = secondsLeft <= 0;
+  const running = clockRunning && !isFinished;
 
   function start() {
-    if (secondsLeft > 0) setRunning(true);
+    if (!game || running || isFinished) return;
+    save({ clockStartedAt: Date.now(), clockElapsed: elapsedSeconds });
+  }
+
+  /** Clock fields for a stopped clock — merge into another game update to pause in the same save. */
+  function stoppedClock(): ClockFields {
+    return { clockStartedAt: null, clockElapsed: game ? elapsedAt(game, Date.now()) : 0 };
   }
 
   function pause() {
-    setRunning(false);
+    if (!game || !game.clockStartedAt) return;
+    save(stoppedClock());
   }
 
   function reset() {
-    setRunning(false);
-    setSecondsLeft(GAME_SECONDS);
+    if (!game) return;
+    save({ clockStartedAt: null, clockElapsed: 0 });
   }
 
-  const elapsedSeconds = GAME_SECONDS - secondsLeft;
   const minute = Math.min(10, Math.floor(elapsedSeconds / 60) + 1);
 
   return {
-    secondsLeft,
+    secondsLeft: Math.max(0, secondsLeft),
     running,
     minute,
     start,
     pause,
     reset,
-    isFinished: secondsLeft === 0,
+    stoppedClock,
+    isFinished,
   };
 }
 

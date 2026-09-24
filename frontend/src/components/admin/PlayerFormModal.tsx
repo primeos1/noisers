@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import Modal from "./Modal";
-import type { Player, Position } from "../../lib/clubData";
+import { isStockPhoto, type Player, type Position } from "../../lib/clubData";
 import ImageUploadField from "./ImageUploadField";
+import { useSquad } from "../../lib/SquadContext";
 
 const inputClass =
   "mt-1 w-full border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper";
@@ -18,12 +19,14 @@ export default function PlayerFormModal({
   onSubmit: (player: Player) => void;
   onClose: () => void;
 }) {
+  // The photo field only ever holds an uploaded image; players without one
+  // fall back to a stock face when displayed.
   const [form, setForm] = useState<Player>(
-    initial ?? {
+    initial ? { ...initial, photo: isStockPhoto(initial.photo) ? "" : initial.photo } : {
       number: suggestedNumber,
       name: "",
       position: "MID",
-      photo: `https://i.pravatar.cc/400?img=${(suggestedNumber % 70) + 1}`,
+      photo: "",
       rating: 6.5,
       appearances: 0,
       goals: 0,
@@ -32,6 +35,10 @@ export default function PlayerFormModal({
     },
   );
   const [error, setError] = useState("");
+  const { players } = useSquad();
+  // Jersey numbers identify players everywhere (cards, match days, awards),
+  // so each one can only belong to a single player.
+  const numberOwner = players.find((p) => p.number === form.number && p.number !== initial?.number);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -39,8 +46,12 @@ export default function PlayerFormModal({
       setError("Enter a player name.");
       return;
     }
-    if (!Number.isFinite(form.number) || form.number <= 0) {
-      setError("Jersey number must be a positive number.");
+    if (!Number.isInteger(form.number) || form.number < 1 || form.number > 99) {
+      setError("Jersey number must be a whole number from 1 to 99.");
+      return;
+    }
+    if (numberOwner) {
+      setError(`#${form.number} is already taken by ${numberOwner.name} — pick another number.`);
       return;
     }
     onSubmit(form);
@@ -56,8 +67,14 @@ export default function PlayerFormModal({
               type="number"
               className={inputClass}
               value={form.number}
+              min={1}
+              max={99}
+              aria-invalid={!!numberOwner}
               onChange={(e) => setForm({ ...form, number: Number(e.target.value) })}
             />
+            {numberOwner && (
+              <span className="mt-1 block text-xs text-loss">Taken by {numberOwner.name}</span>
+            )}
           </label>
           <label className={labelClass}>
             Position
@@ -96,15 +113,15 @@ export default function PlayerFormModal({
           Rating
           <input
             type="number"
-            step="0.1"
-            min="0"
-            max="10"
+            step="0.01"
+            min="4"
+            max="9.5"
             className={inputClass}
             value={form.rating}
             onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
           />
           <span className="mt-1 block text-xs text-mist">
-            An admin judgment call used to balance Match Day teams.
+            Between 4.0 and 9.5. Moves automatically after each match day with team results, goals, assists and clean sheets; set it here to override.
           </span>
         </label>
 

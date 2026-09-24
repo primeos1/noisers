@@ -23,6 +23,8 @@ class HomeContent extends Model
         'matchday_eyebrow',
         'matchday_headline',
         'matchday_body',
+        'footer_tagline',
+        'footer_copyright',
     ];
 
     /**
@@ -43,6 +45,8 @@ class HomeContent extends Model
             'matchday_eyebrow' => 'How match day works',
             'matchday_headline' => 'No opponent. Just the squad.',
             'matchday_body' => "Every session, whoever's present gets split into balanced six-a-side teams — random, by rating, or by position — then it's first to two goals on a ten-minute clock. Goals, assists and cards all get logged as they happen.",
+            'footer_tagline' => 'Est. 2021 · Vale 2 Zenith. Grassroots five-a-side football, run properly.',
+            'footer_copyright' => 'Noisers FC. All rights reserved.',
         ]);
     }
 }

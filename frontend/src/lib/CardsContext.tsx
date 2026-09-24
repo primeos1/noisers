@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { seedCards, type CardRecord, type CardType } from "./cards";
 import { apiFetch, ApiError } from "./api";
+import { useAuth } from "./AuthContext";
 
 interface ApiCard {
   id: number;
@@ -38,6 +39,7 @@ interface CardsContextValue {
   updateCard: (id: string, patch: Partial<CardRecord>) => void;
   removeCard: (id: string) => void;
   togglePaid: (id: string) => void;
+  refresh: () => Promise<void>;
 }
 
 const CardsContext = createContext<CardsContextValue | null>(null);
@@ -49,14 +51,21 @@ export function CardsProvider({ children }: { children: ReactNode }) {
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
 
-  useEffect(() => {
-    apiFetch<{ data: ApiCard[] }>("/cards")
+  const { user } = useAuth();
+
+  function refresh() {
+    return apiFetch<{ data: ApiCard[] }>("/cards")
       .then((res) => setCards(res.data.map(fromApi)))
       .catch(() => {
-        // API unreachable — keep the seed cards, app still works.
-      })
-      .finally(() => setLoading(false));
-  }, []);
+        // API unreachable (or signed out) — keep the current cards.
+      });
+  }
+
+  // /cards needs a staff token, so reload once an admin signs in — otherwise
+  // the page keeps showing the seed cards from before login.
+  useEffect(() => {
+    refresh().finally(() => setLoading(false));
+  }, [user?.role]);
 
   function addCard(card: CardRecord) {
     setError("");
@@ -114,7 +123,7 @@ export function CardsProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CardsContext.Provider value={{ cards, loading, error, addCard, updateCard, removeCard, togglePaid }}>
+    <CardsContext.Provider value={{ cards, loading, error, addCard, updateCard, removeCard, togglePaid, refresh }}>
       {children}
     </CardsContext.Provider>
   );

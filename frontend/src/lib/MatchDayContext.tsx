@@ -48,7 +48,7 @@ interface MatchDayContextValue {
   loading: boolean;
   error: string;
   addEvent: (event: MatchDayEvent) => void;
-  updateEvent: (id: string, patch: Partial<MatchDayEvent>) => void;
+  updateEvent: (id: string, patch: Partial<MatchDayEvent>) => Promise<boolean>;
   removeEvent: (id: string) => void;
 }
 
@@ -88,12 +88,16 @@ export function MatchDayProvider({ children }: { children: ReactNode }) {
   function updateEvent(id: string, patch: Partial<MatchDayEvent>) {
     setError("");
     setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
-    apiFetch<{ data: ApiMatchDayEvent }>(`/match-day-events/${id}`, {
+    // Resolves true once saved, so callers can reload data derived from it.
+    return apiFetch<{ data: ApiMatchDayEvent }>(`/match-day-events/${id}`, {
       method: "PUT",
       body: JSON.stringify(toApiBody(patch)),
-    }).catch((err) => {
-      setError(err instanceof ApiError ? err.message : "Couldn't save that change — it may not have persisted.");
-    });
+    })
+      .then(() => true)
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Couldn't save that change — it may not have persisted.");
+        return false;
+      });
   }
 
   function removeEvent(id: string) {

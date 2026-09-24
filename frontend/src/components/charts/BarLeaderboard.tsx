@@ -25,7 +25,7 @@ export default function BarLeaderboard({
               <div className="flex items-baseline justify-between text-sm">
                 <span className="text-paper">{player.name}</span>
                 <span className="text-paper-dim">
-                  {typeof value === "number" && statKey === "rating" ? value.toFixed(1) : value}
+                  {typeof value === "number" && statKey === "rating" ? value.toFixed(2) : value}
                   {suffix}
                 </span>
               </div>

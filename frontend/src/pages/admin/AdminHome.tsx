@@ -26,7 +26,7 @@ export default function AdminHome() {
         Dashboard
       </h1>
 
-      <div className="mt-10 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-ink-line md:mt-10 md:rounded-none lg:grid-cols-4">
         <StatTile
           label="Match days played"
           value={events.length}
@@ -49,8 +49,8 @@ export default function AdminHome() {
         />
       </div>
 
-      <div className="mt-12 grid gap-px bg-ink-line md:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-ink p-6">
+      <div className="mt-8 grid gap-px overflow-hidden rounded-2xl bg-ink-line md:mt-12 md:grid-cols-2 md:rounded-none lg:grid-cols-4">
+        <div className="bg-ink p-5 md:p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-paper">Manage squad</h2>
             <Link to="/admin/squad" className="text-sm text-paper-dim hover:text-paper">
@@ -62,7 +62,7 @@ export default function AdminHome() {
           </p>
         </div>
 
-        <div className="bg-ink p-6">
+        <div className="bg-ink p-5 md:p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-paper">Manage matches</h2>
             <Link to="/admin/matches" className="text-sm text-paper-dim hover:text-paper">
@@ -74,7 +74,7 @@ export default function AdminHome() {
           </p>
         </div>
 
-        <div className="bg-ink p-6">
+        <div className="bg-ink p-5 md:p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-paper">Manage cards</h2>
             <Link to="/admin/cards" className="text-sm text-paper-dim hover:text-paper">
@@ -86,7 +86,7 @@ export default function AdminHome() {
           </p>
         </div>
 
-        <div className="bg-ink p-6">
+        <div className="bg-ink p-5 md:p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-paper">Settings</h2>
             <Link to="/admin/settings" className="text-sm text-paper-dim hover:text-paper">
@@ -106,7 +106,7 @@ export default function AdminHome() {
             View all →
           </Link>
         </div>
-        <div className="mt-4 border border-ink-line">
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-ink-line md:rounded-none">
           {recent.length === 0 ? (
             <p className="p-6 text-sm text-paper-dim">No cards logged.</p>
           ) : (
@@ -115,7 +115,7 @@ export default function AdminHome() {
                 <tr className="border-b border-ink-line text-xs uppercase tracking-wide text-mist">
                   <th className="px-4 py-3 font-normal">Player</th>
                   <th className="px-4 py-3 font-normal">Card</th>
-                  <th className="px-4 py-3 font-normal">Reason</th>
+                  <th className="hidden px-4 py-3 font-normal sm:table-cell">Reason</th>
                   <th className="px-4 py-3 font-normal">Fine</th>
                   <th className="px-4 py-3 font-normal">Status</th>
                 </tr>
@@ -137,7 +137,7 @@ export default function AdminHome() {
                           {card.type === "red" ? "Red" : "Yellow"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-paper-dim">{card.reason}</td>
+                      <td className="hidden px-4 py-3 text-paper-dim sm:table-cell">{card.reason}</td>
                       <td className="px-4 py-3 text-paper-dim">{formatNaira(card.fine)}</td>
                       <td className="px-4 py-3">
                         <span className={card.paid ? "text-win" : "text-paper-dim"}>

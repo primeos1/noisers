@@ -7,14 +7,16 @@ use App\Models\User;
 
 class CardPolicy
 {
-    public function viewAny(User $user): bool
+    // Reads are public so the passcode-only player portal can show every
+    // player's cards and fines; writes stay committee-only.
+    public function viewAny(?User $user): bool
     {
-        return $user->isCommittee();
+        return true;
     }
 
-    public function view(User $user, Card $card): bool
+    public function view(?User $user, Card $card): bool
     {
-        return $user->isCommittee();
+        return true;
     }
 
     public function create(User $user): bool

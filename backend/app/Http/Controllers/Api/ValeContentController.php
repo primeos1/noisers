@@ -14,7 +14,10 @@ class ValeContentController extends Controller
      */
     public function show()
     {
-        return new ValeContentResource(ValeContent::current());
+        // Force 200: Eloquent's firstOrCreate() in ValeContent::current() can
+        // mark the model wasRecentlyCreated on a first-ever request, which
+        // would otherwise make a plain GET report itself as 201 Created.
+        return (new ValeContentResource(ValeContent::current()))->response()->setStatusCode(200);
     }
 
     /**
@@ -56,6 +59,6 @@ class ValeContentController extends Controller
 
         $content->update($validated);
 
-        return new ValeContentResource($content);
+        return (new ValeContentResource($content))->response()->setStatusCode(200);
     }
 }

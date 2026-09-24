@@ -21,6 +21,16 @@ function avatar(id: number) {
   return `https://i.pravatar.cc/400?img=${id}`;
 }
 
+/** Random stock face shown for a player until a real photo is uploaded. */
+export function stockPhoto(number: number) {
+  return avatar((number % 70) + 1);
+}
+
+/** True for the stock faces above — never saved as the player's photo. */
+export function isStockPhoto(url: string) {
+  return url.includes("pravatar.cc");
+}
+
 export const seedSquad: Player[] = [
   { number: 1, name: "Femi Adaralegbe", position: "GK", photo: avatar(12), rating: 7.8, appearances: 14, goals: 0, assists: 1, cleanSheets: 9 },
   { number: 23, name: "Chuka Nwafor", position: "GK", photo: avatar(13), rating: 7.1, appearances: 6, goals: 0, assists: 0, cleanSheets: 3 },

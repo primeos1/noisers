@@ -140,11 +140,11 @@ function ValeForm() {
           <PlayerSelect label="Player" value={improved.playerNumber} onChange={(n) => setImproved({ ...improved, playerNumber: n })} />
           <label className={labelClass}>
             Previous rating
-            <input type="number" step="0.1" min="0" max="10" className={inputClass} value={improved.previousRating} onChange={(e) => setImproved({ ...improved, previousRating: Number(e.target.value) })} />
+            <input type="number" step="0.01" min="0" max="10" className={inputClass} value={improved.previousRating} onChange={(e) => setImproved({ ...improved, previousRating: Number(e.target.value) })} />
           </label>
           <label className={labelClass}>
             Current rating
-            <input type="number" step="0.1" min="0" max="10" className={inputClass} value={improved.currentRating} onChange={(e) => setImproved({ ...improved, currentRating: Number(e.target.value) })} />
+            <input type="number" step="0.01" min="0" max="10" className={inputClass} value={improved.currentRating} onChange={(e) => setImproved({ ...improved, currentRating: Number(e.target.value) })} />
           </label>
         </div>
         <label className={`${labelClass} mt-4 block`}>

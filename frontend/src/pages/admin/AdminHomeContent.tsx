@@ -17,6 +17,7 @@ function HomeContentForm() {
   const [story, setStory] = useState(content.story);
   const [atmosphere, setAtmosphere] = useState(content.atmosphere);
   const [matchday, setMatchday] = useState(content.matchday);
+  const [footer, setFooter] = useState(content.footer);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -26,7 +27,7 @@ function HomeContentForm() {
     setError("");
     setSaving(true);
     try {
-      const patch: Partial<Omit<HomeContentData, "stats" | "gallery">> = { hero, story, atmosphere, matchday };
+      const patch: Partial<Omit<HomeContentData, "stats" | "gallery">> = { hero, story, atmosphere, matchday, footer };
       await updateContent(patch);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -127,6 +128,25 @@ function HomeContentForm() {
           <label className={labelClass}>
             Body
             <textarea className={textareaClass} value={matchday.body} onChange={(e) => setMatchday({ ...matchday, body: e.target.value })} />
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-display text-2xl text-paper">Footer</h2>
+        <p className="mt-1 text-sm text-paper-dim">Shown on every page, site-wide.</p>
+        <div className="mt-4 space-y-4">
+          <label className={labelClass}>
+            Tagline
+            <input className={inputClass} value={footer.tagline} onChange={(e) => setFooter({ ...footer, tagline: e.target.value })} />
+          </label>
+          <label className={labelClass}>
+            Copyright line
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-sm text-mist">© {new Date().getFullYear()}</span>
+              <input className={`${inputClass} mt-0 flex-1`} value={footer.copyright} onChange={(e) => setFooter({ ...footer, copyright: e.target.value })} />
+            </div>
+            <span className="mt-1 block text-xs text-mist">The year is always added automatically — just the text after it.</span>
           </label>
         </div>
       </div>

@@ -67,7 +67,7 @@ export default function AdminCards() {
         </button>
       </div>
 
-      <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-ink-line md:mt-10 md:rounded-none lg:grid-cols-4">
         {[
           { label: "Outstanding", value: formatNaira(outstanding), accent: "text-loss" },
           { label: "Collected", value: formatNaira(collected), accent: "text-win" },
@@ -76,24 +76,24 @@ export default function AdminCards() {
         ].map((tile, i) => (
           <div
             key={tile.label}
-            className="animate-hero-in bg-ink-raised px-6 py-6"
+            className="animate-hero-in bg-ink-raised px-4 py-5 md:px-6 md:py-6"
             style={{ animationDelay: `${120 + i * 60}ms` }}
           >
             <p className="text-xs uppercase tracking-wide text-mist">{tile.label}</p>
-            <p className={`mt-3 font-display text-4xl leading-none ${tile.accent}`}>
+            <p className={`mt-3 font-display text-3xl leading-none md:text-4xl ${tile.accent}`}>
               {tile.value}
             </p>
           </div>
         ))}
       </div>
 
-      <div className="mt-10 flex flex-wrap gap-2">
+      <div className="no-scrollbar -mx-4 mt-6 flex gap-2 overflow-x-auto px-4 md:mx-0 md:mt-10 md:flex-wrap md:px-0">
         {filters.map((f) => (
           <button
             key={f.value}
             type="button"
             onClick={() => setFilter(f.value)}
-            className={`border px-4 py-2 text-sm transition-colors ${
+            className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors md:rounded-none ${
               filter === f.value
                 ? "border-paper bg-paper text-ink"
                 : "border-ink-line text-paper-dim hover:border-paper/60 hover:text-paper"
@@ -107,7 +107,42 @@ export default function AdminCards() {
       {visible.length === 0 ? (
         <p className="mt-10 text-sm text-paper-dim">No cards match this filter.</p>
       ) : (
-        <div className="mt-6 overflow-x-auto border border-ink-line">
+        <>
+        {/* Phones: card list */}
+        <ul className="mt-4 divide-y divide-ink-line overflow-hidden rounded-2xl border border-ink-line bg-ink-raised md:hidden">
+          {visible.map((card) => {
+            const player = players.find((p) => p.number === card.playerNumber);
+            return (
+              <li key={card.id} className="flex items-center gap-3 px-4 py-3">
+                <span className={`h-9 w-6 shrink-0 rounded-[4px] ${card.type === "red" ? "bg-loss" : "bg-draw"}`} aria-label={`${card.type} card`} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[0.95rem] text-paper">
+                    {player ? player.name : `#${card.playerNumber}`}
+                  </p>
+                  <p className="truncate text-xs text-mist">{card.reason} · {card.date}</p>
+                  <div className="mt-1 flex items-center gap-3 text-xs">
+                    <span className="tabular-nums text-paper-dim">{formatNaira(card.fine)}</span>
+                    <button type="button" onClick={() => setConfirmDelete(card)} className="text-loss">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => togglePaid(card.id)}
+                  aria-pressed={card.paid}
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${
+                    card.paid ? "bg-win/20 text-win" : "bg-loss/15 text-loss"
+                  }`}
+                >
+                  {card.paid ? "Paid" : "Owes"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-6 hidden overflow-x-auto border border-ink-line md:block">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
               <tr className="border-b border-ink-line text-xs uppercase tracking-wide text-mist">
@@ -195,6 +230,7 @@ export default function AdminCards() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {adding && (
@@ -210,11 +246,11 @@ export default function AdminCards() {
 
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 p-4 backdrop-blur"
+          className="sheet-backdrop"
           onClick={() => setConfirmDelete(null)}
         >
           <div
-            className="w-full max-w-sm border border-ink-line bg-ink-raised p-6"
+            role="dialog" aria-modal="true" className="sheet md:max-w-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-xl text-paper">Remove card</h2>
@@ -222,7 +258,7 @@ export default function AdminCards() {
               Remove this {confirmDelete.type} card ({confirmDelete.reason})? This
               can't be undone.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="sheet-actions mt-6 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(null)}

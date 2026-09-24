@@ -14,6 +14,7 @@ class Card extends Model
     protected $fillable = [
         'player_id',
         'fixture_id',
+        'match_day_ref',
         'type',
         'reason',
         'fine_amount',

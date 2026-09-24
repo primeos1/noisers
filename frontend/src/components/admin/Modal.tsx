@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
+/** Bottom sheet on phones, centred dialog from md up. */
 export default function Modal({
   title,
   onClose,
@@ -15,25 +16,31 @@ export default function Modal({
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Keep the page behind the sheet from scrolling.
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [onClose]);
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 p-4 backdrop-blur"
-      onClick={onClose}
-    >
+    <div className="sheet-backdrop" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-ink-line bg-ink-raised p-6 md:p-8"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="sheet md:max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-ink-line pb-4">
+        <div className="flex items-center justify-between gap-4 border-b border-ink-line pb-4">
           <h2 className="font-display text-2xl text-paper">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-paper-dim hover:text-paper"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper/10 text-paper-dim hover:text-paper md:h-auto md:w-auto md:bg-transparent"
           >
             ✕
           </button>

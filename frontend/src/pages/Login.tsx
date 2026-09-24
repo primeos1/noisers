@@ -53,7 +53,7 @@ export default function Login() {
     <div
       ref={stageRef}
       onPointerMove={handlePointerMove}
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-ink px-6 py-16"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-ink px-5 py-16"
     >
       <img
         src={photos.tunnel}
@@ -84,7 +84,7 @@ export default function Login() {
       </Link>
 
       <div className="animate-hero-in relative z-10 w-full max-w-sm [animation-delay:100ms]">
-        <div className="relative border border-ink-line bg-ink-raised/90 p-8 backdrop-blur-sm">
+        <div className="relative border border-ink-line bg-ink-raised/90 p-6 backdrop-blur-sm sm:p-8">
           <span className="corner corner-tl" />
           <span className="corner corner-tr" />
           <span className="corner corner-bl" />

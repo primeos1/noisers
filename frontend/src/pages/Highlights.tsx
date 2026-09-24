@@ -41,7 +41,7 @@ export default function Highlights() {
       />
 
       <section className="bg-ink">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
           <div className="flex flex-wrap gap-2">
             {filters.map((f) => (
               <button

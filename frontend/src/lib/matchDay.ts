@@ -53,6 +53,10 @@ export interface MatchDayGame {
   goals: MatchDayGoal[];
   cards: MatchDayCard[];
   status: GameStatus;
+  /** Epoch ms when the clock was last started; null/undefined while paused. */
+  clockStartedAt?: number | null;
+  /** Seconds of play accumulated before the current run. */
+  clockElapsed?: number;
 }
 
 export interface MatchDayEvent {
@@ -279,6 +283,16 @@ export function allGames(events: MatchDayEvent[]): { event: MatchDayEvent; game:
 
 export function todayLabel() {
   return new Date().toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
+/** Formats a date-picker value ("YYYY-MM-DD") the same way as todayLabel. */
+export function isoDateLabel(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
     month: "short",

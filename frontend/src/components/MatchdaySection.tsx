@@ -14,7 +14,7 @@ export default function MatchdaySection() {
   return (
     <section id="matchday" className="border-b border-ink-line">
       <div className="mx-auto grid max-w-7xl md:grid-cols-2">
-        <div className="relative flex min-h-[26rem] flex-col justify-end overflow-hidden border-b border-ink-line p-10 md:border-b-0 md:border-r">
+        <div className="relative flex min-h-[20rem] flex-col justify-end overflow-hidden border-b border-ink-line p-6 md:min-h-[26rem] md:p-10 md:border-b-0 md:border-r">
           <img
             src={photos.emptyPitchNight}
             alt="Empty floodlit pitch before kick-off"
@@ -34,11 +34,11 @@ export default function MatchdaySection() {
           </div>
         </div>
 
-        <div className="flex min-h-[26rem] flex-col justify-center bg-ink-raised p-10">
+        <div className="flex flex-col justify-center bg-ink-raised p-6 md:min-h-[26rem] md:p-10">
           <p className="text-sm text-paper-dim">Latest match day</p>
           {last ? (
             <>
-              <div className="mt-4 flex items-baseline gap-4">
+              <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <span className="font-display text-6xl text-paper md:text-7xl">
                   {scoreOf(last.game, 0)}–{scoreOf(last.game, 1)}
                 </span>

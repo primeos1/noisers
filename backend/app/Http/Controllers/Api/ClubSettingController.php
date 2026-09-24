@@ -15,7 +15,10 @@ class ClubSettingController extends Controller
      */
     public function show()
     {
-        return new ClubSettingResource(ClubSetting::current());
+        // Force 200 — ClubSetting::current()'s firstOrCreate() can mark the
+        // model wasRecentlyCreated on a first-ever request, which would
+        // otherwise make a plain GET report itself as 201 Created.
+        return (new ClubSettingResource(ClubSetting::current()))->response()->setStatusCode(200);
     }
 
     /**
@@ -36,6 +39,6 @@ class ClubSettingController extends Controller
 
         $setting->update($validated);
 
-        return new ClubSettingResource($setting);
+        return (new ClubSettingResource($setting))->response()->setStatusCode(200);
     }
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
+import { useCards } from "../../lib/CardsContext";
+import { useValeContent } from "../../lib/ValeContentContext";
 import { nextJerseyNumber, type Player } from "../../lib/clubData";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSettings } from "../../lib/SettingsContext";
@@ -10,6 +12,7 @@ import {
   nextGuestId,
   participantName,
   scoreOf,
+  isoDateLabel,
   todayLabel,
   uniqueEventId,
   type MatchDayEvent,
@@ -36,12 +39,13 @@ function parseParticipant(v: string): ParticipantId {
 }
 
 export default function MatchDay() {
-  const { players, addPlayer } = useSquad();
+  const { players, addPlayer, refresh: refreshSquad } = useSquad();
+  const { refresh: refreshCards } = useCards();
+  const { refresh: refreshVale } = useValeContent();
   const { events, addEvent, updateEvent, error: matchDayError } = useMatchDay();
   const { settings } = useSettings();
   const TEAM_SIZE = settings.matchTeamSize;
   const WIN_GOALS = settings.matchWinGoals;
-  const timer = useMatchTimer();
 
   const [activeEventId, setActiveEventId] = useState<string | null>(
     () => events.find((e) => e.status === "live")?.id ?? null,
@@ -74,6 +78,7 @@ export default function MatchDay() {
   const resumable = events.filter((e) => e.status === "live" && e.id !== activeEventId);
   const liveGame = activeEvent?.games.find((g) => g.status === "live") ?? null;
   const pastGames = activeEvent ? activeEvent.games.filter((g) => g.id !== liveGame?.id) : [];
+  const timer = useMatchTimer(liveGame, (clock) => updateLiveGame((g) => ({ ...g, ...clock })));
 
   function name(id: ParticipantId) {
     return activeEvent ? participantName(players, activeEvent.guests, id) : String(id);
@@ -89,7 +94,7 @@ export default function MatchDay() {
       id,
       title: titleDraft.trim(),
       venue: venueDraft.trim(),
-      date: dateDraft.trim(),
+      date: isoDateLabel(dateDraft),
       createdAt: todayLabel(),
       presentPlayers: [],
       guests: [],
@@ -106,8 +111,8 @@ export default function MatchDay() {
   }
 
   function patch(p: Partial<MatchDayEvent>) {
-    if (!activeEvent) return;
-    updateEvent(activeEvent.id, p);
+    if (!activeEvent) return Promise.resolve(false);
+    return updateEvent(activeEvent.id, p);
   }
 
   function togglePresent(number: number) {
@@ -187,7 +192,6 @@ export default function MatchDay() {
     const teamA = activeEvent.groups[playA];
     const teamB = activeEvent.groups[playB];
     if (!teamA || !teamB) return;
-    timer.reset();
     const game: MatchDayGame = {
       id: `g${Date.now()}`,
       teams: [
@@ -197,13 +201,22 @@ export default function MatchDay() {
       goals: [],
       cards: [],
       status: "live",
+      clockStartedAt: null,
+      clockElapsed: 0,
     };
     patch({ games: [...activeEvent.games, game] });
   }
 
   function updateLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
-    if (!activeEvent || !liveGame) return;
-    patch({ games: activeEvent.games.map((g) => (g.id === liveGame.id ? updater(g) : g)) });
+    if (!activeEvent || !liveGame) return Promise.resolve(false);
+    return patch({ games: activeEvent.games.map((g) => (g.id === liveGame.id ? updater(g) : g)) });
+  }
+
+  // Squad stats only count finished games, so reload them once one is saved.
+  function finishLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
+    updateLiveGame((g) => ({ ...updater(g), ...timer.stoppedClock(), status: "finished" })).then((saved) => {
+      if (saved) refreshSquad();
+    });
   }
 
   function addGoal() {
@@ -218,8 +231,8 @@ export default function MatchDay() {
     };
     const goals = [...liveGame.goals, goal];
     const finishNow = scoreOf({ goals }, 0) >= WIN_GOALS || scoreOf({ goals }, 1) >= WIN_GOALS;
-    if (finishNow) timer.pause();
-    updateLiveGame((g) => ({ ...g, goals, status: finishNow ? "finished" : g.status }));
+    if (finishNow) finishLiveGame((g) => ({ ...g, goals }));
+    else updateLiveGame((g) => ({ ...g, goals }));
     setGoalPlayer("");
     setAssistPlayer("");
     setOwnGoal(false);
@@ -267,23 +280,26 @@ export default function MatchDay() {
   }
 
   function endGame() {
-    timer.pause();
-    updateLiveGame((g) => ({ ...g, status: "finished" }));
+    finishLiveGame((g) => g);
   }
 
   function endMatchDay() {
     if (!activeEvent) return;
-    timer.pause();
     updateEvent(activeEvent.id, {
-      games: activeEvent.games.map((g) => (g.status === "live" ? { ...g, status: "finished" } : g)),
+      games: activeEvent.games.map((g) =>
+        g.status === "live" ? { ...g, ...timer.stoppedClock(), status: "finished" } : g,
+      ),
       status: "ended",
+    }).then((saved) => {
+      // Ending the day files the cards (with fines) and rewrites The Vale's
+      // weekly awards server-side — reload everything that shows them.
+      if (saved) Promise.all([refreshSquad(), refreshCards(), refreshVale()]);
     });
     setConfirmEnd(false);
   }
 
   function startNewMatchDay() {
     setActiveEventId(null);
-    timer.reset();
   }
 
   const allPresentIds: ParticipantId[] = activeEvent
@@ -358,11 +374,10 @@ export default function MatchDay() {
               <label className={labelClass}>
                 Date
                 <input
-                  type="text"
-                  className={inputClass}
+                  type="date"
+                  className={`${inputClass} [color-scheme:dark]`}
                   value={dateDraft}
                   onChange={(e) => setDateDraft(e.target.value)}
-                  placeholder="Sun 28 Sept"
                 />
               </label>
               {createError && <p className="text-sm text-loss">{createError}</p>}
@@ -379,7 +394,7 @@ export default function MatchDay() {
       )}
 
       {activeEvent && (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-b border-ink-line pb-6">
+        <div className="mt-6 flex flex-col gap-4 border-b border-ink-line pb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div>
             <p className="font-display text-2xl text-paper">{activeEvent.title}</p>
             <p className="text-sm text-paper-dim">
@@ -642,44 +657,47 @@ export default function MatchDay() {
 
       {activeEvent && liveGame && (
         <div className="mt-8 space-y-10">
-          <div className="flex flex-wrap items-center justify-between gap-6 border border-ink-line bg-ink-raised p-6">
-            <div className="text-center sm:text-left">
-              <p className="text-xs uppercase tracking-wide text-mist">{liveGame.teams[0].name}</p>
-              <p className="font-display text-5xl text-paper">{scoreOf(liveGame, 0)}</p>
-            </div>
+          <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 border-y border-ink-line bg-ink-raised/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border md:p-6">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-6">
+              <div className="min-w-0 text-center md:text-left">
+                <p className="truncate text-xs uppercase tracking-wide text-mist">{liveGame.teams[0].name}</p>
+                <p className="font-display text-5xl leading-none text-paper">{scoreOf(liveGame, 0)}</p>
+              </div>
 
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-wide text-mist">
-                {timer.isFinished ? "Time's up" : `First to ${WIN_GOALS} wins`}
-              </p>
-              <p className="font-display text-6xl tabular-nums text-paper">{formatClock(timer.secondsLeft)}</p>
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={timer.running ? timer.pause : timer.start}
-                  disabled={timer.isFinished}
-                  className="border border-paper bg-paper px-4 py-2 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
-                >
-                  {timer.running ? "Pause" : "Start"}
-                </button>
-                <button
-                  type="button"
-                  onClick={timer.reset}
-                  className="border border-ink-line px-4 py-2 text-sm text-paper-dim hover:text-paper"
-                >
-                  Reset to 10:00
-                </button>
+              <div className="text-center">
+                <p className="text-[0.65rem] uppercase tracking-wide text-mist md:text-xs">
+                  {timer.isFinished ? "Time's up" : `First to ${WIN_GOALS} wins`}
+                </p>
+                <p className="font-display text-5xl leading-none tabular-nums text-paper md:text-6xl">{formatClock(timer.secondsLeft)}</p>
+              </div>
+
+              <div className="min-w-0 text-center md:text-right">
+                <p className="truncate text-xs uppercase tracking-wide text-mist">{liveGame.teams[1].name}</p>
+                <p className="font-display text-5xl leading-none text-paper">{scoreOf(liveGame, 1)}</p>
               </div>
             </div>
 
-            <div className="text-center sm:text-right">
-              <p className="text-xs uppercase tracking-wide text-mist">{liveGame.teams[1].name}</p>
-              <p className="font-display text-5xl text-paper">{scoreOf(liveGame, 1)}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 md:mx-auto md:mt-4 md:flex md:justify-center">
+              <button
+                type="button"
+                onClick={timer.running ? timer.pause : timer.start}
+                disabled={timer.isFinished}
+                className="border border-paper bg-paper px-4 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist md:py-2"
+              >
+                {timer.running ? "Pause" : "Start"}
+              </button>
+              <button
+                type="button"
+                onClick={timer.reset}
+                className="border border-ink-line px-4 py-2.5 text-sm text-paper-dim hover:text-paper md:py-2"
+              >
+                Reset to 10:00
+              </button>
             </div>
           </div>
 
           <div className="grid gap-px bg-ink-line md:grid-cols-2">
-            <div className="bg-ink p-6">
+            <div className="bg-ink p-4 md:p-6">
               <h2 className="font-display text-xl text-paper">Log a goal</h2>
               <div className="mt-4 flex gap-2">
                 {([0, 1] as const).map((t) => (
@@ -773,7 +791,7 @@ export default function MatchDay() {
               </ul>
             </div>
 
-            <div className="bg-ink p-6">
+            <div className="bg-ink p-4 md:p-6">
               <h2 className="font-display text-xl text-paper">Log a card</h2>
               <div className="mt-4 flex gap-2">
                 {([0, 1] as const).map((t) => (
@@ -924,16 +942,16 @@ export default function MatchDay() {
 
       {confirmEnd && activeEvent && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 p-4 backdrop-blur"
+          className="sheet-backdrop"
           onClick={() => setConfirmEnd(false)}
         >
-          <div className="w-full max-w-sm border border-ink-line bg-ink-raised p-6" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" className="sheet md:max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-display text-xl text-paper">End match day</h2>
             <p className="mt-2 text-sm text-paper-dim">
               This finishes any game still in progress and turns "
               {activeEvent.title}" into a view-only record in Matches. This can't be undone.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="sheet-actions mt-6 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setConfirmEnd(false)}

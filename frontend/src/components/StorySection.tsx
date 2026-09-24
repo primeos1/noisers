@@ -18,7 +18,7 @@ export default function StorySection() {
           <div className="duotone-wash pointer-events-none absolute inset-0" />
         </div>
 
-        <div className="flex flex-col justify-center px-6 py-16 md:px-16 md:py-0">
+        <div className="flex flex-col justify-center px-5 py-10 md:px-16 md:py-0">
           <p className="text-sm text-paper-dim">{story.eyebrow}</p>
           <h2 className="mt-4 max-w-md font-display text-5xl leading-[0.98] text-paper md:text-6xl">
             {story.headline}

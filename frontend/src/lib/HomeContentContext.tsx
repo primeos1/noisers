@@ -21,6 +21,7 @@ export interface HomeContentData {
   story: { eyebrow: string; headline: string; paragraph1: string; paragraph2: string; imageUrl: string };
   atmosphere: { caption: string; imageUrl: string };
   matchday: { eyebrow: string; headline: string; body: string };
+  footer: { tagline: string; copyright: string };
   stats: HomeStat[];
   gallery: GalleryImageItem[];
 }
@@ -49,6 +50,10 @@ export const DEFAULT_HOME_CONTENT: HomeContentData = {
     eyebrow: "How match day works",
     headline: "No opponent. Just the squad.",
     body: "Every session, whoever's present gets split into balanced six-a-side teams — random, by rating, or by position — then it's first to two goals on a ten-minute clock. Goals, assists and cards all get logged as they happen.",
+  },
+  footer: {
+    tagline: "Est. 2021 · Vale 2 Zenith. Grassroots five-a-side football, run properly.",
+    copyright: "Noisers FC. All rights reserved.",
   },
   stats: [],
   gallery: [],
@@ -92,6 +97,10 @@ function flattenPatch(patch: Partial<Omit<HomeContentData, "stats" | "gallery">>
     if (patch.matchday.eyebrow !== undefined) body.matchday_eyebrow = patch.matchday.eyebrow;
     if (patch.matchday.headline !== undefined) body.matchday_headline = patch.matchday.headline;
     if (patch.matchday.body !== undefined) body.matchday_body = patch.matchday.body;
+  }
+  if (patch.footer) {
+    if (patch.footer.tagline !== undefined) body.footer_tagline = patch.footer.tagline;
+    if (patch.footer.copyright !== undefined) body.footer_copyright = patch.footer.copyright;
   }
   return body;
 }
