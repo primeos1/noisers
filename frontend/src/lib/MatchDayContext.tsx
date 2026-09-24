@@ -49,7 +49,7 @@ interface MatchDayContextValue {
   error: string;
   addEvent: (event: MatchDayEvent) => void;
   updateEvent: (id: string, patch: Partial<MatchDayEvent>) => Promise<boolean>;
-  removeEvent: (id: string) => void;
+  removeEvent: (id: string) => Promise<boolean>;
 }
 
 const MatchDayContext = createContext<MatchDayContextValue | null>(null);
@@ -100,14 +100,19 @@ export function MatchDayProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  // Waits for the server (deleting also rolls back cards, ratings and The
+  // Vale), and resolves true once done so callers can reload that data.
   function removeEvent(id: string) {
     setError("");
-    const previous = events;
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-    apiFetch(`/match-day-events/${id}`, { method: "DELETE" }).catch((err) => {
-      setEvents(previous);
-      setError(err instanceof ApiError ? err.message : "Couldn't remove that match day.");
-    });
+    return apiFetch(`/match-day-events/${id}`, { method: "DELETE" })
+      .then(() => {
+        setEvents((prev) => prev.filter((e) => e.id !== id));
+        return true;
+      })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Couldn't delete that match day.");
+        return false;
+      });
   }
 
   return (

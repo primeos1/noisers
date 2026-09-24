@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePlayerRequest;
 use App\Http\Requests\UpdatePlayerRequest;
 use App\Http\Resources\PlayerResource;
+use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
 use App\Support\PlayerStats;
@@ -42,7 +43,10 @@ class PlayerController extends Controller
     {
         $this->authorize('create', Player::class);
 
-        $player = Player::create($request->validated());
+        $data = $request->validated();
+        $data['rating'] ??= ClubSetting::current()->rating_new_player;
+
+        $player = Player::create($data);
 
         return new PlayerResource($player);
     }

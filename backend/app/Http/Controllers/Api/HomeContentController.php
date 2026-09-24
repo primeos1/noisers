@@ -10,6 +10,7 @@ use App\Models\GalleryImage;
 use App\Models\HomeContent;
 use App\Models\HomeStat;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class HomeContentController extends Controller
 {
@@ -55,6 +56,12 @@ class HomeContentController extends Controller
             'matchday_body' => ['sometimes', 'nullable', 'string'],
             'footer_tagline' => ['sometimes', 'nullable', 'string', 'max:255'],
             'footer_copyright' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'stats_enabled' => ['sometimes', 'boolean'],
+            'stats_eyebrow' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'stats_headline' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'stats_image_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'stats_live' => ['sometimes', 'array'],
+            'stats_live.*' => ['string', Rule::in(HomeContent::LIVE_STATS)],
         ]);
 
         $content->update($validated);

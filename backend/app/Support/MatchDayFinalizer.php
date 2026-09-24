@@ -20,10 +20,89 @@ class MatchDayFinalizer
     public static function finalize(MatchDayEvent $event): void
     {
         $numbers = Player::pluck('id', 'number');
+        $settings = ClubSetting::current();
 
-        self::recordCards($event, $numbers->all());
-        PlayerRatings::apply($event);
-        self::updateWeeklyAwards($event, $numbers->keys()->all());
+        if ($settings->fines_from_match_day) {
+            self::recordCards($event, $numbers->all());
+        }
+        if ($settings->ratings_enabled) {
+            PlayerRatings::apply($event);
+        }
+        if ($settings->vale_auto_awards) {
+            self::updateWeeklyAwards($event, $numbers->keys()->all());
+        }
+    }
+
+    /**
+     * Undoes everything finalize() did, ahead of the event being deleted:
+     * removes the cards it created, rolls back the rating moves it made, and
+     * — if The Vale is still showing this match day — rebuilds the weekly
+     * awards from the latest other ended match day (or clears them). Stats
+     * need no step: PlayerStats stops counting the event once it's gone.
+     */
+    public static function revert(MatchDayEvent $event): void
+    {
+        Card::whereNotNull('match_day_ref')
+            ->get(['id', 'match_day_ref'])
+            ->filter(fn ($card) => str_starts_with($card->match_day_ref, "{$event->id}:"))
+            ->each(fn ($card) => $card->delete());
+
+        $changes = PlayerRatingChange::query()
+            ->where('match_day_event_id', $event->id)
+            ->with('player')
+            ->get();
+        foreach ($changes as $change) {
+            if ($change->player) {
+                $delta = (float) $change->rating_after - (float) $change->rating_before;
+                $rating = round((float) $change->player->rating - $delta, 2);
+                $change->player->update([
+                    'rating' => max(PlayerRatings::MIN, min(PlayerRatings::MAX, $rating)),
+                ]);
+            }
+            $change->delete();
+        }
+
+        // With automatic awards off, The Vale is maintained by hand — leave it.
+        if (! ClubSetting::current()->vale_auto_awards) {
+            return;
+        }
+
+        $awards = ValeContent::current();
+        if ($awards->team_week_title !== $event->title || $awards->team_week_date_range !== $event->date) {
+            return;
+        }
+
+        $awards->update([
+            'team_week_title' => null,
+            'team_week_date_range' => null,
+            'team_sessions_won' => 0,
+            'team_sessions_played' => 0,
+            'team_rival' => null,
+            'team_score' => null,
+            'team_lineup_numbers' => null,
+            'potw_player_number' => null,
+            'potw_note' => null,
+            'potw_rating' => null,
+            'improved_player_number' => null,
+            'improved_note' => null,
+            'improved_prev_rating' => null,
+            'improved_curr_rating' => null,
+            'leader_top_scorer_number' => null,
+            'leader_top_scorer_value' => null,
+            'leader_top_assist_number' => null,
+            'leader_top_assist_value' => null,
+            'leader_clean_sheet_numbers' => null,
+        ]);
+
+        $previous = MatchDayEvent::query()
+            ->where('id', '!=', $event->id)
+            ->where('status', 'ended')
+            ->orderByDesc('created_at')
+            ->get()
+            ->first(fn ($e) => collect($e->games ?? [])->contains(fn ($g) => ($g['status'] ?? null) === 'finished'));
+        if ($previous) {
+            self::updateWeeklyAwards($previous, Player::pluck('number')->all());
+        }
     }
 
     /**

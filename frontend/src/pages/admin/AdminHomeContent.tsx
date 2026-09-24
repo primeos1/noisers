@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { useHomeContent, type HomeContentData } from "../../lib/HomeContentContext";
+import { DEFAULT_HOME_CONTENT, LIVE_STATS, useHomeContent, type LiveStatId } from "../../lib/HomeContentContext";
 import ImageUploadField from "../../components/admin/ImageUploadField";
 import { uploadMedia } from "../../lib/media";
 
@@ -14,6 +14,13 @@ const labelClass = "block text-sm text-paper-dim";
 function HomeContentForm() {
   const { content, updateContent } = useHomeContent();
   const [hero, setHero] = useState(content.hero);
+  const [statsSection, setStatsSection] = useState(() => ({
+    ...DEFAULT_HOME_CONTENT.statsSection,
+    ...content.statsSection,
+    eyebrow: content.statsSection?.eyebrow ?? "",
+    headline: content.statsSection?.headline ?? "",
+    imageUrl: content.statsSection?.imageUrl ?? "",
+  }));
   const [story, setStory] = useState(content.story);
   const [atmosphere, setAtmosphere] = useState(content.atmosphere);
   const [matchday, setMatchday] = useState(content.matchday);
@@ -27,8 +34,14 @@ function HomeContentForm() {
     setError("");
     setSaving(true);
     try {
-      const patch: Partial<Omit<HomeContentData, "stats" | "gallery">> = { hero, story, atmosphere, matchday, footer };
-      await updateContent(patch);
+      await updateContent({
+        hero,
+        statsSection: { eyebrow: statsSection.eyebrow, headline: statsSection.headline },
+        story,
+        atmosphere,
+        matchday,
+        footer,
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -36,6 +49,22 @@ function HomeContentForm() {
     } finally {
       setSaving(false);
     }
+  }
+
+  // Switches save on their own, like images — only text waits for Save.
+  function toggleStatsEnabled() {
+    const enabled = !statsSection.enabled;
+    setStatsSection({ ...statsSection, enabled });
+    updateContent({ statsSection: { enabled } }).catch(() => setStatsSection((s) => ({ ...s, enabled: !enabled })));
+  }
+
+  function toggleLiveStat(id: LiveStatId) {
+    const live = statsSection.live.includes(id)
+      ? statsSection.live.filter((x) => x !== id)
+      : LIVE_STATS.map((s) => s.id).filter((x) => x === id || statsSection.live.includes(x));
+    const previous = statsSection.live;
+    setStatsSection({ ...statsSection, live });
+    updateContent({ statsSection: { live } }).catch(() => setStatsSection((s) => ({ ...s, live: previous })));
   }
 
   return (
@@ -60,7 +89,87 @@ function HomeContentForm() {
             label="Background image"
             value={hero.imageUrl}
             onChange={(url) => setHero({ ...hero, imageUrl: url })}
+            onCommit={(url) => updateContent({ hero: { imageUrl: url } })}
             maxDim={1800}
+            previewClassName="duotone h-16 w-28 shrink-0 border border-ink-line object-cover"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl text-paper">Club in numbers</h2>
+            <p className="mt-1 text-sm text-paper-dim">
+              The band of big numbers right under the hero. Custom tiles are managed further down this page.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={statsSection.enabled}
+            aria-label="Show this section"
+            onClick={toggleStatsEnabled}
+            className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors ${
+              statsSection.enabled ? "bg-win" : "bg-ink-line"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-paper shadow transition-transform ${
+                statsSection.enabled ? "translate-x-5" : ""
+              }`}
+            />
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-mist">{statsSection.enabled ? "Shown on the home page." : "Hidden from the home page."}</p>
+        <div className={`mt-4 space-y-4 ${statsSection.enabled ? "" : "opacity-50"}`}>
+          <label className={labelClass}>
+            Eyebrow
+            <input
+              className={inputClass}
+              value={statsSection.eyebrow}
+              placeholder={DEFAULT_HOME_CONTENT.statsSection.eyebrow}
+              onChange={(e) => setStatsSection({ ...statsSection, eyebrow: e.target.value })}
+            />
+          </label>
+          <label className={labelClass}>
+            Headline
+            <input
+              className={inputClass}
+              value={statsSection.headline}
+              placeholder={DEFAULT_HOME_CONTENT.statsSection.headline}
+              onChange={(e) => setStatsSection({ ...statsSection, headline: e.target.value })}
+            />
+          </label>
+          <div>
+            <p className={labelClass}>Live numbers</p>
+            <p className="mt-0.5 text-xs text-mist">Worked out from the squad and match days — they update by themselves.</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {LIVE_STATS.map((stat) => {
+                const on = statsSection.live.includes(stat.id);
+                return (
+                  <button
+                    key={stat.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleLiveStat(stat.id)}
+                    className={`flex items-center gap-2 border px-3 py-2 text-left text-sm transition-colors ${
+                      on ? "border-paper bg-paper text-ink" : "border-ink-line text-paper-dim hover:text-paper"
+                    }`}
+                  >
+                    <span aria-hidden="true">{on ? "✓" : "+"}</span>
+                    {stat.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <ImageUploadField
+            label="Background image"
+            value={statsSection.imageUrl}
+            onChange={(url) => setStatsSection({ ...statsSection, imageUrl: url })}
+            onCommit={(url) => updateContent({ statsSection: { imageUrl: url } })}
+            maxDim={1600}
             previewClassName="duotone h-16 w-28 shrink-0 border border-ink-line object-cover"
           />
         </div>
@@ -89,6 +198,7 @@ function HomeContentForm() {
             label="Image"
             value={story.imageUrl}
             onChange={(url) => setStory({ ...story, imageUrl: url })}
+            onCommit={(url) => updateContent({ story: { imageUrl: url } })}
             maxDim={1200}
             previewClassName="duotone h-16 w-28 shrink-0 border border-ink-line object-cover"
           />
@@ -107,6 +217,7 @@ function HomeContentForm() {
             label="Image"
             value={atmosphere.imageUrl}
             onChange={(url) => setAtmosphere({ ...atmosphere, imageUrl: url })}
+            onCommit={(url) => updateContent({ atmosphere: { imageUrl: url } })}
             maxDim={1600}
             previewClassName="duotone h-16 w-28 shrink-0 border border-ink-line object-cover"
           />
@@ -158,7 +269,7 @@ function HomeContentForm() {
         disabled={saving}
         className="border border-paper bg-paper px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving ? "Saving…" : saved ? "Saved" : "Save Home page copy"}
+        {saving ? "Saving…" : saved ? "Saved" : "Save text changes"}
       </button>
     </form>
   );
@@ -184,9 +295,9 @@ function StatsEditor() {
 
   return (
     <div className="mt-16 max-w-2xl border-t border-ink-line pt-10">
-      <h2 className="font-display text-2xl text-paper">Stat tiles</h2>
+      <h2 className="font-display text-2xl text-paper">Club in numbers — custom tiles</h2>
       <p className="mt-1 text-sm text-paper-dim">
-        The band of numbers under the hero (squad size is added automatically).
+        Your own numbers, shown after the live ones (e.g. "3 · Trophies" or "2021 · Founded"). Changes save as you type.
       </p>
 
       <div className="mt-4 space-y-2">
@@ -314,7 +425,7 @@ export default function AdminHomeContent() {
       <p className="text-sm text-paper-dim">Public site content</p>
       <h1 className="mt-3 font-display text-4xl text-paper md:text-5xl">Home page</h1>
       <p className="mt-3 max-w-2xl text-sm text-paper-dim">
-        Every piece of copy and imagery on the homepage — changes go live immediately.
+        Every piece of copy and imagery on the homepage. Images, stat tiles and the gallery go live as soon as you change them; text goes live when you press Save.
       </p>
 
       <HomeContentForm key={loading ? "loading" : "loaded"} />

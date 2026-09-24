@@ -1,4 +1,5 @@
 import { photos } from "../lib/photos";
+import FittedImage from "./FittedImage";
 import { useHomeContent } from "../lib/HomeContentContext";
 
 export default function AtmosphereBreak() {
@@ -7,11 +8,10 @@ export default function AtmosphereBreak() {
 
   return (
     <section className="relative h-[60svh] min-h-[22rem] overflow-hidden border-b border-ink-line md:h-[80svh]">
-      <img
+      <FittedImage
         src={atmosphere.imageUrl || photos.tunnel}
         alt="Players walking out through the tunnel before a match"
-        className="duotone absolute inset-0 h-full w-full object-cover"
-        loading="lazy"
+        className="duotone"
       />
       <div className="duotone-wash pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/80 to-transparent" />

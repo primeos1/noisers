@@ -51,6 +51,27 @@ class CmsEndpointsTest extends TestCase
         $this->assertSame('New headline', $this->getJson('/api/home-content')->json('data.hero.headline'));
     }
 
+    public function test_committee_can_edit_the_stats_section(): void
+    {
+        $this->getJson('/api/home-content')
+            ->assertJsonPath('data.statsSection.enabled', true)
+            ->assertJsonPath('data.statsSection.live', ['squad', 'match_days', 'games', 'goals']);
+
+        Sanctum::actingAs(User::factory()->create(['role' => 'committee']));
+
+        $this->putJson('/api/home-content', [
+            'stats_enabled' => false,
+            'stats_headline' => 'Numbers up',
+            'stats_live' => ['goals', 'squad'],
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.statsSection.enabled', false)
+            ->assertJsonPath('data.statsSection.headline', 'Numbers up')
+            ->assertJsonPath('data.statsSection.live', ['goals', 'squad']);
+
+        $this->putJson('/api/home-content', ['stats_live' => ['wins']])->assertUnprocessable();
+    }
+
     public function test_committee_can_manage_highlights(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'committee']));

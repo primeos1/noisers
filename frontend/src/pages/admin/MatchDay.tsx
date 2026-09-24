@@ -53,11 +53,11 @@ export default function MatchDay() {
   const activeEvent = events.find((e) => e.id === activeEventId) ?? null;
 
   const [titleDraft, setTitleDraft] = useState("");
-  const [venueDraft, setVenueDraft] = useState("");
+  const [venueDraft, setVenueDraft] = useState(settings.matchDefaultVenue);
   const [dateDraft, setDateDraft] = useState("");
   const [createError, setCreateError] = useState("");
 
-  const [mode, setMode] = useState<TeamMode>("random");
+  const [mode, setMode] = useState<TeamMode>(settings.matchDefaultTeamMode);
   const [playA, setPlayA] = useState(0);
   const [playB, setPlayB] = useState(1);
   const [addingPlayer, setAddingPlayer] = useState(false);
@@ -78,7 +78,11 @@ export default function MatchDay() {
   const resumable = events.filter((e) => e.status === "live" && e.id !== activeEventId);
   const liveGame = activeEvent?.games.find((g) => g.status === "live") ?? null;
   const pastGames = activeEvent ? activeEvent.games.filter((g) => g.id !== liveGame?.id) : [];
-  const timer = useMatchTimer(liveGame, (clock) => updateLiveGame((g) => ({ ...g, ...clock })));
+  const timer = useMatchTimer(
+    liveGame,
+    (clock) => updateLiveGame((g) => ({ ...g, ...clock })),
+    settings.matchGameMinutes,
+  );
 
   function name(id: ParticipantId) {
     return activeEvent ? participantName(players, activeEvent.guests, id) : String(id);
@@ -105,7 +109,7 @@ export default function MatchDay() {
     addEvent(event);
     setActiveEventId(id);
     setTitleDraft("");
-    setVenueDraft("");
+    setVenueDraft(settings.matchDefaultVenue);
     setDateDraft("");
     setCreateError("");
   }
@@ -479,8 +483,14 @@ export default function MatchDay() {
                       onChange={() => togglePresent(player.number)}
                       className="h-4 w-4 accent-paper"
                     />
-                    <span className="text-mist">#{player.number}</span>
-                    <span>{player.name}</span>
+                    <img src={player.photo} alt="" className="duotone h-9 w-9 shrink-0 rounded-full object-cover" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{player.name}</span>
+                      <span className="block truncate text-xs text-mist">
+                        #{player.number} · {player.position}
+                      </span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-paper">{player.rating.toFixed(2)}</span>
                   </label>
                 ))}
             </div>

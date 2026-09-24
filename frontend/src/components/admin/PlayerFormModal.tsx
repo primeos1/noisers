@@ -3,6 +3,7 @@ import Modal from "./Modal";
 import { isStockPhoto, type Player, type Position } from "../../lib/clubData";
 import ImageUploadField from "./ImageUploadField";
 import { useSquad } from "../../lib/SquadContext";
+import { useSettings } from "../../lib/SettingsContext";
 
 const inputClass =
   "mt-1 w-full border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper";
@@ -19,6 +20,7 @@ export default function PlayerFormModal({
   onSubmit: (player: Player) => void;
   onClose: () => void;
 }) {
+  const { settings } = useSettings();
   // The photo field only ever holds an uploaded image; players without one
   // fall back to a stock face when displayed.
   const [form, setForm] = useState<Player>(
@@ -27,7 +29,7 @@ export default function PlayerFormModal({
       name: "",
       position: "MID",
       photo: "",
-      rating: 6.5,
+      rating: settings.ratingNewPlayer,
       appearances: 0,
       goals: 0,
       assists: 0,

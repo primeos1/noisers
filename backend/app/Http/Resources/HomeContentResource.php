@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\HomeContent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,6 +35,13 @@ class HomeContentResource extends JsonResource
                 'eyebrow' => $this->matchday_eyebrow,
                 'headline' => $this->matchday_headline,
                 'body' => $this->matchday_body,
+            ],
+            'statsSection' => [
+                'enabled' => $this->stats_enabled ?? true,
+                'eyebrow' => $this->stats_eyebrow,
+                'headline' => $this->stats_headline,
+                'imageUrl' => $this->stats_image_url,
+                'live' => $this->stats_live ?? HomeContent::LIVE_STATS,
             ],
             'footer' => [
                 'tagline' => $this->footer_tagline,

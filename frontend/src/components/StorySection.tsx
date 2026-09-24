@@ -1,4 +1,5 @@
 import { photos } from "../lib/photos";
+import FittedImage from "./FittedImage";
 import { useHomeContent } from "../lib/HomeContentContext";
 
 export default function StorySection() {
@@ -9,11 +10,10 @@ export default function StorySection() {
     <section id="story" className="border-b border-ink-line">
       <div className="mx-auto grid max-w-7xl md:grid-cols-2">
         <div className="relative min-h-[22rem] overflow-hidden border-b border-ink-line md:min-h-[32rem] md:border-b-0 md:border-r">
-          <img
+          <FittedImage
             src={story.imageUrl || photos.zenithStadium}
             alt="Floodlit stadium bowl viewed from above"
-            className="duotone h-full w-full object-cover"
-            loading="lazy"
+            className="duotone"
           />
           <div className="duotone-wash pointer-events-none absolute inset-0" />
         </div>

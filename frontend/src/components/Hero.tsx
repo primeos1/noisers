@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { photos } from "../lib/photos";
+import FittedImage from "./FittedImage";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf } from "../lib/matchDay";
 import { useHomeContent } from "../lib/HomeContentContext";
@@ -13,11 +14,12 @@ export default function Hero() {
 
   return (
     <section className="relative flex min-h-[78svh] flex-col overflow-hidden border-b border-ink-line md:min-h-[92svh] md:flex-row md:items-end">
-      <img
+      <FittedImage
         src={hero.imageUrl || photos.heroNight}
         alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
-        className="duotone absolute inset-0 h-full w-full object-cover object-top"
+        position="object-top"
         loading="eager"
+        className="duotone"
       />
       <div className="duotone-wash pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-ink via-ink/60 to-transparent" />

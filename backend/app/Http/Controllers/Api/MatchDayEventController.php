@@ -106,13 +106,17 @@ class MatchDayEventController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the event along with everything it fed into — its cards/fines,
+     * rating changes and (if current) The Vale's weekly awards.
      */
     public function destroy(MatchDayEvent $matchDayEvent)
     {
         $this->authorize('delete', $matchDayEvent);
 
-        $matchDayEvent->delete();
+        DB::transaction(function () use ($matchDayEvent) {
+            MatchDayFinalizer::revert($matchDayEvent);
+            $matchDayEvent->delete();
+        });
 
         return response()->noContent();
     }

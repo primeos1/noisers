@@ -16,12 +16,22 @@ export interface GalleryImageItem {
   sortOrder: number;
 }
 
+/** Numbers the "Club in numbers" band can compute itself, in display order. */
+export const LIVE_STATS = [
+  { id: "squad", label: "Squad" },
+  { id: "match_days", label: "Match days" },
+  { id: "games", label: "Games played" },
+  { id: "goals", label: "Goals scored" },
+] as const;
+export type LiveStatId = (typeof LIVE_STATS)[number]["id"];
+
 export interface HomeContentData {
   hero: { eyebrow: string; headline: string; subtext: string; imageUrl: string };
   story: { eyebrow: string; headline: string; paragraph1: string; paragraph2: string; imageUrl: string };
   atmosphere: { caption: string; imageUrl: string };
   matchday: { eyebrow: string; headline: string; body: string };
   footer: { tagline: string; copyright: string };
+  statsSection: { enabled: boolean; eyebrow: string; headline: string; imageUrl: string; live: LiveStatId[] };
   stats: HomeStat[];
   gallery: GalleryImageItem[];
 }
@@ -55,6 +65,13 @@ export const DEFAULT_HOME_CONTENT: HomeContentData = {
     tagline: "Est. 2021 · Vale 2 Zenith. Grassroots five-a-side football, run properly.",
     copyright: "Noisers FC. All rights reserved.",
   },
+  statsSection: {
+    enabled: true,
+    eyebrow: "Club in numbers",
+    headline: "Every session counts.",
+    imageUrl: "",
+    live: LIVE_STATS.map((s) => s.id),
+  },
   stats: [],
   gallery: [],
 };
@@ -63,7 +80,7 @@ interface HomeContentContextValue {
   content: HomeContentData;
   loading: boolean;
   error: string;
-  updateContent: (patch: Partial<Omit<HomeContentData, "stats" | "gallery">>) => Promise<void>;
+  updateContent: (patch: HomeContentPatch) => Promise<void>;
   addStat: (stat: { value: string; label: string }) => Promise<void>;
   updateStat: (id: number, patch: Partial<{ value: string; label: string }>) => Promise<void>;
   removeStat: (id: number) => Promise<void>;
@@ -72,9 +89,14 @@ interface HomeContentContextValue {
   removeGalleryImage: (id: number) => Promise<void>;
 }
 
+/** Any subset of any section's fields, e.g. `{ hero: { imageUrl } }`. */
+export type HomeContentPatch = {
+  [K in keyof Omit<HomeContentData, "stats" | "gallery">]?: Partial<HomeContentData[K]>;
+};
+
 const HomeContentContext = createContext<HomeContentContextValue | null>(null);
 
-function flattenPatch(patch: Partial<Omit<HomeContentData, "stats" | "gallery">>) {
+function flattenPatch(patch: HomeContentPatch) {
   const body: Record<string, unknown> = {};
   if (patch.hero) {
     if (patch.hero.eyebrow !== undefined) body.hero_eyebrow = patch.hero.eyebrow;
@@ -98,6 +120,14 @@ function flattenPatch(patch: Partial<Omit<HomeContentData, "stats" | "gallery">>
     if (patch.matchday.headline !== undefined) body.matchday_headline = patch.matchday.headline;
     if (patch.matchday.body !== undefined) body.matchday_body = patch.matchday.body;
   }
+  if (patch.statsSection) {
+    const t = patch.statsSection;
+    if (t.enabled !== undefined) body.stats_enabled = t.enabled;
+    if (t.eyebrow !== undefined) body.stats_eyebrow = t.eyebrow;
+    if (t.headline !== undefined) body.stats_headline = t.headline;
+    if (t.imageUrl !== undefined) body.stats_image_url = t.imageUrl;
+    if (t.live !== undefined) body.stats_live = t.live;
+  }
   if (patch.footer) {
     if (patch.footer.tagline !== undefined) body.footer_tagline = patch.footer.tagline;
     if (patch.footer.copyright !== undefined) body.footer_copyright = patch.footer.copyright;
@@ -119,7 +149,7 @@ export function HomeContentProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function updateContent(patch: Partial<Omit<HomeContentData, "stats" | "gallery">>) {
+  async function updateContent(patch: HomeContentPatch) {
     setError("");
     try {
       const res = await apiFetch<{ data: HomeContentData }>("/home-content", {

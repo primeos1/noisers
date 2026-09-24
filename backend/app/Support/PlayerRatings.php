@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
 use App\Models\PlayerRatingChange;
@@ -19,6 +20,9 @@ use App\Models\PlayerRatingChange;
  * and losses shrink as it nears the floor, capped per match day, then clamped
  * to [MIN, MAX]. Each application is recorded in player_rating_changes, which
  * also makes re-ending a match day a no-op.
+ *
+ * The constants below are the defaults; the club's actual weights come from
+ * ClubSetting (admin Settings → Player ratings).
  */
 class PlayerRatings
 {
@@ -45,8 +49,9 @@ class PlayerRatings
 
     public static function apply(MatchDayEvent $event): void
     {
+        $weights = ClubSetting::current()->ratingWeights();
         $players = Player::all()->keyBy('number');
-        $points = self::points($event, fn (int $number) => $players[$number]->position ?? null);
+        $points = self::points($event, fn (int $number) => $players[$number]->position ?? null, $weights);
 
         foreach ($points as $number => $raw) {
             $player = $players[$number];
@@ -55,7 +60,7 @@ class PlayerRatings
             }
 
             $before = (float) $player->rating;
-            $after = self::adjust($before, $raw);
+            $after = self::adjust($before, $raw, $weights['max_swing']);
 
             PlayerRatingChange::create([
                 'player_id' => $player->id,
@@ -72,14 +77,32 @@ class PlayerRatings
     }
 
     /**
+     * @return array{win: float, loss: float, goal: float, assist: float, own_goal: float, clean_sheet: array<string, float>, max_swing: float}
+     */
+    public static function defaultWeights(): array
+    {
+        return [
+            'win' => self::WIN,
+            'loss' => self::LOSS,
+            'goal' => self::GOAL,
+            'assist' => self::ASSIST,
+            'own_goal' => self::OWN_GOAL,
+            'clean_sheet' => self::CLEAN_SHEET,
+            'max_swing' => self::MAX_SWING,
+        ];
+    }
+
+    /**
      * Raw performance points per squad number across the event's finished
      * games. Guests (non-int participant ids) are skipped.
      *
      * @param  callable(int): ?string  $positionOf
+     * @param  array<string, mixed>|null  $weights  as ClubSetting::ratingWeights(); null uses the defaults
      * @return array<int, float>
      */
-    public static function points(MatchDayEvent $event, callable $positionOf): array
+    public static function points(MatchDayEvent $event, callable $positionOf, ?array $weights = null): array
     {
+        $weights ??= self::defaultWeights();
         $points = [];
         $add = function ($number, float $amount) use (&$points, $positionOf) {
             if (is_int($number) && $positionOf($number) !== null) {
@@ -104,20 +127,20 @@ class PlayerRatings
                 }
                 $for = $score[$i];
                 $against = $score[1 - $i];
-                $result = $for > $against ? self::WIN : ($for < $against ? self::LOSS : 0.0);
+                $result = $for > $against ? $weights['win'] : ($for < $against ? $weights['loss'] : 0.0);
 
                 foreach (($team['players'] ?? []) as $number) {
                     $add($number, $result);
                     if ($against === 0 && is_int($number)) {
-                        $add($number, self::CLEAN_SHEET[$positionOf($number)] ?? 0.0);
+                        $add($number, $weights['clean_sheet'][$positionOf($number)] ?? 0.0);
                     }
                 }
             }
 
             foreach (($game['goals'] ?? []) as $goal) {
                 $ownGoal = (bool) ($goal['ownGoal'] ?? false);
-                $add($goal['playerId'] ?? null, $ownGoal ? self::OWN_GOAL : self::GOAL);
-                $add($goal['assistPlayerId'] ?? null, self::ASSIST);
+                $add($goal['playerId'] ?? null, $ownGoal ? $weights['own_goal'] : $weights['goal']);
+                $add($goal['assistPlayerId'] ?? null, $weights['assist']);
             }
         }
 
@@ -130,13 +153,13 @@ class PlayerRatings
      * midpoint, up to 1.5x far from the limit), so ratings drift toward the
      * middle unless a player keeps performing.
      */
-    public static function adjust(float $rating, float $raw): float
+    public static function adjust(float $rating, float $raw, float $maxSwing = self::MAX_SWING): float
     {
         $range = self::MAX - self::MIN;
         $room = $raw >= 0 ? self::MAX - $rating : $rating - self::MIN;
         $factor = max(0.0, min(1.5, 2 * $room / $range));
 
-        $delta = max(-self::MAX_SWING, min(self::MAX_SWING, $raw * $factor));
+        $delta = max(-$maxSwing, min($maxSwing, $raw * $factor));
 
         return round(max(self::MIN, min(self::MAX, $rating + $delta)), 2);
     }

@@ -25,7 +25,23 @@ class HomeContent extends Model
         'matchday_body',
         'footer_tagline',
         'footer_copyright',
+        'stats_enabled',
+        'stats_eyebrow',
+        'stats_headline',
+        'stats_image_url',
+        'stats_live',
     ];
+
+    /** Live stats the "Club in numbers" band can show, in display order. */
+    public const LIVE_STATS = ['squad', 'match_days', 'games', 'goals'];
+
+    protected function casts(): array
+    {
+        return [
+            'stats_enabled' => 'boolean',
+            'stats_live' => 'array',
+        ];
+    }
 
     /**
      * The site has exactly one Home page content row, created on first use
@@ -47,6 +63,9 @@ class HomeContent extends Model
             'matchday_body' => "Every session, whoever's present gets split into balanced six-a-side teams — random, by rating, or by position — then it's first to two goals on a ten-minute clock. Goals, assists and cards all get logged as they happen.",
             'footer_tagline' => 'Est. 2021 · Vale 2 Zenith. Grassroots five-a-side football, run properly.',
             'footer_copyright' => 'Noisers FC. All rights reserved.',
+            'stats_eyebrow' => 'Club in numbers',
+            'stats_headline' => 'Every session counts.',
+            'stats_live' => self::LIVE_STATS,
         ]);
     }
 }
