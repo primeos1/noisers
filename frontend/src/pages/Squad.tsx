@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { getSquadHonours, type Position } from "../lib/clubData";
+import { formatCards, getSquadHonours, roughestPlayer, type Position } from "../lib/clubData";
 import { useSquad } from "../lib/SquadContext";
 
 const positionLabel: Record<Position, string> = {
@@ -30,6 +30,7 @@ export default function Squad() {
   );
 
   const squadHonours = useMemo(() => getSquadHonours(players), [players]);
+  const roughest = useMemo(() => roughestPlayer(players), [players]);
 
   return (
     <Layout>
@@ -80,6 +81,34 @@ export default function Squad() {
               </div>
             ))}
           </div>
+
+          {roughest && (
+            <Link
+              to={`/squad/${roughest.number}`}
+              className="group mt-px flex items-center gap-5 border-t border-ink-line bg-ink px-4 py-6 transition-colors hover:bg-ink-raised md:gap-8 md:px-6 md:py-8"
+            >
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden border border-ink-line md:h-32 md:w-32">
+                <img
+                  src={roughest.photo}
+                  alt={roughest.name}
+                  className="duotone h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs uppercase tracking-wide text-mist">Roughest player · most cards this season</p>
+                <p className="mt-1 font-display text-2xl leading-tight text-paper md:text-4xl">{roughest.name}</p>
+                <p className="mt-2 flex items-center gap-3 text-sm text-paper-dim">
+                  <span className="inline-flex items-center gap-1">
+                    {roughest.yellowCards > 0 && <span className="h-4 w-3 bg-draw" aria-hidden="true" />}
+                    {roughest.redCards > 0 && <span className="h-4 w-3 bg-loss" aria-hidden="true" />}
+                  </span>
+                  #{roughest.number} · {positionLabel[roughest.position]} · {formatCards(roughest.yellowCards, roughest.redCards)}
+                </p>
+              </div>
+              <span className="hidden shrink-0 text-sm text-paper-dim group-hover:text-paper sm:block">View profile →</span>
+            </Link>
+          )}
         </div>
       </section>
 

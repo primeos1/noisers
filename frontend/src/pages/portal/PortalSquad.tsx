@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import type { Player } from "../../lib/clubData";
+import { roughestPlayer, formatCards, type Player } from "../../lib/clubData";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { formatNaira } from "../../lib/cards";
 import { scoreOf } from "../../lib/matchDay";
 import { cardCounts, playerGameLog, positions, sortEvents, useMyShirt } from "../../lib/portal";
+import { playerInsights } from "../../lib/insights";
+import { InsightsTeaser } from "../../components/portal/Insights";
 import {
   CardPips,
   Empty,
@@ -24,6 +26,8 @@ const groupName = { GK: "Goalkeepers", DEF: "Defenders", MID: "Midfielders", FWD
 function MyShirt({ player, onChange }: { player: Player; onChange: () => void }) {
   const { cards } = useCards();
   const { events } = useMatchDay();
+  const { players } = useSquad();
+  const insights = useMemo(() => playerInsights(player, players, events), [player, players, events]);
   const fines = cardCounts(cards, player.number);
   const form = playerGameLog(events, player.number).filter((g) => g.result).slice(0, 5);
 
@@ -49,6 +53,7 @@ function MyShirt({ player, onChange }: { player: Player; onChange: () => void })
           {fines.outstanding ? `${formatNaira(fines.outstanding)} owed` : "No fines owed"}
         </span>
       </div>
+      <InsightsTeaser player={player} insights={insights} />
       <div className="grid grid-cols-2 border-t border-ink-line/70 text-sm font-semibold">
         <Link to={`/portal/players/${player.number}`} className="py-3 text-center text-paper transition-colors hover:bg-ink-line/30">
           Open my profile
@@ -94,6 +99,7 @@ export default function PortalSquad() {
 
   const me = players.find((p) => p.number === myShirt);
   const latest = sortEvents(events)[0];
+  const roughest = roughestPlayer(players);
 
   const q = query.trim().toLowerCase();
   const visible = useMemo(
@@ -124,6 +130,19 @@ export default function PortalSquad() {
                 )}
               </div>
             </div>
+          </Row>
+        </Group>
+      )}
+
+      {roughest && (
+        <Group title="Roughest player" aside="Most cards this season">
+          <Row to={`/portal/players/${roughest.number}`}>
+            <Avatar player={roughest} className="h-12 w-12" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold text-paper">{roughest.name}</span>
+              <span className="block text-xs text-mist">{formatCards(roughest.yellowCards, roughest.redCards)}</span>
+            </span>
+            <CardPips yellow={roughest.yellowCards} red={roughest.redCards} />
           </Row>
         </Group>
       )}

@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from "react";
-import { useParams } from "react-router-dom";
+import { useMemo, useState, type ReactNode } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { formatNaira } from "../../lib/cards";
 import { cardCounts, playerGameLog, positionLabel, useMyShirt } from "../../lib/portal";
+import { playerInsights } from "../../lib/insights";
+import { InsightsPanel } from "../../components/portal/Insights";
 import {
   CardPips,
   Empty,
@@ -18,7 +20,9 @@ import {
   PlayerPicture,
 } from "../../components/portal/ui";
 
-type Tab = "overview" | "games" | "form" | "fines";
+type Tab = "insights" | "overview" | "games" | "form" | "fines";
+
+const TABS: Tab[] = ["insights", "overview", "games", "form", "fines"];
 
 function Line({ label, value, tone = "text-paper" }: { label: string; value: ReactNode; tone?: string }) {
   return (
@@ -35,10 +39,13 @@ export default function PortalPlayer() {
   const { cards } = useCards();
   const { events } = useMatchDay();
   const [myShirt, setMyShirt] = useMyShirt();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [searchParams] = useSearchParams();
+  const requested = searchParams.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(requested && TABS.includes(requested) ? requested : "insights");
 
   const playerNumber = Number(number);
   const player = players.find((p) => p.number === playerNumber);
+  const insights = useMemo(() => (player ? playerInsights(player, players, events) : null), [player, players, events]);
 
   if (!player) {
     return (
@@ -117,12 +124,15 @@ export default function PortalPlayer() {
         value={tab}
         onChange={setTab}
         options={[
+          { value: "insights", label: "Insights" },
           { value: "overview", label: "Overview" },
           { value: "games", label: "Games" },
           { value: "form", label: "Form" },
           { value: "fines", label: "Fines" },
         ]}
       />
+
+      {tab === "insights" && insights && <InsightsPanel player={player} insights={insights} />}
 
       {tab === "overview" && (
         <div className="md:grid md:grid-cols-2 md:gap-x-5">

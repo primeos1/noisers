@@ -251,9 +251,19 @@ export default function TheVale() {
             </div>
 
             <div className="bg-ink p-8">
-              <p className="text-xs uppercase tracking-wide text-mist">
-                Roughest player
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-xs uppercase tracking-wide text-mist">
+                  Roughest player
+                </p>
+                {roughest && (
+                  <img
+                    src={roughest.photo}
+                    alt={roughest.name}
+                    className="duotone -mt-2 h-16 w-16 shrink-0 border border-ink-line object-cover"
+                    loading="lazy"
+                  />
+                )}
+              </div>
               <p className="mt-4 font-display text-4xl text-paper">
                 {roughest ? weeklyLeaders.roughest.yellowCards + weeklyLeaders.roughest.redCards : 0} cards
               </p>

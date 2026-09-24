@@ -31,6 +31,11 @@ class PlayerResource extends JsonResource
             'cleanSheets' => $this->match_day_stats['cleanSheets'] ?? 0,
             'yellowCards' => $this->match_day_stats['yellowCards'] ?? 0,
             'redCards' => $this->match_day_stats['redCards'] ?? 0,
+            'ratingHistory' => $this->whenLoaded('ratingChanges', fn () => $this->ratingChanges->map(fn ($c) => [
+                'eventId' => (string) $c->match_day_event_id,
+                'before' => (float) $c->rating_before,
+                'after' => (float) $c->rating_after,
+            ])->values()),
         ];
     }
 }

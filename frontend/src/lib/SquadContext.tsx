@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { isStockPhoto, seedSquad, stockPhoto, type Player, type Position } from "./clubData";
+import { isStockPhoto, seedSquad, stockPhoto, type Player, type Position, type RatingPoint } from "./clubData";
 import { apiFetch, ApiError } from "./api";
 
 interface ApiPlayer {
@@ -17,6 +17,7 @@ interface ApiPlayer {
   cleanSheets: number;
   yellowCards?: number;
   redCards?: number;
+  ratingHistory?: RatingPoint[];
 }
 
 function fromApi(p: ApiPlayer): Player {
@@ -32,6 +33,7 @@ function fromApi(p: ApiPlayer): Player {
     cleanSheets: p.cleanSheets,
     yellowCards: p.yellowCards ?? 0,
     redCards: p.redCards ?? 0,
+    ratingHistory: p.ratingHistory ?? [],
   };
 }
 

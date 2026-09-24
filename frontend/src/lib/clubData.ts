@@ -17,6 +17,14 @@ export interface Player {
   cleanSheets: number;
   yellowCards: number;
   redCards: number;
+  /** Rating before/after each match day, oldest first (from the API only). */
+  ratingHistory?: RatingPoint[];
+}
+
+export interface RatingPoint {
+  eventId: string;
+  before: number;
+  after: number;
 }
 
 function avatar(id: number) {

@@ -11,6 +11,7 @@ use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
 use App\Support\PlayerStats;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 
 class PlayerController extends Controller
@@ -70,6 +71,7 @@ class PlayerController extends Controller
         $this->authorize('update', $player);
 
         $player->update($request->validated());
+        $this->attachMatchDayStats(collect([$player]));
 
         return new PlayerResource($player);
     }
@@ -91,6 +93,9 @@ class PlayerController extends Controller
      */
     private function attachMatchDayStats($players): void
     {
+        // Oldest first, so the portal can draw each player's rating journey.
+        (new EloquentCollection($players->all()))->load(['ratingChanges' => fn ($q) => $q->orderBy('id')]);
+
         $stats = PlayerStats::computeAll(MatchDayEvent::query()->get());
 
         // Cards logged by hand (fixtures, not match days) count towards the
