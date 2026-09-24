@@ -31,3 +31,6 @@ backend/storage/*.key
 # React Native (future /mobile)
 mobile/node_modules/
 mobile/.expo/
+
+# Cloudflare Wrangler local cache
+.wrangler/

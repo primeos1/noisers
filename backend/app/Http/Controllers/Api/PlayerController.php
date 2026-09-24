@@ -9,10 +9,13 @@ use App\Http\Resources\PlayerResource;
 use App\Models\Card;
 use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
+use App\Models\Media;
 use App\Models\Player;
 use App\Support\PlayerStats;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class PlayerController extends Controller
 {
@@ -47,6 +50,61 @@ class PlayerController extends Controller
 
         $data = $request->validated();
         $data['rating'] ??= ClubSetting::current()->rating_new_player;
+
+        $player = Player::create($data);
+
+        return new PlayerResource($player);
+    }
+
+    /**
+     * Public sign-up from the /join link. Gated by the squad passcode so
+     * only people the committee has told can add themselves. Rating and
+     * active status aren't the player's to choose — they get the club's
+     * new-player rating like anyone added from the admin.
+     */
+    public function join(Request $request)
+    {
+        $data = $request->validate([
+            'passcode' => ['required', 'string', 'max:64'],
+            'number' => ['required', 'integer', 'min:1', 'max:99', 'unique:players,number'],
+            'name' => ['required', 'string', 'max:255'],
+            'position' => ['required', 'in:GK,DEF,MID,FWD'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:5120'],
+        ], [
+            'number.unique' => 'That shirt number is already taken — pick another.',
+        ]);
+
+        $setting = ClubSetting::current();
+
+        if (! $setting->checkPlayerPasscode($data['passcode'])) {
+            throw ValidationException::withMessages([
+                'passcode' => ["That passcode isn't right — check with the committee."],
+            ]);
+        }
+
+        // Stored like an admin upload (same disk, shows in the media library),
+        // but only once the passcode has checked out.
+        if ($file = $request->file('photo')) {
+            $disk = config('filesystems.media_disk');
+            $path = $file->store('media', $disk);
+
+            $media = Media::create([
+                'disk' => $disk,
+                'path' => $path,
+                'url' => Storage::disk($disk)->url($path),
+                'original_filename' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'alt_text' => $data['name'],
+            ]);
+            $data['photo_url'] = $media->url;
+        }
+
+        unset($data['passcode'], $data['photo']);
+        $data['rating'] = $setting->rating_new_player;
+        $data['active'] = true;
 
         $player = Player::create($data);
 

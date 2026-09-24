@@ -56,6 +56,50 @@ function Section({
   );
 }
 
+// The public sign-up link — shared with new players so they can add
+// themselves (they still need the squad passcode above).
+function JoinLink() {
+  const url = `${window.location.origin}/join`;
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        // Clipboard blocked — the link is still selectable in the field.
+      });
+  }
+
+  return (
+    <div className="mt-5">
+      <span className={labelClass}>Squad sign-up link</span>
+      <div className="mt-1 flex gap-2">
+        <input
+          type="text"
+          readOnly
+          value={url}
+          onFocus={(e) => e.target.select()}
+          className={`${inputClass} mt-0 font-mono`}
+        />
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded-lg border border-ink-line px-3 py-2 text-sm text-paper transition-colors hover:border-paper"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-mist">
+        Share this with new players. They add their own name, number and position using the squad passcode.
+      </p>
+    </div>
+  );
+}
+
 function Toggle({
   label,
   hint,
@@ -463,6 +507,7 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
               className={`${inputClass} font-mono tracking-wider`}
             />
           </label>
+          <JoinLink />
         </Section>
 
         {canEdit && (

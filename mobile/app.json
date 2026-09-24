@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Noisers FC",
+    "slug": "noisers-fc",
+    "scheme": "noisers",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0e1a",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.noisersfc.app"
+    },
+    "android": {
+      "package": "com.noisersfc.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0e1a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/brand/favicon-256.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-image",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Noisers FC uses your photos to add player pictures and site images.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/crest.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0a0e1a"
+        }
+      ]
+    ]
+  }
+}

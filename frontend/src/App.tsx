@@ -7,6 +7,7 @@ import Highlights from "./pages/Highlights";
 import Performance from "./pages/Performance";
 import Login from "./pages/Login";
 import PlayerLogin from "./pages/PlayerLogin";
+import JoinSquad from "./pages/JoinSquad";
 import PortalLayout from "./components/portal/PortalLayout";
 import PortalSquad from "./pages/portal/PortalSquad";
 import PortalHistory from "./pages/portal/PortalHistory";
@@ -49,6 +50,7 @@ export default function App() {
       <Route path="/performance" element={<Performance />} />
       <Route path="/login" element={<Login />} />
       <Route path="/player-login" element={<PlayerLogin />} />
+      <Route path="/join" element={<JoinSquad />} />
 
       <Route
         path="/portal"

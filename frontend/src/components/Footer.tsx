@@ -58,6 +58,11 @@ export default function Footer() {
                   Player login
                 </Link>
               </li>
+              <li>
+                <Link to="/join" className="hover:text-paper">
+                  Join the squad
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

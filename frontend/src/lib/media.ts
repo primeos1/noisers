@@ -3,7 +3,7 @@ import { apiFetchForm } from "./api";
 // Resizes an uploaded image client-side before it goes over the wire —
 // same idea as the old fileToResizedDataUrl in lib/image.ts, but produces
 // a Blob ready to upload instead of a data URL to store locally.
-function resizeToBlob(file: File, maxDim: number, quality = 0.85): Promise<Blob> {
+export function resizeToBlob(file: File, maxDim: number, quality = 0.85): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Couldn't read that file."));

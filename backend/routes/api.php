@@ -58,6 +58,8 @@ Route::get('/highlights', [HighlightController::class, 'index']);
 Route::post('/login', [AuthController::class, 'login']);
 // Squad passcode for the player portal — throttled so it can't be guessed.
 Route::post('/player-login', [ClubSettingController::class, 'checkPasscode'])->middleware('throttle:10,1');
+// Public squad sign-up (the /join link) — same passcode, tighter throttle.
+Route::post('/players/join', [PlayerController::class, 'join'])->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
