@@ -5,17 +5,29 @@ import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf } from "../lib/matchDay";
 import { useHomeContent } from "../lib/HomeContentContext";
 import logoWhite from "../assets/brand/logo-white.png";
+import MobileHero from "./MobileHero";
 
 export default function Hero() {
   const { events } = useMatchDay();
   const { content } = useHomeContent();
   const { hero } = content;
-  const last = allGames(events).pop();
+  const games = allGames(events);
+  const last = games[games.length - 1];
+
+  const imageUrl = hero.imageUrl || photos.heroNight;
 
   return (
-    <section className="relative flex min-h-[78svh] flex-col overflow-hidden border-b border-ink-line md:min-h-[92svh] md:flex-row md:items-end">
+    <>
+    <MobileHero
+      eyebrow={hero.eyebrow}
+      headline={hero.headline}
+      subtext={hero.subtext}
+      imageUrl={imageUrl}
+      games={games}
+    />
+    <section className="relative hidden min-h-[92svh] flex-row items-end overflow-hidden border-b border-ink-line md:flex">
       <FittedImage
-        src={hero.imageUrl || photos.heroNight}
+        src={imageUrl}
         alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
         position="object-top"
         loading="eager"
@@ -31,19 +43,7 @@ export default function Hero() {
         className="pointer-events-none absolute -right-24 top-1/2 hidden w-[38rem] -translate-y-1/2 opacity-[0.07] md:block"
       />
 
-      {/* Mobile: logo centered (both axes) in the space above the text —
-          flex-1 claims exactly the leftover room in the column, whatever
-          the text block's height turns out to be. */}
-      <div className="relative z-10 flex flex-1 items-center justify-center md:hidden">
-        <img
-          src={logoWhite}
-          alt=""
-          aria-hidden="true"
-          className="animate-logo-breathe mt-16 w-80 opacity-[0.16] sm:w-96"
-        />
-      </div>
-
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-10 pt-8 md:px-10 md:pb-24 md:pt-40">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-10 pt-24 md:px-10 md:pb-24 md:pt-40">
         <p className="animate-hero-in text-sm text-paper-dim [animation-delay:0ms]">
           {hero.eyebrow}
         </p>
@@ -82,5 +82,6 @@ export default function Hero() {
         )}
       </div>
     </section>
+    </>
   );
 }

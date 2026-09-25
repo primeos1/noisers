@@ -128,21 +128,88 @@
     }
   }
 
-  /* Mobile hero: a large, faint watermark crest fills the gap under the nav
-     bar instead of leaving it empty, with a slow breathing scale/opacity. */
-  .animate-logo-breathe {
-    animation: logo-breathe 5s ease-in-out infinite;
+  /* ---- Mobile hero: kick-off ---------------------------------------- */
+
+  .hero-rise {
+    animation: hero-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  @keyframes logo-breathe {
-    0%,
-    100% {
-      opacity: 0.12;
-      transform: scale(1);
+  /* Photo ends on a shallow arc, like the edge of the centre circle. */
+  .kickoff-photo,
+  .kickoff-arc {
+    border-bottom-left-radius: 50% 64px;
+    border-bottom-right-radius: 50% 64px;
+  }
+
+  .kickoff-photo img {
+    animation: kickoff-settle 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes kickoff-settle {
+    from {
+      transform: scale(1.18);
+      filter: grayscale(1) brightness(0.3);
     }
-    50% {
-      opacity: 0.22;
-      transform: scale(1.05);
+    to {
+      transform: scale(1);
+      filter: grayscale(1) contrast(1.05) brightness(1.1);
+    }
+  }
+
+  .kickoff-arc {
+    border-bottom: 2px solid rgb(246 246 243 / 0.7);
+    animation: arc-draw 1s cubic-bezier(0.65, 0, 0.35, 1) 300ms both;
+  }
+
+  @keyframes arc-draw {
+    from {
+      clip-path: inset(0 50% 0 50%);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  /* The crest drops onto the halfway line like a ball placed for kick-off. */
+  .kickoff-crest {
+    animation: crest-drop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 500ms both;
+  }
+
+  @keyframes crest-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-40px) scale(0.6) rotate(-90deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Pitch-side LED board: dot-matrix glow, scrolling results. */
+  .led-board::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, transparent 0.9px, rgb(19 26 43 / 0.55) 1.3px);
+    background-size: 3px 3px;
+  }
+
+  .led-text {
+    color: var(--color-paper);
+    text-shadow:
+      0 0 6px rgb(246 246 243 / 0.55),
+      0 0 18px rgb(246 246 243 / 0.25);
+  }
+
+  .led-track {
+    animation: led-scroll 28s linear infinite;
+  }
+
+  @keyframes led-scroll {
+    to {
+      transform: translateX(-50%);
     }
   }
 
