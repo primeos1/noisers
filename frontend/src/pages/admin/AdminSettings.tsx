@@ -61,7 +61,7 @@ function Section({
 function JoinLink() {
   // Always the public site, so a link copied from a local admin still works
   // for players. VITE_SITE_URL can point it elsewhere (e.g. a staging site).
-  const url = `${import.meta.env.VITE_SITE_URL ?? "https://www.noisersfc.com"}/join`;
+  const url = `${import.meta.env.VITE_SITE_URL ?? "https://noisersfc.com"}/join`;
   const [copied, setCopied] = useState(false);
 
   function copy() {
