@@ -815,6 +815,14 @@
     color: var(--color-paper);
     transition: transform 0.2s ease, opacity 0.2s ease;
   }
+  .join-strip-number[data-taken="true"] {
+    color: var(--color-loss);
+    text-decoration: line-through;
+    text-decoration-thickness: 3px;
+  }
+  .join-taken {
+    animation: join-in-right 0.25s ease both;
+  }
   .join-nudge {
     display: grid;
     place-items: center;

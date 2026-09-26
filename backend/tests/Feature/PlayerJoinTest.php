@@ -84,20 +84,32 @@ class PlayerJoinTest extends TestCase
         $this->assertDatabaseCount('players', 0);
     }
 
-    public function test_players_can_share_a_number_and_pick_a_second_position(): void
+    public function test_a_taken_number_is_rejected_with_the_owners_name(): void
     {
-        Player::create(['number' => 7, 'name' => 'Existing', 'position' => 'FWD']);
+        Player::create(['number' => 7, 'name' => 'Existing Seven', 'position' => 'FWD']);
 
         $this->postJson('/api/players/join', [
             'passcode' => 'vale2zenith',
             'number' => 7,
+            'name' => 'Copycat',
+            'position' => 'MID',
+            'membership' => 'member',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['number' => 'Number 7 is already taken by Existing Seven']);
+
+        $this->assertSame(1, Player::where('number', 7)->count());
+    }
+
+    public function test_player_can_pick_a_second_position(): void
+    {
+        $this->postJson('/api/players/join', [
+            'passcode' => 'vale2zenith',
+            'number' => 8,
             'name' => 'Second Seven',
             'position' => 'MID',
             'membership' => 'member',
             'secondary_position' => 'FWD',
         ])->assertCreated()->assertJsonPath('data.secondaryPosition', 'FWD');
-
-        $this->assertSame(2, Player::where('number', 7)->count());
     }
 
     public function test_second_position_must_differ_from_the_main_one(): void

@@ -12,6 +12,7 @@ use App\Models\MatchDayEvent;
 use App\Models\Media;
 use App\Models\Player;
 use App\Support\PlayerStats;
+use App\Support\ShirtNumbers;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -66,7 +67,7 @@ class PlayerController extends Controller
     {
         $data = $request->validate([
             'passcode' => ['required', 'string', 'max:64'],
-            'number' => ['required', 'integer', 'min:1', 'max:99'],
+            'number' => ['required', 'integer', 'min:1', 'max:99', ShirtNumbers::free()],
             'name' => ['required', 'string', 'max:255'],
             'position' => ['required', 'in:GK,DEF,MID,FWD'],
             'secondary_position' => ['nullable', 'in:GK,DEF,MID,FWD', 'different:position'],

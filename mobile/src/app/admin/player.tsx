@@ -8,6 +8,7 @@ import { nextJerseyNumber } from "../../lib/matchDay";
 import { membershipLabels, type Membership, type Position } from "../../lib/types";
 import { Choice, Col, FieldRow, FormError, Hint, ImageField, Label, NumberField, TextField } from "../../components/form";
 import { Button, Figures, Screen } from "../../components/ui";
+import { colors } from "../../theme";
 
 /**
  * Add a player, or edit one (`?id=12`, the player id). `?present=<event id>`
@@ -28,12 +29,13 @@ export default function PlayerFormScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Shirt numbers can be shared — just let the admin know who else wears it.
-  const sharedWith = players.filter((p) => p.number === number && p.id !== initial?.id);
+  // Shirt numbers are unique, so flag straight away if someone already wears it.
+  const numberOwner = players.find((p) => p.number === number && p.id !== initial?.id);
 
   async function submit() {
     if (!name.trim()) return setError("Enter a player name.");
     if (!Number.isInteger(number) || number < 1 || number > 99) return setError("Jersey number must be a whole number from 1 to 99.");
+    if (numberOwner) return setError(`Number ${number} is already taken by ${numberOwner.name}. Pick another number.`);
     if (Number.isNaN(rating) || rating < RATING_MIN || rating > RATING_MAX) return setError(`Rating must be between ${RATING_MIN} and ${RATING_MAX}.`);
 
     setBusy(true);
@@ -69,7 +71,7 @@ export default function PlayerFormScreen() {
 
         <FieldRow>
           <Col>
-            <NumberField label="Jersey number" value={number} onChange={setNumber} hint={sharedWith.length ? `Also worn by ${sharedWith.map((p) => p.name).join(", ")}` : undefined} />
+            <NumberField label="Jersey number" value={number} onChange={setNumber} hint={numberOwner ? `Taken by ${numberOwner.name}` : undefined} />
           </Col>
           <Col>
             <NumberField label="Rating" value={rating} onChange={setRating} decimal />
@@ -129,6 +131,7 @@ export default function PlayerFormScreen() {
         )}
 
         <FormError message={error} />
+        {numberOwner ? <Hint tone={colors.loss}>Number {number} is taken by {numberOwner.name}. Pick another number.</Hint> : null}
         <Button label={initial ? "Save changes" : "Add player"} onPress={submit} busy={busy} />
       </Screen>
     </KeyboardAvoidingView>

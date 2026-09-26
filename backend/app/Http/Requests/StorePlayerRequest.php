@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ShirtNumbers;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePlayerRequest extends FormRequest
@@ -17,7 +18,7 @@ class StorePlayerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'number' => ['required', 'integer', 'min:1', 'max:99'],
+            'number' => ['required', 'integer', 'min:1', 'max:99', ShirtNumbers::free()],
             'name' => ['required', 'string', 'max:255'],
             'position' => ['required', 'in:GK,DEF,MID,FWD'],
             'secondary_position' => ['nullable', 'in:GK,DEF,MID,FWD', 'different:position'],

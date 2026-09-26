@@ -42,8 +42,8 @@ export default function PlayerFormModal({
   );
   const [error, setError] = useState("");
   const { players } = useSquad();
-  // Shirt numbers can be shared — just let the admin know who else wears it.
-  const sharedWith = players.filter((p) => p.number === form.number && p.id !== initial?.id);
+  // Shirt numbers are unique, so flag straight away if someone already wears it.
+  const numberOwner = players.find((p) => p.number === form.number && p.id !== initial?.id);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -53,6 +53,10 @@ export default function PlayerFormModal({
     }
     if (!Number.isInteger(form.number) || form.number < 1 || form.number > 99) {
       setError("Jersey number must be a whole number from 1 to 99.");
+      return;
+    }
+    if (numberOwner) {
+      setError(`Number ${form.number} is already taken by ${numberOwner.name}. Pick another number.`);
       return;
     }
     onSubmit(form);
@@ -70,11 +74,12 @@ export default function PlayerFormModal({
               value={form.number}
               min={1}
               max={99}
+              aria-invalid={!!numberOwner}
               onChange={(e) => setForm({ ...form, number: Number(e.target.value) })}
             />
-            {sharedWith.length > 0 && (
-              <span className="mt-1 block text-xs text-mist">
-                Also worn by {sharedWith.map((p) => p.name).join(", ")}
+            {numberOwner && (
+              <span className="mt-1 block text-xs text-loss" role="alert">
+                Taken by {numberOwner.name}
               </span>
             )}
           </label>

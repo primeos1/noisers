@@ -49,6 +49,8 @@ class IdentifyPlayersByIdMigrationTest extends TestCase
             'leader_clean_sheet_player_ids' => json_encode([$keeper->id]),
         ]);
 
+        // Start from how things were before numbers became unique again.
+        (require database_path('migrations/2026_09_26_120000_make_shirt_numbers_unique_again.php'))->down();
         $migration = require database_path('migrations/2026_09_26_100000_identify_players_by_id.php');
 
         // Backwards: the data as it was stored before the switch.
@@ -79,9 +81,5 @@ class IdentifyPlayersByIdMigrationTest extends TestCase
         $this->assertEquals($scorer->id, $vale->potw_player_id);
         $this->assertSame([$scorer->id], json_decode($vale->team_lineup_player_ids));
         $this->assertSame([$keeper->id], json_decode($vale->leader_clean_sheet_player_ids));
-
-        // And shirt numbers can now repeat.
-        Player::create(['number' => 9, 'name' => 'Another Nine', 'position' => 'MID']);
-        $this->assertSame(2, Player::where('number', 9)->count());
     }
 }

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
-import { apiFetchForm, ApiError } from "../lib/api";
+import { apiFetch, apiFetchForm, ApiError } from "../lib/api";
 import { resizeToBlob } from "../lib/media";
 import { membershipLabels, positionLabels, type Membership, type Position } from "../lib/clubData";
 
@@ -12,7 +12,7 @@ import { membershipLabels, positionLabels, type Membership, type Position } from
 
 const STEPS = [
   { title: "Who are you?", hint: "Your name goes on the back of the shirt." },
-  { title: "Pick your number", hint: "Swipe the strip or use the arrows. Numbers can be shared." },
+  { title: "Pick your number", hint: "Swipe the strip or use the arrows. Crossed-out numbers are already taken." },
   { title: "Where do you play?", hint: "Tap your main position. Tap a second zone if you play there too." },
   { title: "Add a face", hint: "A photo and contact details help the committee reach you. All optional." },
   { title: "Squad passcode", hint: "Ask a committee member for it if you don't have it." },
@@ -35,12 +35,22 @@ function reducedMotion() {
 }
 
 /** A tiny tap of feedback on phones that support it (Android). */
-function buzz(ms = 8) {
+function buzz(ms: number | number[] = 8) {
   try {
     navigator.vibrate?.(ms);
   } catch {
     // Not supported — the visual change is enough.
   }
+}
+
+/** The closest number to `from` that nobody wears (searching outwards). */
+function nearestFree(from: number, taken: Map<number, string>): number | null {
+  for (let d = 0; d < 99; d++) {
+    for (const n of [from + d, from - d]) {
+      if (n >= 1 && n <= 99 && !taken.has(n)) return n;
+    }
+  }
+  return null;
 }
 
 function trimColor(membership: Membership | "") {
@@ -54,11 +64,13 @@ function Shirt({
   number,
   membership,
   flipped,
+  taken = false,
 }: {
   name: string;
   number: number;
   membership: Membership | "";
   flipped: boolean;
+  taken?: boolean;
 }) {
   const trim = trimColor(membership);
   // Shirts carry the surname.
@@ -95,14 +107,14 @@ function Shirt({
           </text>
           <text
             key={number}
-            className="join-pop"
+            className="join-pop join-trim"
             x="150"
             y="262"
             textAnchor="middle"
             fontFamily="var(--font-display)"
             fontWeight="900"
             fontSize="150"
-            fill="var(--color-paper)"
+            fill={taken ? "var(--color-loss)" : "var(--color-paper)"}
           >
             {number}
           </text>
@@ -128,7 +140,15 @@ function Shirt({
   );
 }
 
-function NumberStrip({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function NumberStrip({
+  value,
+  onChange,
+  taken,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  taken: Map<number, string>;
+}) {
   const stripRef = useRef<HTMLDivElement>(null);
 
   // Start centred on the current number.
@@ -143,7 +163,8 @@ function NumberStrip({ value, onChange }: { value: number; onChange: (n: number)
     const n = Math.min(99, Math.max(1, Math.round(el.scrollLeft / NUMBER_WIDTH) + 1));
     if (n !== value) {
       onChange(n);
-      buzz(4); // a click per number, like a dial
+      // A click per number, like a dial; a double knock on a taken one.
+      buzz(taken.has(n) ? [12, 30, 12] : 4);
     }
   }
 
@@ -179,6 +200,7 @@ function NumberStrip({ value, onChange }: { value: number; onChange: (n: number)
           aria-valuemin={1}
           aria-valuemax={99}
           aria-valuenow={value}
+          aria-valuetext={taken.has(value) ? `${value}, taken by ${taken.get(value)}` : String(value)}
           className="join-strip join-strip-fade flex overflow-x-auto py-4 outline-none focus-visible:ring-2 focus-visible:ring-paper/60"
           style={{ paddingInline: `calc(50% - ${NUMBER_WIDTH / 2}px)` }}
         >
@@ -191,6 +213,7 @@ function NumberStrip({ value, onChange }: { value: number; onChange: (n: number)
                 tabIndex={-1}
                 aria-hidden="true"
                 onClick={() => goTo(n)}
+                data-taken={taken.has(n)}
                 className="join-strip-number font-display font-black tabular-nums"
                 style={{
                   width: NUMBER_WIDTH,
@@ -205,7 +228,9 @@ function NumberStrip({ value, onChange }: { value: number; onChange: (n: number)
         </div>
         {/* The frame the chosen number sits in. */}
         <div
-          className="pointer-events-none absolute inset-y-2 left-1/2 -translate-x-1/2 rounded-2xl border-2 border-paper/70"
+          className={`pointer-events-none absolute inset-y-2 left-1/2 -translate-x-1/2 rounded-2xl border-2 transition-colors ${
+            taken.has(value) ? "border-loss" : "border-paper/70"
+          }`}
           style={{ width: NUMBER_WIDTH + 8 }}
           aria-hidden="true"
         />
@@ -213,6 +238,34 @@ function NumberStrip({ value, onChange }: { value: number; onChange: (n: number)
       <button type="button" onClick={() => goTo(value + 1)} className="join-nudge" aria-label="Higher number">
         ›
       </button>
+    </div>
+  );
+}
+
+function NumberStatus({ value, taken, onPick }: { value: number; taken: Map<number, string>; onPick: (n: number) => void }) {
+  const owner = taken.get(value);
+  if (!owner) {
+    return (
+      <p className="mt-3 text-center text-sm text-win" aria-live="polite">
+        Number {value} is free.
+      </p>
+    );
+  }
+  const free = nearestFree(value, taken);
+  return (
+    <div className="join-taken mt-3 flex flex-col items-center gap-2 text-center" role="alert">
+      <p className="text-sm text-loss">
+        Number {value} is taken by {owner}.
+      </p>
+      {free !== null && (
+        <button
+          type="button"
+          onClick={() => onPick(free)}
+          className="rounded-full border border-paper/40 px-4 py-2 text-sm text-paper transition-colors hover:border-paper"
+        >
+          Take #{free} instead
+        </button>
+      )}
     </div>
   );
 }
@@ -282,6 +335,23 @@ export default function JoinSquad() {
   // No default — each player says for themselves whether they're a member.
   const [membership, setMembership] = useState<Membership | "">("");
   const [number, setNumber] = useState(10);
+  // Who wears what: shirt numbers are unique, so taken ones are flagged as you pick.
+  const [taken, setTaken] = useState<Map<number, string>>(new Map());
+  // Bumped to re-centre the strip when a number is picked from outside it.
+  const [stripKey, setStripKey] = useState(0);
+
+  useEffect(() => {
+    apiFetch<{ data: { number: number; name: string }[] }>("/players?active_only=false")
+      .then((res) => {
+        const map = new Map(res.data.map((p) => [p.number, p.name]));
+        setTaken(map);
+        // Don't open on a number someone already wears.
+        setNumber((n) => (map.has(n) ? (nearestFree(n, map) ?? n) : n));
+      })
+      .catch(() => {
+        // Not essential: the server still refuses a taken number on submit.
+      });
+  }, []);
   const [position, setPosition] = useState<Position | null>(null);
   const [secondPosition, setSecondPosition] = useState<Position | null>(null);
   const [phone, setPhone] = useState("");
@@ -311,6 +381,7 @@ export default function JoinSquad() {
   function missing(at: number): string {
     if (at === 0 && !name.trim()) return "Add your name first.";
     if (at === 0 && !membership) return "Pick Member or Guest member.";
+    if (at === 1 && taken.has(number)) return `Number ${number} is taken by ${taken.get(number)}. Pick another number.`;
     if (at === 2 && !position) return "Tap the position you play.";
     if (at === 4 && !passcode.trim()) return "Enter the squad passcode.";
     return "";
@@ -333,7 +404,8 @@ export default function JoinSquad() {
   function next() {
     const need = missing(step);
     if (need) {
-      setNudge(need);
+      // On the number step the "taken by" line already says why.
+      if (step !== 1) setNudge(need);
       shake();
       buzz(30);
       return;
@@ -374,6 +446,15 @@ export default function JoinSquad() {
       buzz(40);
       setJoined(res.data);
     } catch (err) {
+      // Someone may have taken the number since the page loaded: go back to it.
+      if (err instanceof ApiError && err.fields.number) {
+        const owner = err.fields.number[0].match(/taken by (.+?)\. /)?.[1];
+        if (owner) setTaken((prev) => new Map(prev).set(number, owner));
+        go(1);
+        setError(err.fields.number[0]);
+        shake();
+        return;
+      }
       setError(err instanceof ApiError ? err.message : "Couldn't reach the club server. Check your connection and try again.");
       shake();
     } finally {
@@ -410,7 +491,7 @@ export default function JoinSquad() {
       {/* Shirt: pinned above the questions on a phone, its own column on a wide screen. */}
       <section className="relative z-10 flex shrink-0 flex-col md:sticky md:top-0 md:h-dvh md:w-1/2 md:justify-center">
         <div className="mx-auto w-[min(62vw,15rem,30dvh)] pt-4 pb-2 md:w-[min(34vw,26rem)] md:pt-0">
-          <Shirt name={name} number={number} membership={membership} flipped={!!joined} />
+          <Shirt name={name} number={number} membership={membership} flipped={!!joined} taken={!joined && taken.has(number)} />
         </div>
       </section>
 
@@ -505,7 +586,31 @@ export default function JoinSquad() {
                     </div>
                   )}
 
-                  {step === 1 && <NumberStrip value={number} onChange={setNumber} />}
+                  {step === 1 && (
+                    <>
+                      <NumberStrip
+                        key={stripKey}
+                        value={number}
+                        taken={taken}
+                        onChange={(n) => {
+                          setNumber(n);
+                          setNudge("");
+                          setError("");
+                        }}
+                      />
+                      <NumberStatus
+                        value={number}
+                        taken={taken}
+                        onPick={(n) => {
+                          setNumber(n);
+                          setStripKey((k) => k + 1);
+                          setNudge("");
+                          setError("");
+                          buzz(10);
+                        }}
+                      />
+                    </>
+                  )}
 
                   {step === 2 && (
                     <PitchPicker

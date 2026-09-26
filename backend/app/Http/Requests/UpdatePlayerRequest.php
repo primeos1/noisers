@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ShirtNumbers;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePlayerRequest extends FormRequest
@@ -17,7 +18,7 @@ class UpdatePlayerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'number' => ['sometimes', 'required', 'integer', 'min:1', 'max:99'],
+            'number' => ['sometimes', 'required', 'integer', 'min:1', 'max:99', ShirtNumbers::free($this->route('player'))],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'position' => ['sometimes', 'required', 'in:GK,DEF,MID,FWD'],
             'secondary_position' => ['nullable', 'in:GK,DEF,MID,FWD'],
