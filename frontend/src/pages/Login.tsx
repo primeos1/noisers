@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
 import { useAuth } from "../lib/AuthContext";
 import { ApiError } from "../lib/api";
+import LoginSwitch from "../components/LoginSwitch";
 
 // Committee sign-in, set on a pitch at night. Two floodlight towers sweep
 // the dark until their field is filled — left for email, right for
@@ -111,13 +112,11 @@ export default function Login() {
           <img src={logoWhite} alt="Noisers FC" className="h-9 w-9" />
           <span className="font-display text-xl tracking-wide">Noisers FC</span>
         </Link>
-        <Link to="/player-login" className="text-sm text-paper-dim underline-offset-4 hover:text-paper hover:underline">
-          Player portal
-        </Link>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 pb-16 pt-28 md:pt-16">
-        <h1 className="font-display text-5xl font-extrabold leading-none md:text-6xl">Committee sign-in</h1>
+      <main className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 pb-16 pt-36 md:pt-16">
+        <LoginSwitch active="committee" />
+        <h1 className="mt-8 font-display text-[clamp(2.4rem,11vw,3rem)] font-extrabold leading-none md:text-6xl">Committee sign-in</h1>
         <p className="mt-3 text-paper-dim">For staff running match days, cards and the club site.</p>
 
         <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-6">

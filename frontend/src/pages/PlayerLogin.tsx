@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
 import { useAuth } from "../lib/AuthContext";
 import { ApiError } from "../lib/api";
+import LoginSwitch from "../components/LoginSwitch";
 
 // Player portal sign-in, built as a stadium scoreboard. The passcode is typed
 // "into" the board: each character lights a bulb, the board answers with
@@ -78,13 +79,11 @@ export default function PlayerLogin() {
           <img src={logoWhite} alt="Noisers FC" className="h-9 w-9" />
           <span className="font-display text-xl tracking-wide">Noisers FC</span>
         </Link>
-        <Link to="/login" className="text-sm text-paper-dim underline-offset-4 hover:text-paper hover:underline">
-          Committee sign-in
-        </Link>
       </header>
 
       <main className="relative z-10 mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-5 pb-10 pt-8">
-        <h1 className="font-display text-5xl font-extrabold leading-none md:text-6xl">Player portal</h1>
+        <LoginSwitch active="player" />
+        <h1 className="mt-8 font-display text-5xl font-extrabold leading-none md:text-6xl">Player portal</h1>
         <p className="mt-3 max-w-md text-paper-dim">
           One passcode for the whole squad. It opens everyone's stats, match history and fines.
         </p>
