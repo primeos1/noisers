@@ -2,7 +2,7 @@ import { createContext, use, useCallback, useEffect, useRef, useState, type Reac
 import { AppState } from "react-native";
 import { apiFetch, errorMessage } from "./api";
 import { getItem, setItem } from "./storage";
-import type { Card, CardType, ClubSettings, MatchDayEvent, Player, Position } from "./types";
+import type { Card, CardType, ClubSettings, MatchDayEvent, Player, Position, Membership } from "./types";
 
 // Everything the app shows comes from four public endpoints, loaded together
 // and refreshed on pull-to-refresh (and every 30s while a match day is live).
@@ -39,10 +39,12 @@ export const DEFAULT_SETTINGS: ClubSettings = {
   valeAutoAwards: true,
 };
 const LIVE_POLL_MS = 30000;
-const MY_SHIRT_KEY = "noisers_my_shirt";
+// Holds a player id. (The old "noisers_my_shirt" key held a shirt number,
+// which would now point at the wrong player, so it is left behind.)
+const MY_SHIRT_KEY = "noisers_my_player";
 
 export interface NewCard {
-  playerNumber: number;
+  playerId: number;
   type: CardType;
   reason: string;
   fineAmount: number;
@@ -53,6 +55,8 @@ export interface PlayerInput {
   number: number;
   name: string;
   position: Position;
+  secondaryPosition: Position | null;
+  membership: Membership;
   rating: number;
   photoUrl: string | null;
 }
@@ -73,15 +77,15 @@ interface ClubContextValue {
   error: string;
   refresh: () => Promise<void>;
   myShirt: number | null;
-  setMyShirt: (number: number | null) => void;
+  setMyShirt: (playerId: number | null) => void;
   addCard: (card: NewCard) => Promise<void>;
   setCardPaid: (id: number, paid: boolean) => Promise<void>;
   removeCard: (id: number) => Promise<void>;
-  addPlayer: (player: PlayerInput) => Promise<void>;
-  updatePlayer: (number: number, player: PlayerInput) => Promise<void>;
-  removePlayer: (number: number) => Promise<void>;
+  addPlayer: (player: PlayerInput) => Promise<Player>;
+  updatePlayer: (id: number, player: PlayerInput) => Promise<void>;
+  removePlayer: (id: number) => Promise<void>;
   addEvent: (event: MatchDayEvent) => Promise<void>;
-  /** Applies the patch at once and saves it; rolls back and rethrows if the save fails. */
+  /** Applies the patch at once, then saves it; rejects if the save fails. */
   updateEvent: (id: string, patch: EventPatch) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<ClubSettings>) => Promise<void>;
@@ -99,8 +103,12 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const [myShirt, setMyShirtState] = useState<number | null>(null);
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
+  // updateEvent also writes this synchronously, so back-to-back edits build
+  // on each other before React re-renders.
   const eventsRef = useRef(events);
-  eventsRef.current = events;
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   const refresh = useCallback(async () => {
     const [p, c, e, s] = await Promise.allSettled([
@@ -136,16 +144,16 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(timer);
   }, [hasLive, refresh]);
 
-  function setMyShirt(number: number | null) {
-    setMyShirtState(number);
-    setItem(MY_SHIRT_KEY, number === null ? null : String(number));
+  function setMyShirt(playerId: number | null) {
+    setMyShirtState(playerId);
+    setItem(MY_SHIRT_KEY, playerId === null ? null : String(playerId));
   }
 
   async function addCard(card: NewCard) {
     const res = await apiFetch<{ data: Card }>("/cards", {
       method: "POST",
       body: {
-        player_number: card.playerNumber,
+        player_id: card.playerId,
         type: card.type,
         reason: card.reason || null,
         fine_amount: card.fineAmount,
@@ -176,16 +184,17 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   async function addPlayer(player: PlayerInput) {
     const res = await apiFetch<{ data: Player }>("/players", { method: "POST", body: playerBody(player) });
     setPlayers((prev) => [...prev, res.data]);
+    return res.data;
   }
 
-  async function updatePlayer(number: number, player: PlayerInput) {
-    const res = await apiFetch<{ data: Player }>(`/players/${number}`, { method: "PUT", body: playerBody(player) });
-    setPlayers((prev) => prev.map((p) => (p.number === number ? res.data : p)));
+  async function updatePlayer(id: number, player: PlayerInput) {
+    const res = await apiFetch<{ data: Player }>(`/players/${id}`, { method: "PUT", body: playerBody(player) });
+    setPlayers((prev) => prev.map((p) => (p.id === id ? res.data : p)));
   }
 
-  async function removePlayer(number: number) {
-    await apiFetch(`/players/${number}`, { method: "DELETE" });
-    setPlayers((prev) => prev.filter((p) => p.number !== number));
+  async function removePlayer(id: number) {
+    await apiFetch(`/players/${id}`, { method: "DELETE" });
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
   }
 
   async function addEvent(event: MatchDayEvent) {
@@ -251,7 +260,15 @@ export function ClubProvider({ children }: { children: ReactNode }) {
 }
 
 function playerBody(p: PlayerInput) {
-  return { number: p.number, name: p.name.trim(), position: p.position, rating: p.rating, photo_url: p.photoUrl || null };
+  return {
+    number: p.number,
+    name: p.name.trim(),
+    position: p.position,
+    secondary_position: p.secondaryPosition,
+    membership: p.membership,
+    rating: p.rating,
+    photo_url: p.photoUrl || null,
+  };
 }
 
 function eventBody(patch: EventPatch) {

@@ -3,8 +3,8 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
 import { useValeContent, type ValeContent } from "../../lib/content";
-import { Col, FieldRow, ImageField, NumberField, SaveBar, Section, ShirtMultiPicker, ShirtPicker, TextField } from "../../components/form";
-import { ErrorBanner, Loading, PageTitle, Screen } from "../../components/ui";
+import { Col, FieldRow, ImageField, NumberField, SaveBar, Section, ShirtMultiPicker, ShirtPicker, TextField, Intro } from "../../components/form";
+import { ErrorBanner, Loading, Screen } from "../../components/ui";
 
 function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeContent) => Promise<void> }) {
   const { players, settings } = useClub();
@@ -46,14 +46,11 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
   return (
     <View style={styles.flex}>
       <Screen>
-        <PageTitle
-          title="The Vale"
-          sub={
-            settings.valeAutoAwards
-              ? "This week's awards. They're rebuilt automatically when a match day ends; edit them here to adjust."
-              : "This week's awards. Automatic updates are off in Settings, so update these after every set."
-          }
-        />
+        <Intro>
+          {settings.valeAutoAwards
+            ? "This week's awards. They're rebuilt automatically when a match day ends; edit them here to adjust."
+            : "This week's awards. Automatic updates are off in Settings, so update these after every set."}
+        </Intro>
 
         <Section title="Team of the week">
           <FieldRow>
@@ -80,18 +77,18 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
               <TextField label="Score" value={team.score} onChangeText={(score) => edit("teamOfTheWeek", { score })} placeholder="2–1" />
             </Col>
           </FieldRow>
-          <ShirtMultiPicker label="Lineup" players={players} value={team.lineupNumbers} onChange={(lineupNumbers) => edit("teamOfTheWeek", { lineupNumbers })} />
+          <ShirtMultiPicker label="Lineup" players={players} value={team.lineupPlayerIds} onChange={(lineupPlayerIds) => edit("teamOfTheWeek", { lineupPlayerIds })} />
           <ImageField label="Photo" value={team.photo} onChange={(photo) => edit("teamOfTheWeek", { photo })} maxDim={1200} wide />
         </Section>
 
         <Section title="Player of the week">
-          <ShirtPicker label="Player" players={players} value={potw.playerNumber} onChange={(playerNumber) => edit("playerOfTheWeek", { playerNumber })} allowNone />
+          <ShirtPicker label="Player" players={players} value={potw.playerId} onChange={(playerId) => edit("playerOfTheWeek", { playerId })} allowNone />
           <NumberField label="Week rating" value={potw.weekRating} onChange={(weekRating) => edit("playerOfTheWeek", { weekRating })} decimal />
           <TextField label="Note" value={potw.note} onChangeText={(note) => edit("playerOfTheWeek", { note })} multiline />
         </Section>
 
         <Section title="Most improved player">
-          <ShirtPicker label="Player" players={players} value={improved.playerNumber} onChange={(playerNumber) => edit("mostImproved", { playerNumber })} allowNone />
+          <ShirtPicker label="Player" players={players} value={improved.playerId} onChange={(playerId) => edit("mostImproved", { playerId })} allowNone />
           <FieldRow>
             <Col>
               <NumberField label="Previous rating" value={improved.previousRating} onChange={(previousRating) => edit("mostImproved", { previousRating })} decimal />
@@ -107,16 +104,16 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
           <ShirtPicker
             label="Top scorer"
             players={players}
-            value={leaders.topScorer.playerNumber}
-            onChange={(playerNumber) => editLeader("topScorer", { ...leaders.topScorer, playerNumber })}
+            value={leaders.topScorer.playerId}
+            onChange={(playerId) => editLeader("topScorer", { ...leaders.topScorer, playerId })}
             allowNone
           />
           <NumberField label="Goals" value={leaders.topScorer.value} onChange={(value) => editLeader("topScorer", { ...leaders.topScorer, value })} />
           <ShirtPicker
             label="Top assist"
             players={players}
-            value={leaders.topAssist.playerNumber}
-            onChange={(playerNumber) => editLeader("topAssist", { ...leaders.topAssist, playerNumber })}
+            value={leaders.topAssist.playerId}
+            onChange={(playerId) => editLeader("topAssist", { ...leaders.topAssist, playerId })}
             allowNone
           />
           <NumberField label="Assists" value={leaders.topAssist.value} onChange={(value) => editLeader("topAssist", { ...leaders.topAssist, value })} />
@@ -124,8 +121,8 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
           <ShirtPicker
             label="Roughest player"
             players={players}
-            value={leaders.roughest.playerNumber}
-            onChange={(playerNumber) => editLeader("roughest", { ...leaders.roughest, playerNumber })}
+            value={leaders.roughest.playerId}
+            onChange={(playerId) => editLeader("roughest", { ...leaders.roughest, playerId })}
             allowNone
           />
           <FieldRow>

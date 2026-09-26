@@ -20,7 +20,7 @@ export default function CardsScreen() {
     filter === "all" ? true : filter === "paid" ? c.paid : filter === "unpaid" ? !c.paid : c.type === filter,
   );
   const collected = cards.filter((c) => c.paid).reduce((s, c) => s + c.fineAmount, 0);
-  const nameOf = (c: Card) => (c.playerNumber != null ? participantName(players, [], c.playerNumber) : "Unknown player");
+  const nameOf = (c: Card) => (c.playerId != null ? participantName(players, [], c.playerId) : "Unknown player");
 
   async function togglePaid(card: Card) {
     setError("");

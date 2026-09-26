@@ -2,15 +2,9 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { formatCards, getSquadHonours, roughestPlayer, type Position } from "../lib/clubData";
+import { formatCards, getSquadHonours, positionNames, roughestPlayer, type Position } from "../lib/clubData";
 import { useSquad } from "../lib/SquadContext";
-
-const positionLabel: Record<Position, string> = {
-  GK: "Goalkeeper",
-  DEF: "Defender",
-  MID: "Midfielder",
-  FWD: "Forward",
-};
+import MembershipBadge from "../components/MembershipBadge";
 
 const filters: { label: string; value: Position | "ALL" }[] = [
   { label: "All", value: "ALL" },
@@ -25,7 +19,10 @@ export default function Squad() {
   const [filter, setFilter] = useState<Position | "ALL">("ALL");
 
   const visible = useMemo(
-    () => (filter === "ALL" ? players : players.filter((p) => p.position === filter)),
+    () =>
+      filter === "ALL"
+        ? players
+        : players.filter((p) => p.position === filter || p.secondaryPosition === filter),
     [players, filter],
   );
 
@@ -84,7 +81,7 @@ export default function Squad() {
 
           {roughest && (
             <Link
-              to={`/squad/${roughest.number}`}
+              to={`/squad/${roughest.id}`}
               className="group mt-px flex items-center gap-5 border-t border-ink-line bg-ink px-4 py-6 transition-colors hover:bg-ink-raised md:gap-8 md:px-6 md:py-8"
             >
               <div className="relative h-24 w-24 shrink-0 overflow-hidden border border-ink-line md:h-32 md:w-32">
@@ -103,7 +100,7 @@ export default function Squad() {
                     {roughest.yellowCards > 0 && <span className="h-4 w-3 bg-draw" aria-hidden="true" />}
                     {roughest.redCards > 0 && <span className="h-4 w-3 bg-loss" aria-hidden="true" />}
                   </span>
-                  #{roughest.number} · {positionLabel[roughest.position]} · {formatCards(roughest.yellowCards, roughest.redCards)}
+                  #{roughest.number} · {positionNames(roughest)} · {formatCards(roughest.yellowCards, roughest.redCards)}
                 </p>
               </div>
               <span className="hidden shrink-0 text-sm text-paper-dim group-hover:text-paper sm:block">View profile →</span>
@@ -134,8 +131,8 @@ export default function Squad() {
           <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-3 lg:grid-cols-4">
             {visible.map((player) => (
               <Link
-                to={`/squad/${player.number}`}
-                key={player.number}
+                to={`/squad/${player.id}`}
+                key={player.id}
                 className="group flex flex-col bg-ink transition-colors hover:bg-ink-raised"
               >
                 <div className="relative aspect-square overflow-hidden border-b border-ink-line">
@@ -156,11 +153,12 @@ export default function Squad() {
 
                 <div className="flex flex-1 flex-col p-5">
                   <p className="text-xs uppercase tracking-wide text-mist">
-                    {positionLabel[player.position]}
+                    {positionNames(player)}
                   </p>
                   <h3 className="mt-1 font-display text-xl leading-tight text-paper">
                     {player.name}
                   </h3>
+                  <MembershipBadge membership={player.membership} className="mt-2 self-start" />
 
                   <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm text-paper-dim">
                     <div>

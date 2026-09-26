@@ -1,9 +1,10 @@
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { Intro } from "../../components/form";
 import { useClub } from "../../lib/club";
 import { formatNaira, outstandingFines, positionGroupLabel, positions } from "../../lib/derive";
 import type { Player, Position } from "../../lib/types";
-import { Bar, Empty, Figures, Group, PageTitle, Row, Screen, Txt, text } from "../../components/ui";
+import { Bar, Empty, Figures, Group, Row, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 // The web Reports page (frontend/src/pages/admin/AdminReports.tsx) on a phone:
@@ -34,7 +35,7 @@ function Leaderboard({
         </Row>
       ) : (
         top.map((p, i) => (
-          <Row key={p.number}>
+          <Row key={p.id}>
             <Txt style={styles.rank}>{i + 1}</Txt>
             <View style={styles.flex}>
               <View style={styles.lineHead}>
@@ -65,7 +66,7 @@ function Donut({ title, center, data }: { title: string; center: string; data: {
     <Group title={title}>
       <View style={styles.donut}>
         <View style={styles.ring} accessibilityLabel={data.map((d) => `${d.label}: ${d.value}`).join(", ")}>
-          <Svg width={size} height={size}>
+          <Svg width={size} height={size} style={styles.startAtTop}>
             <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.inkLine} strokeWidth={stroke} fill="none" />
             {total > 0
               ? data.map((d) => {
@@ -81,8 +82,6 @@ function Donut({ title, center, data }: { title: string; center: string; data: {
                       fill="none"
                       strokeDasharray={`${length} ${circumference - length}`}
                       strokeDashoffset={-offset}
-                      rotation={-90}
-                      origin={`${size / 2}, ${size / 2}`}
                     />
                   );
                   offset += length;
@@ -116,20 +115,20 @@ export default function ReportsScreen() {
 
   const byPlayer = new Map<number, { yellow: number; red: number }>();
   for (const c of cards) {
-    if (c.playerNumber == null) continue;
-    const entry = byPlayer.get(c.playerNumber) ?? { yellow: 0, red: 0 };
+    if (c.playerId == null) continue;
+    const entry = byPlayer.get(c.playerId) ?? { yellow: 0, red: 0 };
     entry[c.type]++;
-    byPlayer.set(c.playerNumber, entry);
+    byPlayer.set(c.playerId, entry);
   }
   const carded = [...byPlayer.entries()]
-    .map(([number, counts]) => ({ number, name: players.find((p) => p.number === number)?.name ?? `#${number}`, ...counts }))
+    .map(([id, counts]) => ({ id, name: players.find((p) => p.id === id)?.name ?? "Former player", ...counts }))
     .sort((a, b) => b.yellow + b.red - (a.yellow + a.red))
     .slice(0, 8);
   const mostCards = carded.length ? carded[0].yellow + carded[0].red : 0;
 
   return (
     <Screen onRefresh={refresh}>
-      <PageTitle title="Season report" sub="Goals, assists, positional balance and discipline, at a glance." />
+      <Intro>Goals, assists, positional balance and discipline, at a glance.</Intro>
 
       <Figures
         items={[
@@ -166,7 +165,7 @@ export default function ReportsScreen() {
       ) : (
         <Group title="Most carded players">
           {carded.map((p) => (
-            <Row key={p.number}>
+            <Row key={p.id}>
               <View style={styles.flex}>
                 <View style={styles.lineHead}>
                   <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
@@ -199,6 +198,7 @@ const styles = StyleSheet.create({
 
   donut: { flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.lg },
   ring: { width: 132, height: 132, alignItems: "center", justifyContent: "center" },
+  startAtTop: { transform: [{ rotate: "-90deg" }] },
   ringCenter: { position: "absolute", alignItems: "center" },
   ringValue: { fontFamily: fonts.display, fontSize: 30, color: colors.paper },
   legend: { flex: 1, gap: space.sm },

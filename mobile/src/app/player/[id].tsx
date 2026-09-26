@@ -19,6 +19,7 @@ import {
   Segmented,
   Txt,
   text,
+  MembershipBadge,
 } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
@@ -34,31 +35,31 @@ function Line({ label, value, tone = colors.paper }: { label: string; value: str
 }
 
 export default function PlayerScreen() {
-  const { number } = useLocalSearchParams<{ number: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { players, cards, events, loading, refresh, myShirt, setMyShirt } = useClub();
   const [tab, setTab] = useState<Tab>("overview");
 
-  const playerNumber = Number(number);
-  const player = players.find((p) => p.number === playerNumber);
+  const playerId = Number(id);
+  const player = players.find((p) => p.id === playerId);
 
   if (!player) {
     return (
       <Screen onRefresh={refresh}>
-        {loading ? <Loading label="Loading player…" /> : <Empty>{`Nobody wears number ${number} for Noisers. Pick someone from the Squad tab.`}</Empty>}
+        {loading ? <Loading label="Loading player…" /> : <Empty>{"We couldn't find that player. Pick someone from the Squad tab."}</Empty>}
       </Screen>
     );
   }
 
-  const log = playerGameLog(events, playerNumber);
+  const log = playerGameLog(events, playerId);
   const finished = log.filter((g) => g.result !== null);
   const record = {
     W: finished.filter((g) => g.result === "W").length,
     D: finished.filter((g) => g.result === "D").length,
     L: finished.filter((g) => g.result === "L").length,
   };
-  const fines = cardCounts(cards, playerNumber);
+  const fines = cardCounts(cards, playerId);
   const contributions = player.goals + player.assists;
-  const isMe = myShirt === playerNumber;
+  const isMe = myShirt === playerId;
   const form = finished.slice(0, 10);
   const firstName = player.name.split(" ")[0];
 
@@ -74,7 +75,8 @@ export default function PlayerScreen() {
 
   return (
     <Screen onRefresh={refresh}>
-      <PageTitle title={player.name} sub={`${positionLabel[player.position]}, number ${player.number}`} />
+      <PageTitle title={player.name} sub={`${positionLabel[player.position]}${player.secondaryPosition ? ` / ${positionLabel[player.secondaryPosition]}` : ""}, number ${player.number}`} />
+      <MembershipBadge membership={player.membership ?? "member"} />
 
       <View style={styles.hero}>
         <View style={styles.heroTop}>
@@ -94,7 +96,7 @@ export default function PlayerScreen() {
             )}
           </View>
           <Pressable
-            onPress={() => setMyShirt(isMe ? null : playerNumber)}
+            onPress={() => setMyShirt(isMe ? null : playerId)}
             accessibilityRole="button"
             accessibilityState={{ selected: isMe }}
             style={[styles.meButton, isMe ? styles.meButtonActive : null]}

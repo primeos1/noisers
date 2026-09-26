@@ -10,7 +10,7 @@ import { colors, fonts, radius, space } from "../../theme";
 
 export default function NewCardScreen() {
   const { players, settings, addCard } = useClub();
-  const [playerNumber, setPlayerNumber] = useState<number | null>(null);
+  const [playerId, setPlayerId] = useState<number | null>(null);
   const [type, setType] = useState<CardType>("yellow");
   const [reason, setReason] = useState("");
   const [fineOverride, setFineOverride] = useState<string | null>(null);
@@ -18,15 +18,18 @@ export default function NewCardScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const squad = useMemo(() => [...players].filter((p) => p.active).sort((a, b) => a.number - b.number), [players]);
+  const squad = useMemo(
+    () => [...players].filter((p) => p.active).sort((a, b) => a.number - b.number || a.name.localeCompare(b.name)),
+    [players],
+  );
 
   const defaultFine = type === "red" ? settings.redCardFine : settings.yellowCardFine;
   const fineText = fineOverride ?? String(defaultFine);
   const fine = Number(fineText.replace(/[^0-9.]/g, ""));
-  const selected = squad.find((p) => p.number === playerNumber);
+  const selected = squad.find((p) => p.id === playerId);
 
   async function submit() {
-    if (playerNumber === null) {
+    if (playerId === null) {
       setError("Pick the player who was booked.");
       return;
     }
@@ -37,7 +40,7 @@ export default function NewCardScreen() {
     setBusy(true);
     setError("");
     try {
-      await addCard({ playerNumber, type, reason: reason.trim(), fineAmount: fine, paid });
+      await addCard({ playerId, type, reason: reason.trim(), fineAmount: fine, paid });
       router.back();
     } catch (err) {
       setError(errorMessage(err, "Couldn't log that card."));
@@ -50,11 +53,11 @@ export default function NewCardScreen() {
       <Txt style={styles.label}>Player</Txt>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shirts} keyboardShouldPersistTaps="handled">
         {squad.map((p) => {
-          const active = p.number === playerNumber;
+          const active = p.id === playerId;
           return (
             <Pressable
-              key={p.number}
-              onPress={() => setPlayerNumber(p.number)}
+              key={p.id}
+              onPress={() => setPlayerId(p.id)}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${p.name}, number ${p.number}`}
@@ -119,7 +122,7 @@ export default function NewCardScreen() {
           {error}
         </Txt>
       ) : null}
-      <Button label="Log card" onPress={submit} busy={busy} disabled={playerNumber === null} />
+      <Button label="Log card" onPress={submit} busy={busy} disabled={playerId === null} />
     </Screen>
   );
 }

@@ -12,7 +12,7 @@ export interface TeamOfTheWeek {
   rivalTeam: string;
   score: string;
   photo: string;
-  lineupNumbers: number[];
+  lineupPlayerIds: number[];
 }
 
 export const teamOfTheWeek: TeamOfTheWeek = {
@@ -23,43 +23,43 @@ export const teamOfTheWeek: TeamOfTheWeek = {
   rivalTeam: "Team B",
   score: "2–1",
   photo: photos.stadiumCrowd,
-  lineupNumbers: [1, 4, 5, 7, 8, 9, 10, 14],
+  lineupPlayerIds: [1, 3, 4, 8, 9, 13, 14, 10],
 };
 
 export interface PlayerSpotlight {
-  playerNumber: number;
+  playerId: number;
   note: string;
   weekRating: number;
 }
 
 export const playerOfTheWeek: PlayerSpotlight = {
-  playerNumber: 9,
+  playerId: 13,
   note: "Two goals and the assist that sealed the week's closest match day — Idehen's third player-of-the-week award this season.",
   weekRating: 9.1,
 };
 
 export interface MostImproved {
-  playerNumber: number;
+  playerId: number;
   note: string;
   previousRating: number;
   currentRating: number;
 }
 
 export const mostImprovedPlayer: MostImproved = {
-  playerNumber: 16,
+  playerId: 11,
   note: "Two goal contributions in three sets after a quiet start to September — Alade's form is climbing fast.",
   previousRating: 6.2,
   currentRating: 7.0,
 };
 
 export interface WeeklyLeaders {
-  topScorer: { playerNumber: number; value: number };
-  topAssist: { playerNumber: number; value: number };
+  topScorer: { playerId: number; value: number };
+  topAssist: { playerId: number; value: number };
   cleanSheets: number[];
 }
 
 export const weeklyLeaders: WeeklyLeaders = {
-  topScorer: { playerNumber: 9, value: 3 },
-  topAssist: { playerNumber: 7, value: 2 },
-  cleanSheets: [1, 4, 5],
+  topScorer: { playerId: 13, value: 3 },
+  topAssist: { playerId: 8, value: 2 },
+  cleanSheets: [1, 3, 4],
 };

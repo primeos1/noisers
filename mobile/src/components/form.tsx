@@ -75,6 +75,11 @@ export function Section({
   );
 }
 
+/** One-line explainer under a screen's native header (which already shows the title). */
+export function Intro({ children }: { children: ReactNode }) {
+  return <Txt style={styles.intro}>{children}</Txt>;
+}
+
 export function Label({ children }: { children: ReactNode }) {
   return <Txt style={styles.label}>{children}</Txt>;
 }
@@ -261,12 +266,12 @@ export function ShirtPicker({
 }: {
   players: Player[];
   value: number;
-  onChange: (number: number) => void;
+  onChange: (playerId: number) => void;
   allowNone?: boolean;
   label?: string;
 }) {
-  const squad = [...players].sort((a, b) => a.number - b.number);
-  const selected = squad.find((p) => p.number === value);
+  const squad = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  const selected = squad.find((p) => p.id === value);
   return (
     <View style={styles.field}>
       {label ? <Label>{label}</Label> : null}
@@ -283,11 +288,11 @@ export function ShirtPicker({
           </Pressable>
         ) : null}
         {squad.map((p) => {
-          const active = p.number === value;
+          const active = p.id === value;
           return (
             <Pressable
-              key={p.number}
-              onPress={() => onChange(p.number)}
+              key={p.id}
+              onPress={() => onChange(p.id)}
               accessibilityRole="radio"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${p.name}, number ${p.number}`}
@@ -298,7 +303,7 @@ export function ShirtPicker({
           );
         })}
       </ScrollView>
-      <Txt style={[text.dim, styles.shirtName]}>{selected ? selected.name : value ? `#${value}` : allowNone ? "No one" : "Tap a shirt number"}</Txt>
+      <Txt style={[text.dim, styles.shirtName]}>{selected ? selected.name : value ? "Former player" : allowNone ? "No one" : "Tap a shirt number"}</Txt>
     </View>
   );
 }
@@ -312,21 +317,21 @@ export function ShirtMultiPicker({
 }: {
   players: Player[];
   value: number[];
-  onChange: (numbers: number[]) => void;
+  onChange: (playerIds: number[]) => void;
   label?: string;
 }) {
-  const squad = [...players].sort((a, b) => a.number - b.number);
-  const names = value.map((n) => squad.find((p) => p.number === n)?.name ?? `#${n}`);
+  const squad = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  const names = value.map((id) => squad.find((p) => p.id === id)?.name ?? "Former player");
   return (
     <View style={styles.field}>
       {label ? <Label>{label}</Label> : null}
       <View style={styles.shirtGrid}>
         {squad.map((p) => {
-          const active = value.includes(p.number);
+          const active = value.includes(p.id);
           return (
             <Pressable
-              key={p.number}
-              onPress={() => onChange(active ? value.filter((n) => n !== p.number) : [...value, p.number])}
+              key={p.id}
+              onPress={() => onChange(active ? value.filter((id) => id !== p.id) : [...value, p.id])}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: active }}
               accessibilityLabel={`${p.name}, number ${p.number}`}
@@ -510,6 +515,7 @@ const styles = StyleSheet.create({
   sectionDesc: { marginTop: 4, lineHeight: 17, fontSize: 13 },
   sectionBody: { marginTop: space.lg },
 
+  intro: { fontSize: 14, lineHeight: 20, color: colors.paperDim, marginBottom: space.lg, paddingHorizontal: 2 },
   field: { marginBottom: space.lg },
   fieldRow: { flexDirection: "row", gap: space.md },
   col: { flex: 1, minWidth: 0 },

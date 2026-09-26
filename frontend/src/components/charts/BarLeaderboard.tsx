@@ -21,7 +21,7 @@ export default function BarLeaderboard({
           const value = player[statKey];
           const width = Math.max((value / max) * 100, 4);
           return (
-            <li key={player.number}>
+            <li key={player.id}>
               <div className="flex items-baseline justify-between text-sm">
                 <span className="text-paper">{player.name}</span>
                 <span className="text-paper-dim">

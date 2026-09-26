@@ -17,7 +17,6 @@ class CardResource extends JsonResource
         return [
             'id' => $this->id,
             'playerId' => $this->player_id,
-            'playerNumber' => $this->whenLoaded('player', fn () => $this->player->number),
             'player' => new PlayerResource($this->whenLoaded('player')),
             'type' => $this->type,
             'reason' => $this->reason,

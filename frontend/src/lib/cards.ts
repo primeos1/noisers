@@ -12,7 +12,7 @@ export const DEFAULT_FINE_AMOUNTS: Record<CardType, number> = {
 
 export interface CardRecord {
   id: string;
-  playerNumber: number;
+  playerId: number;
   type: CardType;
   reason: string;
   fine: number;
@@ -21,10 +21,10 @@ export interface CardRecord {
 }
 
 export const seedCards: CardRecord[] = [
-  { id: "c1", playerNumber: 6, type: "yellow", reason: "Dissent", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: true, date: "Sun 16 Aug" },
-  { id: "c2", playerNumber: 22, type: "yellow", reason: "Late challenge", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: false, date: "Sun 30 Aug" },
-  { id: "c3", playerNumber: 11, type: "yellow", reason: "Time-wasting", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: false, date: "Sun 13 Sep" },
-  { id: "c4", playerNumber: 18, type: "red", reason: "Second yellow", fine: DEFAULT_FINE_AMOUNTS.red, paid: false, date: "Sun 20 Sep" },
+  { id: "c1", playerId: 7, type: "yellow", reason: "Dissent", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: true, date: "Sun 16 Aug" },
+  { id: "c2", playerId: 5, type: "yellow", reason: "Late challenge", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: false, date: "Sun 30 Aug" },
+  { id: "c3", playerId: 15, type: "yellow", reason: "Time-wasting", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: false, date: "Sun 13 Sep" },
+  { id: "c4", playerId: 12, type: "red", reason: "Second yellow", fine: DEFAULT_FINE_AMOUNTS.red, paid: false, date: "Sun 20 Sep" },
 ];
 
 export function outstandingFines(records: CardRecord[]) {

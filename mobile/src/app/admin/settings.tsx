@@ -20,8 +20,9 @@ import {
   TextField,
   confirmRemoveEvent,
   matchDaySummary,
+  Intro,
 } from "../../components/form";
-import { ErrorBanner, Group, LiveTag, Loading, PageTitle, Row, Screen, Txt, text } from "../../components/ui";
+import { ErrorBanner, Group, LiveTag, Loading, Row, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 const teamModes: { value: TeamMode; label: string; hint: string }[] = [
@@ -83,7 +84,7 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
   return (
     <View style={styles.flex}>
       <Screen>
-        <PageTitle title="Settings" sub="How the club runs: fines, match day rules, how ratings move and what updates automatically. Shared across every device." />
+        <Intro>How the club runs: fines, match day rules, how ratings move and what updates automatically. Shared across every device.</Intro>
 
         {off ? (
           <View style={styles.notice}>

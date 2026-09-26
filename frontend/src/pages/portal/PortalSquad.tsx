@@ -7,6 +7,7 @@ import { useMatchDay } from "../../lib/MatchDayContext";
 import { formatNaira } from "../../lib/cards";
 import { scoreOf } from "../../lib/matchDay";
 import { cardCounts, playerGameLog, positions, sortEvents, useMyShirt } from "../../lib/portal";
+import MembershipBadge from "../../components/MembershipBadge";
 import { playerInsights } from "../../lib/insights";
 import { InsightsTeaser } from "../../components/portal/Insights";
 import {
@@ -28,8 +29,8 @@ function MyShirt({ player, onChange }: { player: Player; onChange: () => void })
   const { events } = useMatchDay();
   const { players } = useSquad();
   const insights = useMemo(() => playerInsights(player, players, events), [player, players, events]);
-  const fines = cardCounts(cards, player.number);
-  const form = playerGameLog(events, player.number).filter((g) => g.result).slice(0, 5);
+  const fines = cardCounts(cards, player.id);
+  const form = playerGameLog(events, player.id).filter((g) => g.result).slice(0, 5);
 
   return (
     <section className="mb-6 overflow-hidden rounded-3xl bg-[radial-gradient(120%_90%_at_100%_0%,rgba(168,132,31,0.18),transparent_60%)] bg-ink-raised ring-1 ring-white/5">
@@ -55,7 +56,7 @@ function MyShirt({ player, onChange }: { player: Player; onChange: () => void })
       </div>
       <InsightsTeaser player={player} insights={insights} />
       <div className="grid grid-cols-2 border-t border-ink-line/70 text-sm font-semibold">
-        <Link to={`/portal/players/${player.number}`} className="py-3 text-center text-paper transition-colors hover:bg-ink-line/30">
+        <Link to={`/portal/players/${player.id}`} className="py-3 text-center text-paper transition-colors hover:bg-ink-line/30">
           Open my profile
         </Link>
         <button type="button" onClick={onChange} className="border-l border-ink-line/70 py-3 text-paper-dim transition-colors hover:bg-ink-line/30">
@@ -76,9 +77,9 @@ function PickShirt({ players, onPick }: { players: Player[]; onPick: (n: number)
           .sort((a, b) => a.number - b.number)
           .map((p) => (
             <button
-              key={p.number}
+              key={p.id}
               type="button"
-              onClick={() => onPick(p.number)}
+              onClick={() => onPick(p.id)}
               aria-label={`${p.name}, number ${p.number}`}
               className="flex h-12 min-w-12 shrink-0 items-center justify-center rounded-full bg-ink px-3 font-display text-xl font-bold text-paper ring-1 ring-ink-line transition-colors hover:bg-paper hover:text-ink"
             >
@@ -97,7 +98,7 @@ export default function PortalSquad() {
   const [myShirt, setMyShirt] = useMyShirt();
   const [query, setQuery] = useState("");
 
-  const me = players.find((p) => p.number === myShirt);
+  const me = players.find((p) => p.id === myShirt);
   const latest = sortEvents(events)[0];
   const roughest = roughestPlayer(players);
 
@@ -136,7 +137,7 @@ export default function PortalSquad() {
 
       {roughest && (
         <Group title="Roughest player" aside="Most cards this season">
-          <Row to={`/portal/players/${roughest.number}`}>
+          <Row to={`/portal/players/${roughest.id}`}>
             <Avatar player={roughest} className="h-12 w-12" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold text-paper">{roughest.name}</span>
@@ -173,17 +174,19 @@ export default function PortalSquad() {
             return (
               <Group key={pos} title={groupName[pos]} aside={group.length}>
                 {group.map((p) => {
-                  const c = cardCounts(cards, p.number);
+                  const c = cardCounts(cards, p.id);
                   return (
-                    <Row key={p.number} to={`/portal/players/${p.number}`}>
+                    <Row key={p.id} to={`/portal/players/${p.id}`}>
                       <span className="w-9 shrink-0 text-right font-display text-[1.7rem] font-black leading-none tabular-nums text-paper-dim">{p.number}</span>
                       <Avatar player={p} />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
                           <span className="truncate font-semibold text-paper">{p.name}</span>
-                          {p.number === myShirt && <span className="shrink-0 rounded-full bg-paper/10 px-1.5 text-[0.65rem] text-paper-dim">You</span>}
+                          {p.membership === "guest" && <MembershipBadge membership="guest" className="shrink-0" />}
+                          {p.id === myShirt && <span className="shrink-0 rounded-full bg-paper/10 px-1.5 text-[0.65rem] text-paper-dim">You</span>}
                         </span>
                         <span className="mt-0.5 flex items-center gap-2 text-xs text-mist">
+                          {p.secondaryPosition && <span>Also {p.secondaryPosition},</span>}
                           {p.appearances} game{p.appearances === 1 ? "" : "s"}, {p.goals} goal{p.goals === 1 ? "" : "s"}
                           <CardPips yellow={c.yellow} red={c.red} />
                         </span>

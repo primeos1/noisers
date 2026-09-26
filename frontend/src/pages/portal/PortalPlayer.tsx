@@ -4,7 +4,9 @@ import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { formatNaira } from "../../lib/cards";
-import { cardCounts, playerGameLog, positionLabel, useMyShirt } from "../../lib/portal";
+import { cardCounts, playerGameLog, useMyShirt } from "../../lib/portal";
+import { positionNames } from "../../lib/clubData";
+import MembershipBadge from "../../components/MembershipBadge";
 import { playerInsights } from "../../lib/insights";
 import { InsightsPanel } from "../../components/portal/Insights";
 import {
@@ -34,7 +36,7 @@ function Line({ label, value, tone = "text-paper" }: { label: string; value: Rea
 }
 
 export default function PortalPlayer() {
-  const { number } = useParams<{ number: string }>();
+  const { id } = useParams<{ id: string }>();
   const { players, loading } = useSquad();
   const { cards } = useCards();
   const { events } = useMatchDay();
@@ -43,29 +45,29 @@ export default function PortalPlayer() {
   const requested = searchParams.get("tab") as Tab | null;
   const [tab, setTab] = useState<Tab>(requested && TABS.includes(requested) ? requested : "insights");
 
-  const playerNumber = Number(number);
-  const player = players.find((p) => p.number === playerNumber);
+  const playerId = Number(id);
+  const player = players.find((p) => p.id === playerId);
   const insights = useMemo(() => (player ? playerInsights(player, players, events) : null), [player, players, events]);
 
   if (!player) {
     return (
       <>
         <PageTitle title="Player" back="/portal" />
-        <Empty>{loading ? "Loading player…" : `Nobody wears number ${number} for Noisers. Pick someone from the Squad tab.`}</Empty>
+        <Empty>{loading ? "Loading player…" : "We couldn't find that player. Pick someone from the Squad tab."}</Empty>
       </>
     );
   }
 
-  const log = playerGameLog(events, playerNumber);
+  const log = playerGameLog(events, playerId);
   const finished = log.filter((g) => g.result !== null);
   const record = {
     W: finished.filter((g) => g.result === "W").length,
     D: finished.filter((g) => g.result === "D").length,
     L: finished.filter((g) => g.result === "L").length,
   };
-  const fines = cardCounts(cards, playerNumber);
+  const fines = cardCounts(cards, playerId);
   const contributions = player.goals + player.assists;
-  const isMe = myShirt === playerNumber;
+  const isMe = myShirt === playerId;
 
   const matchDays = [...new Map(log.map((g) => [g.event.id, g.event])).values()].map((event) => {
     const games = log.filter((g) => g.event.id === event.id);
@@ -80,13 +82,14 @@ export default function PortalPlayer() {
 
   return (
     <>
-      <PageTitle title={player.name} back="/portal" sub={`${positionLabel[player.position]}, number ${player.number}`} />
+      <PageTitle title={player.name} back="/portal" sub={`${positionNames(player)}, number ${player.number}`} />
 
       <section className="mb-6 rounded-3xl bg-[radial-gradient(120%_90%_at_100%_0%,rgba(168,132,31,0.18),transparent_60%)] bg-ink-raised p-4 ring-1 ring-white/5 sm:p-5">
         <div className="flex items-center gap-4 sm:gap-6">
           <PlayerPicture player={player} className="h-32 w-32 sm:h-40 sm:w-40" />
           <div className="min-w-0 flex-1">
-            <span className="text-sm text-mist">Rating</span>
+            <MembershipBadge membership={player.membership} className="mb-2" />
+            <span className="block text-sm text-mist">Rating</span>
             <p className="font-display text-6xl font-black leading-none tabular-nums text-draw">{player.rating.toFixed(2)}</p>
             <RatingMeter rating={player.rating} className="mt-3" />
           </div>
@@ -99,7 +102,7 @@ export default function PortalPlayer() {
               </div>
               <button
                 type="button"
-                onClick={() => setMyShirt(isMe ? null : playerNumber)}
+                onClick={() => setMyShirt(isMe ? null : playerId)}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${isMe ? "bg-paper text-ink" : "bg-ink text-paper-dim ring-1 ring-ink-line hover:text-paper"}`}
               >
                 {isMe ? "This is you" : "This is me"}

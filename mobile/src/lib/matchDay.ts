@@ -95,7 +95,7 @@ function distributeByRating(present: Player[], capacities: number[]): number[][]
       if (best === -1 || totals[i] < totals[best]) best = i;
     }
     if (best === -1) break;
-    teams[best].push(player.number);
+    teams[best].push(player.id);
     totals[best] += player.rating;
   }
   return teams;
@@ -127,7 +127,7 @@ function distributeByPosition(present: Player[], capacities: number[]): number[]
         }
       }
       if (best === -1) continue;
-      teams[best].push(player.number);
+      teams[best].push(player.id);
       counts[best][pos]++;
     }
   }
@@ -161,7 +161,7 @@ export function buildTeams(
   const capacities = teamCapacities(presentSquad.length + guests.length, teamSize);
   if (capacities.length === 0) return [];
   const present = presentSquad
-    .map((n) => players.find((p) => p.number === n))
+    .map((id) => players.find((p) => p.id === id))
     .filter((p): p is Player => !!p);
 
   const squadTeams =
@@ -194,12 +194,12 @@ export function useMatchTimer(game: MatchDayGame | null, save: (clock: ClockFiel
 
   useEffect(() => {
     if (!clockRunning) return;
-    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(id);
   }, [clockRunning]);
 
-  const elapsed = game ? elapsedAt(game, Math.max(now, Date.now()), gameSeconds) : 0;
+  // `now` can trail a just-started clock by one tick; elapsedAt clamps that to zero.
+  const elapsed = game ? elapsedAt(game, now, gameSeconds) : 0;
   const secondsLeft = Math.ceil(gameSeconds - elapsed);
   const isFinished = secondsLeft <= 0;
   const running = clockRunning && !isFinished;

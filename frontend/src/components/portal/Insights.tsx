@@ -41,7 +41,7 @@ function StatLine({ label, value, sub, tone = "text-paper" }: { label: string; v
 
 function PersonLine({ label, player, detail }: { label: string; player: Player; detail: string }) {
   return (
-    <Row to={`/portal/players/${player.number}`}>
+    <Row to={`/portal/players/${player.id}`}>
       <Avatar player={player} />
       <span className="min-w-0 flex-1">
         <span className="block text-xs text-mist">{label}</span>
@@ -187,7 +187,7 @@ export function InsightsTeaser({ player, insights: i }: { player: Player; insigh
   ].filter((c): c is { label: string; value: string; tone: string } => Boolean(c));
 
   return (
-    <Link to={`/portal/players/${player.number}?tab=insights`} className="block border-t border-ink-line/70 px-4 py-3 transition-colors hover:bg-ink-line/20">
+    <Link to={`/portal/players/${player.id}?tab=insights`} className="block border-t border-ink-line/70 px-4 py-3 transition-colors hover:bg-ink-line/20">
       <div className="grid grid-cols-4 gap-2 text-center">
         {chips.slice(0, 4).map((c) => (
           <div key={c.label}>

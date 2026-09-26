@@ -17,7 +17,7 @@ class StoreCardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'player_number' => ['required', 'exists:players,number'],
+            'player_id' => ['required', 'integer', 'exists:players,id'],
             'type' => ['required', 'in:yellow,red'],
             'reason' => ['nullable', 'string', 'max:255'],
             'fine_amount' => ['required', 'numeric', 'min:0'],

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useValeContent } from "../../lib/ValeContentContext";
-import { nextJerseyNumber, type Player } from "../../lib/clubData";
+import { nextJerseyNumber, positionCodes, type Player } from "../../lib/clubData";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
@@ -119,20 +119,21 @@ export default function MatchDay() {
     return updateEvent(activeEvent.id, p);
   }
 
-  function togglePresent(number: number) {
+  function togglePresent(playerId: number) {
     if (!activeEvent) return;
-    const has = activeEvent.presentPlayers.includes(number);
+    const has = activeEvent.presentPlayers.includes(playerId);
     patch({
       presentPlayers: has
-        ? activeEvent.presentPlayers.filter((n) => n !== number)
-        : [...activeEvent.presentPlayers, number],
+        ? activeEvent.presentPlayers.filter((id) => id !== playerId)
+        : [...activeEvent.presentPlayers, playerId],
     });
   }
 
-  function handleAddPlayer(player: Player) {
-    addPlayer(player);
-    if (activeEvent) patch({ presentPlayers: [...activeEvent.presentPlayers, player.number] });
+  async function handleAddPlayer(player: Omit<Player, "id">) {
     setAddingPlayer(false);
+    // Mark them present once saved — their id only exists after that.
+    const created = await addPlayer(player);
+    if (created && activeEvent) patch({ presentPlayers: [...activeEvent.presentPlayers, created.id] });
   }
 
   function addGuest() {
@@ -461,7 +462,7 @@ export default function MatchDay() {
             <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-mist">{activeEvent.presentPlayers.length} squad selected</p>
               <div className="flex gap-3 text-sm text-paper-dim">
-                <button type="button" onClick={() => patch({ presentPlayers: players.map((p) => p.number) })} className="hover:text-paper">
+                <button type="button" onClick={() => patch({ presentPlayers: players.map((p) => p.id) })} className="hover:text-paper">
                   Select all
                 </button>
                 <button type="button" onClick={() => patch({ presentPlayers: [] })} className="hover:text-paper">
@@ -471,23 +472,23 @@ export default function MatchDay() {
             </div>
             <div className="mt-4 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-3">
               {[...players]
-                .sort((a, b) => a.number - b.number)
+                .sort((a, b) => a.number - b.number || a.name.localeCompare(b.name))
                 .map((player) => (
                   <label
-                    key={player.number}
+                    key={player.id}
                     className="flex cursor-pointer items-center gap-3 bg-ink px-4 py-3 text-sm text-paper-dim hover:text-paper"
                   >
                     <input
                       type="checkbox"
-                      checked={activeEvent.presentPlayers.includes(player.number)}
-                      onChange={() => togglePresent(player.number)}
+                      checked={activeEvent.presentPlayers.includes(player.id)}
+                      onChange={() => togglePresent(player.id)}
                       className="h-4 w-4 accent-paper"
                     />
                     <img src={player.photo} alt="" className="duotone h-9 w-9 shrink-0 rounded-full object-cover" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{player.name}</span>
                       <span className="block truncate text-xs text-mist">
-                        #{player.number} · {player.position}
+                        #{player.number} · {positionCodes(player)}
                       </span>
                     </span>
                     <span className="shrink-0 tabular-nums text-paper">{player.rating.toFixed(2)}</span>

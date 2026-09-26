@@ -12,9 +12,13 @@ import {
 } from "./matchDay";
 import { useLocalStorageState } from "./useLocalStorageState";
 
-/** The viewer's own shirt number — a per-phone convenience, not an account. */
+/**
+ * The viewer's own player id — a per-phone convenience, not an account.
+ * (Stored under a new key: the old one held a shirt number, which would now
+ * be read as an id and point at the wrong player.)
+ */
 export function useMyShirt() {
-  return useLocalStorageState<number | null>("noisers_portal_shirt", null);
+  return useLocalStorageState<number | null>("noisers_portal_player", null);
 }
 
 export const positionLabel: Record<Position, string> = {
@@ -64,13 +68,13 @@ export interface GameLogEntry {
 }
 
 /** Every game a squad player took part in, newest match day first. */
-export function playerGameLog(events: MatchDayEvent[], number: number): GameLogEntry[] {
+export function playerGameLog(events: MatchDayEvent[], playerId: number): GameLogEntry[] {
   const log: GameLogEntry[] = [];
   for (const event of sortEvents(events)) {
     event.games.forEach((game, i) => {
-      const teamIndex = game.teams[0].players.includes(number)
+      const teamIndex = game.teams[0].players.includes(playerId)
         ? 0
-        : game.teams[1].players.includes(number)
+        : game.teams[1].players.includes(playerId)
           ? 1
           : null;
       if (teamIndex === null) return;
@@ -83,18 +87,18 @@ export function playerGameLog(events: MatchDayEvent[], number: number): GameLogE
         goalsFor: scoreOf(game, teamIndex),
         goalsAgainst: scoreOf(game, teamIndex === 0 ? 1 : 0),
         result: resultFor(game, teamIndex),
-        goals: game.goals.filter((g) => g.playerId === number && !g.ownGoal).length,
-        assists: game.goals.filter((g) => g.assistPlayerId === number).length,
-        yellows: game.cards.filter((c) => c.playerId === number && c.type === "yellow").length,
-        reds: game.cards.filter((c) => c.playerId === number && c.type === "red").length,
+        goals: game.goals.filter((g) => g.playerId === playerId && !g.ownGoal).length,
+        assists: game.goals.filter((g) => g.assistPlayerId === playerId).length,
+        yellows: game.cards.filter((c) => c.playerId === playerId && c.type === "yellow").length,
+        reds: game.cards.filter((c) => c.playerId === playerId && c.type === "red").length,
       });
     });
   }
   return log;
 }
 
-export function cardCounts(cards: CardRecord[], number: number) {
-  const mine = cards.filter((c) => c.playerNumber === number);
+export function cardCounts(cards: CardRecord[], playerId: number) {
+  const mine = cards.filter((c) => c.playerId === playerId);
   const total = mine.reduce((s, c) => s + c.fine, 0);
   const paid = mine.filter((c) => c.paid).reduce((s, c) => s + c.fine, 0);
   return {
@@ -124,7 +128,7 @@ export function eventContributions(event: MatchDayEvent, players: Player[]): Con
   const row = (id: ParticipantId) => {
     let r = rows.get(id);
     if (!r) {
-      const player = typeof id === "number" ? players.find((p) => p.number === id) : undefined;
+      const player = typeof id === "number" ? players.find((p) => p.id === id) : undefined;
       r = {
         id,
         name: participantName(players, event.guests, id),

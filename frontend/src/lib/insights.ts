@@ -75,8 +75,8 @@ function nextStep(steps: number[], current: number) {
 }
 
 export function playerInsights(player: Player, players: Player[], events: MatchDayEvent[]): PlayerInsights {
-  const me = player.number;
-  const byNumber = new Map(players.map((p) => [p.number, p]));
+  const me = player.id;
+  const byId = new Map(players.map((p) => [p.id, p]));
   const games = chronological(playerGameLog(events, me));
   const finished = games.filter((g) => g.result !== null);
 
@@ -132,7 +132,7 @@ export function playerInsights(player: Player, players: Player[], events: MatchD
 
   let bestPartner: Partner | null = null;
   for (const [id, t] of withTeammate) {
-    const p = byNumber.get(id);
+    const p = byId.get(id);
     if (!p || t.games < 3) continue;
     const better =
       !bestPartner ||
@@ -143,7 +143,7 @@ export function playerInsights(player: Player, players: Player[], events: MatchD
 
   let nemesis: PlayerInsights["nemesis"] = null;
   for (const [id, losses] of lostTo) {
-    const p = byNumber.get(id);
+    const p = byId.get(id);
     if (p && losses >= 2 && (!nemesis || losses > nemesis.losses)) nemesis = { player: p, losses };
   }
 
@@ -163,7 +163,7 @@ export function playerInsights(player: Player, players: Player[], events: MatchD
   }
   let connection: PlayerInsights["connection"] = null;
   for (const [id, count] of links) {
-    const p = byNumber.get(id);
+    const p = byId.get(id);
     if (p && (!connection || count > connection.count)) connection = { player: p, count };
   }
 

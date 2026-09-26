@@ -99,7 +99,7 @@ function RootNavigator() {
       {/* Squad passcode or committee sign-in, as on the web portal. */}
       <Stack.Protected guard={hasAccess}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="player/[number]" options={{ title: "" }} />
+        <Stack.Screen name="player/[id]" options={{ title: "" }} />
         <Stack.Screen name="match/[id]" options={{ title: "Match sheet" }} />
         <Stack.Protected guard={status === "signedIn"}>
           {/* Committee tools — the same sections as the web admin. */}

@@ -21,31 +21,31 @@ class ValeContentResource extends JsonResource
                 'rivalTeam' => $this->team_rival,
                 'score' => $this->team_score,
                 'photoUrl' => $this->team_photo_url,
-                'lineupNumbers' => $this->team_lineup_numbers ?? [],
+                'lineupPlayerIds' => $this->team_lineup_player_ids ?? [],
             ],
             'playerOfTheWeek' => [
-                'playerNumber' => $this->potw_player_number,
+                'playerId' => $this->potw_player_id,
                 'note' => $this->potw_note,
                 'weekRating' => $this->potw_rating !== null ? (float) $this->potw_rating : null,
             ],
             'mostImproved' => [
-                'playerNumber' => $this->improved_player_number,
+                'playerId' => $this->improved_player_id,
                 'note' => $this->improved_note,
                 'previousRating' => $this->improved_prev_rating !== null ? (float) $this->improved_prev_rating : null,
                 'currentRating' => $this->improved_curr_rating !== null ? (float) $this->improved_curr_rating : null,
             ],
             'weeklyLeaders' => [
                 'topScorer' => [
-                    'playerNumber' => $this->leader_top_scorer_number,
+                    'playerId' => $this->leader_top_scorer_player_id,
                     'value' => $this->leader_top_scorer_value,
                 ],
                 'topAssist' => [
-                    'playerNumber' => $this->leader_top_assist_number,
+                    'playerId' => $this->leader_top_assist_player_id,
                     'value' => $this->leader_top_assist_value,
                 ],
-                'cleanSheets' => $this->leader_clean_sheet_numbers ?? [],
+                'cleanSheets' => $this->leader_clean_sheet_player_ids ?? [],
                 'roughest' => [
-                    'playerNumber' => $this->leader_roughest_number,
+                    'playerId' => $this->leader_roughest_player_id,
                     'yellowCards' => $this->leader_roughest_yellow,
                     'redCards' => $this->leader_roughest_red,
                 ],

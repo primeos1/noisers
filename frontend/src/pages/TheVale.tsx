@@ -6,7 +6,7 @@ import { useMatchDay } from "../lib/MatchDayContext";
 import { useValeContent } from "../lib/ValeContentContext";
 import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
-import { formatCards } from "../lib/clubData";
+import { formatCards, positionCodes } from "../lib/clubData";
 
 interface TeamOfWeekData {
   title: string;
@@ -15,7 +15,7 @@ interface TeamOfWeekData {
   sessionsPlayed: number;
   rivalTeam: string;
   score: string;
-  lineupNumbers: number[];
+  lineupPlayerIds: number[];
 }
 
 export default function TheVale() {
@@ -54,16 +54,16 @@ export default function TheVale() {
       .finally(() => setTeamLoading(false));
   }, [selectedEventId]);
 
-  const lineup = (team?.lineupNumbers ?? [])
-    .map((n) => players.find((p) => p.number === n))
+  const lineup = (team?.lineupPlayerIds ?? [])
+    .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
-  const potw = players.find((p) => p.number === playerOfTheWeek.playerNumber);
-  const mip = players.find((p) => p.number === mostImprovedPlayer.playerNumber);
-  const topScorer = players.find((p) => p.number === weeklyLeaders.topScorer.playerNumber);
-  const topAssist = players.find((p) => p.number === weeklyLeaders.topAssist.playerNumber);
-  const roughest = players.find((p) => p.number === weeklyLeaders.roughest.playerNumber);
+  const potw = players.find((p) => p.id === playerOfTheWeek.playerId);
+  const mip = players.find((p) => p.id === mostImprovedPlayer.playerId);
+  const topScorer = players.find((p) => p.id === weeklyLeaders.topScorer.playerId);
+  const topAssist = players.find((p) => p.id === weeklyLeaders.topAssist.playerId);
+  const roughest = players.find((p) => p.id === weeklyLeaders.roughest.playerId);
   const cleanSheetLeaders = weeklyLeaders.cleanSheets
-    .map((n) => players.find((p) => p.number === n))
+    .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   return (
@@ -121,7 +121,7 @@ export default function TheVale() {
               {lineup.length > 0 && (
                 <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-4 lg:grid-cols-8">
                   {lineup.map((player) => (
-                    <div key={player.number} className="bg-ink/70 p-4 backdrop-blur">
+                    <div key={player.id} className="bg-ink/70 p-4 backdrop-blur">
                       <div className="relative aspect-square overflow-hidden border border-ink-line">
                         <img
                           src={player.photo}
@@ -164,7 +164,7 @@ export default function TheVale() {
               </h3>
               {potw && (
                 <p className="mt-1 text-sm text-mist">
-                  #{potw.number} · {potw.position} · Week rating{" "}
+                  #{potw.number} · {positionCodes(potw)} · Week rating{" "}
                   {playerOfTheWeek.weekRating.toFixed(1)}
                 </p>
               )}
@@ -192,7 +192,7 @@ export default function TheVale() {
               </h3>
               {mip && (
                 <p className="mt-1 text-sm text-mist">
-                  #{mip.number} · {mip.position} · Rating{" "}
+                  #{mip.number} · {positionCodes(mip)} · Rating{" "}
                   {mostImprovedPlayer.previousRating.toFixed(2)} →{" "}
                   {mostImprovedPlayer.currentRating.toFixed(2)}
                 </p>

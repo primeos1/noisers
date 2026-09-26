@@ -8,8 +8,8 @@ import { errorMessage } from "../../lib/api";
 import { resolveMediaUrl } from "../../lib/config";
 import { HIGHLIGHT_CATEGORIES, useHighlights, type HighlightInput } from "../../lib/content";
 import type { Highlight, HighlightCategory, MediaType } from "../../lib/types";
-import { Choice, confirm, FormError, ImageField, Label, SwitchRow, TextField } from "../../components/form";
-import { Button, Empty, ErrorBanner, Loading, PageTitle, Screen, Txt, text } from "../../components/ui";
+import { Choice, confirm, FormError, ImageField, Label, SwitchRow, TextField, Intro } from "../../components/form";
+import { Button, Empty, ErrorBanner, Loading, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 function HighlightForm({
@@ -114,7 +114,7 @@ export default function HighlightsScreen() {
           ),
         }}
       />
-      <PageTitle title="Highlights" sub="The photo and video gallery on the public Highlights page. Tap one to edit it." />
+      <Intro>The photo and video gallery on the public Highlights page. Tap one to edit it.</Intro>
       <ErrorBanner message={error || actionError} onRetry={error ? reload : undefined} />
 
       {loading ? (

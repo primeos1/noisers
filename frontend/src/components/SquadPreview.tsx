@@ -1,12 +1,7 @@
 import { Link } from "react-router-dom";
 import { useSquad } from "../lib/SquadContext";
-
-const positionLabel: Record<string, string> = {
-  GK: "Goalkeeper",
-  DEF: "Defender",
-  MID: "Midfielder",
-  FWD: "Forward",
-};
+import { positionNames } from "../lib/clubData";
+import MembershipBadge from "./MembershipBadge";
 
 export default function SquadPreview() {
   const { players } = useSquad();
@@ -31,8 +26,8 @@ export default function SquadPreview() {
         <div className="no-scrollbar -mx-5 mt-6 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 pb-1 sm:mx-0 sm:mt-10 sm:grid sm:snap-none sm:grid-cols-3 sm:gap-px sm:overflow-visible sm:bg-ink-line sm:px-0 sm:pb-0 lg:grid-cols-4">
           {featured.map((player) => (
             <Link
-              to={`/squad/${player.number}`}
-              key={player.number}
+              to={`/squad/${player.id}`}
+              key={player.id}
               className="group relative flex aspect-[3/4] w-[42vw] max-w-[14rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-2xl border border-ink-line bg-ink-raised p-4 transition-colors hover:bg-ink-raised sm:w-auto sm:max-w-none sm:rounded-none sm:border-0 sm:bg-ink sm:p-6"
             >
               <img
@@ -49,11 +44,12 @@ export default function SquadPreview() {
                   {player.number}
                 </span>
                 <span className="mt-1 text-[0.65rem] text-paper drop-shadow sm:text-xs">
-                  {positionLabel[player.position]}
+                  {positionNames(player)}
                 </span>
               </div>
 
               <div className="relative">
+                <MembershipBadge membership={player.membership} className="mb-2 backdrop-blur" />
                 <h3 className="font-display text-xl leading-tight text-paper sm:text-2xl">
                   {player.name}
                 </h3>

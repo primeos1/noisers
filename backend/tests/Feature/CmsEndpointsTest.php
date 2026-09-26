@@ -109,28 +109,29 @@ class CmsEndpointsTest extends TestCase
 
         $this->assertSame(42, $created->json('data.number'));
         $this->assertSame(0, $created->json('data.goals'));
+        $id = $created->json('data.id');
 
-        $this->putJson('/api/players/42', ['name' => 'Renamed Player'])
+        $this->putJson("/api/players/{$id}", ['name' => 'Renamed Player'])
             ->assertOk()
             ->assertJsonPath('data.name', 'Renamed Player');
 
-        $this->deleteJson('/api/players/42')->assertNoContent();
-        $this->getJson('/api/players/42')->assertNotFound();
+        $this->deleteJson("/api/players/{$id}")->assertNoContent();
+        $this->getJson("/api/players/{$id}")->assertNotFound();
     }
 
-    public function test_committee_can_manage_cards_by_player_number(): void
+    public function test_committee_can_manage_cards_by_player_id(): void
     {
-        Player::factory()->create(['number' => 9]);
+        $player = Player::factory()->create(['number' => 9]);
         Sanctum::actingAs(User::factory()->create(['role' => 'committee']));
 
         $created = $this->postJson('/api/cards', [
-            'player_number' => 9,
+            'player_id' => $player->id,
             'type' => 'yellow',
             'reason' => 'Dissent',
             'fine_amount' => 2000,
         ])->assertCreated();
 
-        $this->assertSame(9, $created->json('data.playerNumber'));
+        $this->assertSame($player->id, $created->json('data.playerId'));
 
         $id = $created->json('data.id');
         $this->putJson("/api/cards/{$id}", ['paid' => true])
@@ -149,8 +150,8 @@ class CmsEndpointsTest extends TestCase
 
     public function test_match_day_lifecycle_and_team_of_week_endpoint(): void
     {
-        Player::factory()->create(['number' => 1]);
-        Player::factory()->create(['number' => 2]);
+        $a = Player::factory()->create(['number' => 10]);
+        $b = Player::factory()->create(['number' => 20]);
         Sanctum::actingAs(User::factory()->create(['role' => 'committee']));
 
         $this->postJson('/api/match-day-events', [
@@ -159,7 +160,7 @@ class CmsEndpointsTest extends TestCase
             'venue' => 'Zenith',
             'date' => 'Mon 1 Jan',
             'status' => 'live',
-            'present_players' => [1, 2],
+            'present_players' => [$a->id, $b->id],
             'guests' => [],
             'groups' => [],
             'games' => [],
@@ -170,11 +171,11 @@ class CmsEndpointsTest extends TestCase
             'games' => [[
                 'id' => 'g1',
                 'teams' => [
-                    ['name' => 'Team A', 'players' => [1]],
-                    ['name' => 'Team B', 'players' => [2]],
+                    ['name' => 'Team A', 'players' => [$a->id]],
+                    ['name' => 'Team B', 'players' => [$b->id]],
                 ],
                 'goals' => [
-                    ['id' => 'go1', 'teamIndex' => 0, 'playerId' => 1, 'ownGoal' => false, 'minute' => 5],
+                    ['id' => 'go1', 'teamIndex' => 0, 'playerId' => $a->id, 'ownGoal' => false, 'minute' => 5],
                 ],
                 'cards' => [],
                 'status' => 'finished',
@@ -184,12 +185,12 @@ class CmsEndpointsTest extends TestCase
         // Finalize should have rewritten The Vale from this match day.
         $vale = $this->getJson('/api/vale-content');
         $this->assertSame('E2E Test Day', $vale->json('data.teamOfTheWeek.title'));
-        $this->assertSame(1, $vale->json('data.playerOfTheWeek.playerNumber'));
+        $this->assertSame($a->id, $vale->json('data.playerOfTheWeek.playerId'));
 
         // Public, per-event lookup should agree, independent of the singleton.
         $team = $this->getJson('/api/match-day-events/e2e-test-day/team-of-week')->assertOk();
         $this->assertSame('E2E Test Day', $team->json('data.title'));
-        $this->assertSame([1], $team->json('data.lineupNumbers'));
+        $this->assertSame([$a->id], $team->json('data.lineupPlayerIds'));
         $this->assertSame('Team B', $team->json('data.rivalTeam'));
     }
 }

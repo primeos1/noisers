@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 
 interface ApiCard {
   id: number;
-  playerNumber: number | null;
+  playerId: number;
   type: CardType;
   reason: string | null;
   fineAmount: number;
@@ -22,7 +22,7 @@ function formatDate(iso: string | null): string {
 function fromApi(c: ApiCard): CardRecord {
   return {
     id: String(c.id),
-    playerNumber: c.playerNumber ?? 0,
+    playerId: c.playerId,
     type: c.type,
     reason: c.reason ?? "",
     fine: c.fineAmount,
@@ -72,7 +72,7 @@ export function CardsProvider({ children }: { children: ReactNode }) {
     apiFetch<{ data: ApiCard }>("/cards", {
       method: "POST",
       body: JSON.stringify({
-        player_number: card.playerNumber,
+        player_id: card.playerId,
         type: card.type,
         reason: card.reason,
         fine_amount: card.fine,

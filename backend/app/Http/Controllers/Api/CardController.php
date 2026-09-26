@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCardRequest;
 use App\Http\Resources\CardResource;
 use App\Models\Card;
-use App\Models\Player;
 use Illuminate\Http\Request;
 
 class CardController extends Controller
@@ -20,8 +19,8 @@ class CardController extends Controller
 
         $query = Card::query()->with('player');
 
-        if ($request->filled('player_number')) {
-            $query->whereHas('player', fn ($q) => $q->where('number', $request->integer('player_number')));
+        if ($request->filled('player_id')) {
+            $query->where('player_id', $request->integer('player_id'));
         }
 
         if ($request->filled('paid')) {
@@ -38,12 +37,7 @@ class CardController extends Controller
     {
         $this->authorize('create', Card::class);
 
-        $validated = $request->validated();
-        $player = Player::where('number', $validated['player_number'])->firstOrFail();
-        unset($validated['player_number']);
-        $validated['player_id'] = $player->id;
-
-        $card = Card::create($validated);
+        $card = Card::create($request->validated());
 
         return new CardResource($card->load('player'));
     }

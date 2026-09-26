@@ -16,8 +16,8 @@ import {
   useMatchTimer,
 } from "../../lib/matchDay";
 import type { MatchDayEvent, MatchDayGame, MatchDayTeam, ParticipantId, TeamMode } from "../../lib/types";
-import { Choice, confirm, FormError, formStyles, Hint, Label, Section, SwitchRow, TextField } from "../../components/form";
-import { Avatar, Button, ErrorBanner, Group, LiveTag, PageTitle, Row, Screen, Txt, text } from "../../components/ui";
+import { Choice, confirm, FormError, formStyles, Hint, Label, Section, SwitchRow, TextField, Intro } from "../../components/form";
+import { Avatar, Button, ErrorBanner, Group, LiveTag, Row, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 // The pitch-side Match Day tool — the phone version of
@@ -121,7 +121,7 @@ function CreateMatchDay({ onCreated }: { onCreated: (id: string) => void }) {
 
   return (
     <>
-      <PageTitle title="Match Day" sub="Internal squad sessions: pick who's here, split the teams, then run each game on the clock." />
+      <Intro>Internal squad sessions: pick who's here, split the teams, then run each game on the clock.</Intro>
       {resumable.length > 0 ? (
         <Group title="Resume an in-progress match day">
           {resumable.map((e) => (
@@ -159,20 +159,20 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
   const teamSize = settings.matchTeamSize;
   const name = (id: ParticipantId) => participantName(players, event.guests, id);
 
-  const squad = [...players].sort((a, b) => a.number - b.number);
+  const squad = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
   const allPresent: ParticipantId[] = [...event.presentPlayers, ...event.guests.map((g) => g.id)];
   const assigned = new Set<ParticipantId>(event.groups.flatMap((t) => t.players));
   const unassigned = allPresent.filter((id) => !assigned.has(id));
   const [sideA, sideB] = sides[0] < event.groups.length && sides[1] < event.groups.length ? sides : [0, 1];
   const pastGames = event.games;
 
-  function togglePresent(number: number) {
+  function togglePresent(playerId: number) {
     tap();
-    const has = event.presentPlayers.includes(number);
+    const has = event.presentPlayers.includes(playerId);
     patch({
-      presentPlayers: has ? event.presentPlayers.filter((n) => n !== number) : [...event.presentPlayers, number],
+      presentPlayers: has ? event.presentPlayers.filter((id) => id !== playerId) : [...event.presentPlayers, playerId],
       // Someone who went home can't stay on a team.
-      groups: has ? event.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== number) })) : event.groups,
+      groups: has ? event.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== playerId) })) : event.groups,
     });
   }
 
@@ -223,7 +223,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
         title={`Who's present? ${event.presentPlayers.length}/${players.length}`}
         aside={
           <View style={styles.inline}>
-            <Pressable onPress={() => patch({ presentPlayers: players.map((p) => p.number) })} hitSlop={6} accessibilityRole="button">
+            <Pressable onPress={() => patch({ presentPlayers: players.map((p) => p.id) })} hitSlop={6} accessibilityRole="button">
               <Txt style={styles.textButton}>All</Txt>
             </Pressable>
             <Pressable
@@ -237,11 +237,11 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
         }
       >
         {squad.map((p) => {
-          const present = event.presentPlayers.includes(p.number);
+          const present = event.presentPlayers.includes(p.id);
           return (
             <Row
-              key={p.number}
-              onPress={() => togglePresent(p.number)}
+              key={p.id}
+              onPress={() => togglePresent(p.id)}
               chevron={false}
               accessibilityLabel={`${p.name}, ${present ? "present" : "not here"}`}
             >
@@ -252,7 +252,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
                   {p.name}
                 </Txt>
                 <Txt style={text.small}>
-                  #{p.number} · {p.position}
+                  #{p.number} · {p.secondaryPosition ? `${p.position} / ${p.secondaryPosition}` : p.position}
                 </Txt>
               </View>
               <Txt style={[text.semi, text.tabular]}>{p.rating.toFixed(2)}</Txt>
@@ -580,7 +580,7 @@ function LiveGame({
           <View style={styles.log}>
             {game.goals.map((g) => (
               <View key={g.id} style={styles.logRow}>
-                <Txt style={styles.minute}>{g.minute}'</Txt>
+                <Txt style={styles.minute}>{`${g.minute}'`}</Txt>
                 <Txt style={[text.dim, styles.flex]}>
                   {name(g.playerId)}
                   {g.ownGoal ? " (o.g.)" : ""}
@@ -629,7 +629,7 @@ function LiveGame({
           <View style={styles.log}>
             {game.cards.map((c) => (
               <View key={c.id} style={styles.logRow}>
-                <Txt style={styles.minute}>{c.minute}'</Txt>
+                <Txt style={styles.minute}>{`${c.minute}'`}</Txt>
                 <View style={[styles.card, { backgroundColor: c.type === "red" ? colors.loss : colors.draw }]} />
                 <Txt style={[text.dim, styles.flex]}>
                   {name(c.playerId)}

@@ -59,7 +59,9 @@ function Section({
 // The public sign-up link — shared with new players so they can add
 // themselves (they still need the squad passcode above).
 function JoinLink() {
-  const url = `${window.location.origin}/join`;
+  // Always the public site, so a link copied from a local admin still works
+  // for players. VITE_SITE_URL can point it elsewhere (e.g. a staging site).
+  const url = `${import.meta.env.VITE_SITE_URL ?? "https://www.noisersfc.com"}/join`;
   const [copied, setCopied] = useState(false);
 
   function copy() {

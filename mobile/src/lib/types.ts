@@ -3,11 +3,22 @@
 
 export type Position = "GK" | "DEF" | "MID" | "FWD";
 
+/** A full club member, or a guest member who plays with the squad. */
+export type Membership = "member" | "guest";
+
+export const membershipLabels: Record<Membership, string> = {
+  member: "Member",
+  guest: "Guest member",
+};
+
 export interface Player {
   id: number;
   number: number;
   name: string;
   position: Position;
+  /** Optional second position; the main one drives team balancing and ratings. */
+  secondaryPosition: Position | null;
+  membership: Membership;
   bio: string | null;
   photoUrl: string | null;
   active: boolean;
@@ -22,7 +33,7 @@ export type CardType = "yellow" | "red";
 
 export interface Card {
   id: number;
-  playerNumber: number | null;
+  playerId: number;
   type: CardType;
   reason: string | null;
   fineAmount: number;
@@ -60,7 +71,8 @@ export interface ClubSettings {
   valeAutoAwards: boolean;
 }
 
-// A squad player is referenced by jersey number; a guest by an id like "guest-1".
+// A squad player is referenced by player id (shirt numbers can repeat); a
+// guest by an id like "guest-1".
 export type ParticipantId = number | string;
 
 export interface Guest {

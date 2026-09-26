@@ -29,6 +29,7 @@ import {
   Screen,
   Txt,
   text,
+  MembershipBadge,
 } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
@@ -36,8 +37,8 @@ const logo = require("../../../assets/brand/crest.png");
 
 function MyShirt({ player }: { player: Player }) {
   const { cards, events, setMyShirt } = useClub();
-  const fines = cardCounts(cards, player.number);
-  const form = playerGameLog(events, player.number)
+  const fines = cardCounts(cards, player.id);
+  const form = playerGameLog(events, player.id)
     .filter((g) => g.result)
     .slice(0, 5);
 
@@ -72,7 +73,7 @@ function MyShirt({ player }: { player: Player }) {
       <View style={styles.mineActions}>
         <Pressable
           style={({ pressed }) => [styles.mineAction, pressed ? styles.pressed : null]}
-          onPress={() => router.push(`/player/${player.number}`)}
+          onPress={() => router.push(`/player/${player.id}`)}
           accessibilityRole="button"
         >
           <Txt style={text.semi}>Open my profile</Txt>
@@ -100,8 +101,8 @@ function PickShirt({ players, onPick }: { players: Player[]; onPick: (n: number)
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pickRow}>
         {sorted.map((p) => (
           <Pressable
-            key={p.number}
-            onPress={() => onPick(p.number)}
+            key={p.id}
+            onPress={() => onPick(p.id)}
             accessibilityRole="button"
             accessibilityLabel={`${p.name}, number ${p.number}`}
             style={({ pressed }) => [styles.shirtButton, pressed ? styles.shirtButtonPressed : null]}
@@ -118,7 +119,7 @@ export default function SquadScreen() {
   const { players, cards, events, loading, error, refresh, myShirt, setMyShirt } = useClub();
   const [query, setQuery] = useState("");
 
-  const me = players.find((p) => p.number === myShirt);
+  const me = players.find((p) => p.id === myShirt);
   const latest = sortEvents(events)[0];
 
   const q = query.trim().toLowerCase();
@@ -192,9 +193,9 @@ export default function SquadScreen() {
           return (
             <Group key={pos} title={positionGroupLabel[pos]} aside={group.length}>
               {group.map((p) => {
-                const c = cardCounts(cards, p.number);
+                const c = cardCounts(cards, p.id);
                 return (
-                  <Row key={p.number} onPress={() => router.push(`/player/${p.number}`)} accessibilityLabel={`${p.name}, number ${p.number}`}>
+                  <Row key={p.id} onPress={() => router.push(`/player/${p.id}`)} accessibilityLabel={`${p.name}, number ${p.number}`}>
                     <Txt style={[text.heavy, styles.rowNumber]}>{p.number}</Txt>
                     <Avatar player={p} />
                     <View style={styles.flex}>
@@ -202,7 +203,8 @@ export default function SquadScreen() {
                         <Txt style={[text.semi, styles.shrink]} numberOfLines={1}>
                           {p.name}
                         </Txt>
-                        {p.number === myShirt ? (
+                        {p.membership === "guest" ? <MembershipBadge membership="guest" /> : null}
+                        {p.id === myShirt ? (
                           <View style={styles.youTag}>
                             <Txt style={styles.youText}>You</Txt>
                           </View>

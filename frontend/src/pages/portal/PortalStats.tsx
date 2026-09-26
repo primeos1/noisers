@@ -20,7 +20,7 @@ function Leaderboard({ title, rows, tone, format = String }: { title: string; ro
         </Row>
       ) : (
         rows.map(({ player, value }, i) => (
-          <Row key={player.number} to={`/portal/players/${player.number}`}>
+          <Row key={player.id} to={`/portal/players/${player.id}`}>
             <span className={`w-5 shrink-0 text-center font-display text-lg font-bold ${i === 0 ? "text-paper" : "text-mist"}`}>{i + 1}</span>
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-3">
@@ -56,7 +56,7 @@ export default function PortalStats() {
       .map((p) => ({ player: p, value: p[key] }));
 
   const booked = players
-    .map((p) => ({ player: p, c: cardCounts(cards, p.number) }))
+    .map((p) => ({ player: p, c: cardCounts(cards, p.id) }))
     .filter(({ c }) => c.yellow + c.red > 0)
     .sort((a, b) => b.c.red * 2 + b.c.yellow - (a.c.red * 2 + a.c.yellow))
     .slice(0, 5);
@@ -163,7 +163,7 @@ export default function PortalStats() {
               </Row>
             ) : (
               booked.map(({ player, c }) => (
-                <Row key={player.number} to={`/portal/players/${player.number}`}>
+                <Row key={player.id} to={`/portal/players/${player.id}`}>
                   <span className="min-w-0 flex-1 truncate font-semibold text-paper">{player.name}</span>
                   <CardPips yellow={c.yellow} red={c.red} />
                   {c.outstanding > 0 && <span className="text-xs text-loss">owes</span>}

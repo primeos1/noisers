@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import Modal from "./Modal";
-import { isStockPhoto, type Player, type Position } from "../../lib/clubData";
+import { isStockPhoto, membershipLabels, positionLabels, type Membership, type Player, type Position } from "../../lib/clubData";
 import ImageUploadField from "./ImageUploadField";
 import { useSquad } from "../../lib/SquadContext";
 import { useSettings } from "../../lib/SettingsContext";
@@ -17,17 +17,19 @@ export default function PlayerFormModal({
 }: {
   initial: Player | null;
   suggestedNumber: number;
-  onSubmit: (player: Player) => void;
+  onSubmit: (player: Omit<Player, "id">) => void;
   onClose: () => void;
 }) {
   const { settings } = useSettings();
   // The photo field only ever holds an uploaded image; players without one
   // fall back to a stock face when displayed.
-  const [form, setForm] = useState<Player>(
+  const [form, setForm] = useState<Omit<Player, "id">>(
     initial ? { ...initial, photo: isStockPhoto(initial.photo) ? "" : initial.photo } : {
       number: suggestedNumber,
       name: "",
       position: "MID",
+      secondaryPosition: null,
+      membership: "member",
       photo: "",
       rating: settings.ratingNewPlayer,
       appearances: 0,
@@ -40,9 +42,8 @@ export default function PlayerFormModal({
   );
   const [error, setError] = useState("");
   const { players } = useSquad();
-  // Jersey numbers identify players everywhere (cards, match days, awards),
-  // so each one can only belong to a single player.
-  const numberOwner = players.find((p) => p.number === form.number && p.number !== initial?.number);
+  // Shirt numbers can be shared — just let the admin know who else wears it.
+  const sharedWith = players.filter((p) => p.number === form.number && p.id !== initial?.id);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -52,10 +53,6 @@ export default function PlayerFormModal({
     }
     if (!Number.isInteger(form.number) || form.number < 1 || form.number > 99) {
       setError("Jersey number must be a whole number from 1 to 99.");
-      return;
-    }
-    if (numberOwner) {
-      setError(`#${form.number} is already taken by ${numberOwner.name} — pick another number.`);
       return;
     }
     onSubmit(form);
@@ -73,11 +70,12 @@ export default function PlayerFormModal({
               value={form.number}
               min={1}
               max={99}
-              aria-invalid={!!numberOwner}
               onChange={(e) => setForm({ ...form, number: Number(e.target.value) })}
             />
-            {numberOwner && (
-              <span className="mt-1 block text-xs text-loss">Taken by {numberOwner.name}</span>
+            {sharedWith.length > 0 && (
+              <span className="mt-1 block text-xs text-mist">
+                Also worn by {sharedWith.map((p) => p.name).join(", ")}
+              </span>
             )}
           </label>
           <label className={labelClass}>
@@ -85,15 +83,45 @@ export default function PlayerFormModal({
             <select
               className={inputClass}
               value={form.position}
-              onChange={(e) => setForm({ ...form, position: e.target.value as Position })}
+              onChange={(e) => {
+                const position = e.target.value as Position;
+                // A second position matching the new main one is dropped.
+                setForm({
+                  ...form,
+                  position,
+                  secondaryPosition: form.secondaryPosition === position ? null : form.secondaryPosition,
+                });
+              }}
             >
-              <option value="GK">Goalkeeper</option>
-              <option value="DEF">Defender</option>
-              <option value="MID">Midfielder</option>
-              <option value="FWD">Forward</option>
+              {(Object.keys(positionLabels) as Position[]).map((pos) => (
+                <option key={pos} value={pos}>
+                  {positionLabels[pos]}
+                </option>
+              ))}
             </select>
           </label>
         </div>
+
+        <label className={labelClass}>
+          Second position (optional)
+          <select
+            className={inputClass}
+            value={form.secondaryPosition ?? ""}
+            onChange={(e) => setForm({ ...form, secondaryPosition: (e.target.value || null) as Position | null })}
+          >
+            <option value="">None</option>
+            {(Object.keys(positionLabels) as Position[])
+              .filter((pos) => pos !== form.position)
+              .map((pos) => (
+                <option key={pos} value={pos}>
+                  {positionLabels[pos]}
+                </option>
+              ))}
+          </select>
+          <span className="mt-1 block text-xs text-mist">
+            Team balancing and clean-sheet ratings use the main position.
+          </span>
+        </label>
 
         <label className={labelClass}>
           Full name
@@ -105,6 +133,25 @@ export default function PlayerFormModal({
             placeholder="e.g. Segun Owolabi"
           />
         </label>
+
+        <fieldset>
+          <legend className={labelClass}>Membership</legend>
+          <div className="mt-1 flex gap-6">
+            {(Object.keys(membershipLabels) as Membership[]).map((value) => (
+              <label key={value} className="flex cursor-pointer items-center gap-2 text-sm text-paper-dim">
+                <input
+                  type="radio"
+                  name="membership"
+                  value={value}
+                  checked={form.membership === value}
+                  onChange={() => setForm({ ...form, membership: value })}
+                  className="h-4 w-4 accent-paper"
+                />
+                {membershipLabels[value]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <ImageUploadField
           label="Photo"

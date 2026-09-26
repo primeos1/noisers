@@ -46,7 +46,7 @@ function Leaderboard({
         </Row>
       ) : (
         rows.map(({ player, value }, i) => (
-          <Row key={player.number} onPress={() => router.push(`/player/${player.number}`)}>
+          <Row key={player.id} onPress={() => router.push(`/player/${player.id}`)}>
             <Txt style={[styles.rank, i === 0 ? null : styles.rankDim]}>{i + 1}</Txt>
             <View style={styles.flex}>
               <View style={styles.leaderLine}>
@@ -82,7 +82,7 @@ export default function StatsScreen() {
       .map((p) => ({ player: p, value: p[key] }));
 
   const booked = players
-    .map((p) => ({ player: p, c: cardCounts(cards, p.number) }))
+    .map((p) => ({ player: p, c: cardCounts(cards, p.id) }))
     .filter(({ c }) => c.yellow + c.red > 0)
     .sort((a, b) => b.c.red * 2 + b.c.yellow - (a.c.red * 2 + a.c.yellow))
     .slice(0, 5);
@@ -188,7 +188,7 @@ export default function StatsScreen() {
               </Row>
             ) : (
               booked.map(({ player, c }) => (
-                <Row key={player.number} onPress={() => router.push(`/player/${player.number}`)}>
+                <Row key={player.id} onPress={() => router.push(`/player/${player.id}`)}>
                   <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
                     {player.name}
                   </Txt>

@@ -55,11 +55,12 @@ class PlayerRatings
     public static function apply(MatchDayEvent $event): void
     {
         $weights = ClubSetting::current()->ratingWeights();
-        $players = Player::all()->keyBy('number');
-        $points = self::points($event, fn (int $number) => $players[$number]->position ?? null, $weights);
+        $players = Player::all()->keyBy('id');
+        // The main position decides the clean-sheet reward; a second position doesn't.
+        $points = self::points($event, fn (int $id) => $players[$id]->position ?? null, $weights);
 
-        foreach ($points as $number => $raw) {
-            $player = $players[$number];
+        foreach ($points as $id => $raw) {
+            $player = $players[$id];
             if (PlayerRatingChange::where('player_id', $player->id)->where('match_day_event_id', $event->id)->exists()) {
                 continue;
             }
@@ -100,7 +101,7 @@ class PlayerRatings
     }
 
     /**
-     * Raw performance points per squad number across the event's finished
+     * Raw performance points per player id across the event's finished
      * games. Guests (non-int participant ids) are skipped.
      *
      * @param  callable(int): ?string  $positionOf
@@ -111,9 +112,9 @@ class PlayerRatings
     {
         $weights ??= self::defaultWeights();
         $points = [];
-        $add = function ($number, float $amount) use (&$points, $positionOf) {
-            if (is_int($number) && $positionOf($number) !== null) {
-                $points[$number] = ($points[$number] ?? 0.0) + $amount;
+        $add = function ($playerId, float $amount) use (&$points, $positionOf) {
+            if (is_int($playerId) && $positionOf($playerId) !== null) {
+                $points[$playerId] = ($points[$playerId] ?? 0.0) + $amount;
             }
         };
 
@@ -136,10 +137,10 @@ class PlayerRatings
                 $against = $score[1 - $i];
                 $result = $for > $against ? $weights['win'] : ($for < $against ? $weights['loss'] : 0.0);
 
-                foreach (($team['players'] ?? []) as $number) {
-                    $add($number, $result);
-                    if ($against === 0 && is_int($number)) {
-                        $add($number, $weights['clean_sheet'][$positionOf($number)] ?? 0.0);
+                foreach (($team['players'] ?? []) as $playerId) {
+                    $add($playerId, $result);
+                    if ($against === 0 && is_int($playerId)) {
+                        $add($playerId, $weights['clean_sheet'][$positionOf($playerId)] ?? 0.0);
                     }
                 }
             }

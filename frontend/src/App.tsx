@@ -44,7 +44,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/squad" element={<Squad />} />
-      <Route path="/squad/:number" element={<PlayerProfile />} />
+      <Route path="/squad/:id" element={<PlayerProfile />} />
       <Route path="/the-vale" element={<TheVale />} />
       <Route path="/highlights" element={<Highlights />} />
       <Route path="/performance" element={<Performance />} />
@@ -64,7 +64,7 @@ export default function App() {
         <Route path="history" element={<PortalHistory />} />
         <Route path="matches/:id" element={<PortalMatch />} />
         <Route path="stats" element={<PortalStats />} />
-        <Route path="players/:number" element={<PortalPlayer />} />
+        <Route path="players/:id" element={<PortalPlayer />} />
       </Route>
 
       <Route

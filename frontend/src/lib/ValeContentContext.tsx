@@ -10,20 +10,20 @@ export interface ValeContentData {
     rivalTeam: string;
     score: string;
     photo: string;
-    lineupNumbers: number[];
+    lineupPlayerIds: number[];
   };
-  playerOfTheWeek: { playerNumber: number; note: string; weekRating: number };
+  playerOfTheWeek: { playerId: number; note: string; weekRating: number };
   mostImproved: {
-    playerNumber: number;
+    playerId: number;
     note: string;
     previousRating: number;
     currentRating: number;
   };
   weeklyLeaders: {
-    topScorer: { playerNumber: number; value: number };
-    topAssist: { playerNumber: number; value: number };
+    topScorer: { playerId: number; value: number };
+    topAssist: { playerId: number; value: number };
     cleanSheets: number[];
-    roughest: { playerNumber: number; yellowCards: number; redCards: number };
+    roughest: { playerId: number; yellowCards: number; redCards: number };
   };
 }
 
@@ -36,20 +36,20 @@ interface ApiValeContent {
     rivalTeam: string | null;
     score: string | null;
     photoUrl: string | null;
-    lineupNumbers: number[];
+    lineupPlayerIds: number[];
   };
-  playerOfTheWeek: { playerNumber: number | null; note: string | null; weekRating: number | null };
+  playerOfTheWeek: { playerId: number | null; note: string | null; weekRating: number | null };
   mostImproved: {
-    playerNumber: number | null;
+    playerId: number | null;
     note: string | null;
     previousRating: number | null;
     currentRating: number | null;
   };
   weeklyLeaders: {
-    topScorer: { playerNumber: number | null; value: number | null };
-    topAssist: { playerNumber: number | null; value: number | null };
+    topScorer: { playerId: number | null; value: number | null };
+    topAssist: { playerId: number | null; value: number | null };
     cleanSheets: number[];
-    roughest?: { playerNumber: number | null; yellowCards: number | null; redCards: number | null };
+    roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
   };
 }
 
@@ -62,15 +62,15 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
     rivalTeam: "",
     score: "",
     photo: "",
-    lineupNumbers: [],
+    lineupPlayerIds: [],
   },
-  playerOfTheWeek: { playerNumber: 0, note: "", weekRating: 0 },
-  mostImproved: { playerNumber: 0, note: "", previousRating: 0, currentRating: 0 },
+  playerOfTheWeek: { playerId: 0, note: "", weekRating: 0 },
+  mostImproved: { playerId: 0, note: "", previousRating: 0, currentRating: 0 },
   weeklyLeaders: {
-    topScorer: { playerNumber: 0, value: 0 },
-    topAssist: { playerNumber: 0, value: 0 },
+    topScorer: { playerId: 0, value: 0 },
+    topAssist: { playerId: 0, value: 0 },
     cleanSheets: [],
-    roughest: { playerNumber: 0, yellowCards: 0, redCards: 0 },
+    roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
   },
 };
 
@@ -84,31 +84,31 @@ function fromApi(data: ApiValeContent): ValeContentData {
       rivalTeam: data.teamOfTheWeek.rivalTeam ?? "",
       score: data.teamOfTheWeek.score ?? "",
       photo: data.teamOfTheWeek.photoUrl ?? "",
-      lineupNumbers: data.teamOfTheWeek.lineupNumbers ?? [],
+      lineupPlayerIds: data.teamOfTheWeek.lineupPlayerIds ?? [],
     },
     playerOfTheWeek: {
-      playerNumber: data.playerOfTheWeek.playerNumber ?? 0,
+      playerId: data.playerOfTheWeek.playerId ?? 0,
       note: data.playerOfTheWeek.note ?? "",
       weekRating: data.playerOfTheWeek.weekRating ?? 0,
     },
     mostImproved: {
-      playerNumber: data.mostImproved.playerNumber ?? 0,
+      playerId: data.mostImproved.playerId ?? 0,
       note: data.mostImproved.note ?? "",
       previousRating: data.mostImproved.previousRating ?? 0,
       currentRating: data.mostImproved.currentRating ?? 0,
     },
     weeklyLeaders: {
       topScorer: {
-        playerNumber: data.weeklyLeaders.topScorer.playerNumber ?? 0,
+        playerId: data.weeklyLeaders.topScorer.playerId ?? 0,
         value: data.weeklyLeaders.topScorer.value ?? 0,
       },
       topAssist: {
-        playerNumber: data.weeklyLeaders.topAssist.playerNumber ?? 0,
+        playerId: data.weeklyLeaders.topAssist.playerId ?? 0,
         value: data.weeklyLeaders.topAssist.value ?? 0,
       },
       cleanSheets: data.weeklyLeaders.cleanSheets ?? [],
       roughest: {
-        playerNumber: data.weeklyLeaders.roughest?.playerNumber ?? 0,
+        playerId: data.weeklyLeaders.roughest?.playerId ?? 0,
         yellowCards: data.weeklyLeaders.roughest?.yellowCards ?? 0,
         redCards: data.weeklyLeaders.roughest?.redCards ?? 0,
       },
@@ -116,10 +116,10 @@ function fromApi(data: ApiValeContent): ValeContentData {
   };
 }
 
-// "— None —" is represented as 0 in the UI (keeps player-number fields a
+// "— None —" is represented as 0 in the UI (keeps player-id fields a
 // plain number instead of a nullable union) but the backend's nullable FK
-// validation (`exists:players,number`) rejects 0 — only null passes through.
-function playerNumberOrNull(n: number): number | null {
+// validation (`exists:players,id`) rejects 0 — only null passes through.
+function playerIdOrNull(n: number): number | null {
   return n > 0 ? n : null;
 }
 
@@ -134,29 +134,29 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (t.rivalTeam !== undefined) body.team_rival = t.rivalTeam;
     if (t.score !== undefined) body.team_score = t.score;
     if (t.photo !== undefined) body.team_photo_url = t.photo;
-    if (t.lineupNumbers !== undefined) body.team_lineup_numbers = t.lineupNumbers;
+    if (t.lineupPlayerIds !== undefined) body.team_lineup_player_ids = t.lineupPlayerIds;
   }
   if (patch.playerOfTheWeek) {
     const p = patch.playerOfTheWeek;
-    if (p.playerNumber !== undefined) body.potw_player_number = playerNumberOrNull(p.playerNumber);
+    if (p.playerId !== undefined) body.potw_player_id = playerIdOrNull(p.playerId);
     if (p.note !== undefined) body.potw_note = p.note;
     if (p.weekRating !== undefined) body.potw_rating = p.weekRating;
   }
   if (patch.mostImproved) {
     const m = patch.mostImproved;
-    if (m.playerNumber !== undefined) body.improved_player_number = playerNumberOrNull(m.playerNumber);
+    if (m.playerId !== undefined) body.improved_player_id = playerIdOrNull(m.playerId);
     if (m.note !== undefined) body.improved_note = m.note;
     if (m.previousRating !== undefined) body.improved_prev_rating = m.previousRating;
     if (m.currentRating !== undefined) body.improved_curr_rating = m.currentRating;
   }
   if (patch.weeklyLeaders) {
     const w = patch.weeklyLeaders;
-    if (w.topScorer?.playerNumber !== undefined) body.leader_top_scorer_number = playerNumberOrNull(w.topScorer.playerNumber);
+    if (w.topScorer?.playerId !== undefined) body.leader_top_scorer_player_id = playerIdOrNull(w.topScorer.playerId);
     if (w.topScorer?.value !== undefined) body.leader_top_scorer_value = w.topScorer.value;
-    if (w.topAssist?.playerNumber !== undefined) body.leader_top_assist_number = playerNumberOrNull(w.topAssist.playerNumber);
+    if (w.topAssist?.playerId !== undefined) body.leader_top_assist_player_id = playerIdOrNull(w.topAssist.playerId);
     if (w.topAssist?.value !== undefined) body.leader_top_assist_value = w.topAssist.value;
-    if (w.cleanSheets !== undefined) body.leader_clean_sheet_numbers = w.cleanSheets;
-    if (w.roughest?.playerNumber !== undefined) body.leader_roughest_number = playerNumberOrNull(w.roughest.playerNumber);
+    if (w.cleanSheets !== undefined) body.leader_clean_sheet_player_ids = w.cleanSheets;
+    if (w.roughest?.playerId !== undefined) body.leader_roughest_player_id = playerIdOrNull(w.roughest.playerId);
     if (w.roughest?.yellowCards !== undefined) body.leader_roughest_yellow = w.roughest.yellowCards;
     if (w.roughest?.redCards !== undefined) body.leader_roughest_red = w.roughest.redCards;
   }

@@ -1,15 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSquad } from "../../lib/SquadContext";
-import { exportPlayersCsv, nextJerseyNumber, type Player } from "../../lib/clubData";
+import { exportPlayersCsv, nextJerseyNumber, positionNames, type Player } from "../../lib/clubData";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
-
-const positionLabel: Record<string, string> = {
-  GK: "Goalkeeper",
-  DEF: "Defender",
-  MID: "Midfielder",
-  FWD: "Forward",
-};
+import MembershipBadge from "../../components/MembershipBadge";
 
 export default function AdminSquad() {
   const { players, error, addPlayer, updatePlayer, removePlayer } = useSquad();
@@ -17,7 +11,7 @@ export default function AdminSquad() {
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Player | null>(null);
 
-  const sorted = [...players].sort((a, b) => a.number - b.number);
+  const sorted = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
 
   return (
     <div>
@@ -53,13 +47,16 @@ export default function AdminSquad() {
       {/* Phones: card list */}
       <ul className="mt-6 divide-y divide-ink-line overflow-hidden rounded-2xl border border-ink-line bg-ink-raised md:hidden">
         {sorted.map((player) => (
-          <li key={player.number} className="flex items-center gap-3 px-4 py-3">
-            <Link to={`/squad/${player.number}`} className="flex min-w-0 flex-1 items-center gap-3">
+          <li key={player.id} className="flex items-center gap-3 px-4 py-3">
+            <Link to={`/squad/${player.id}`} className="flex min-w-0 flex-1 items-center gap-3">
               <img src={player.photo} alt="" className="duotone h-11 w-11 shrink-0 rounded-full object-cover" />
               <div className="min-w-0">
-                <p className="truncate text-[0.95rem] text-paper">{player.name}</p>
+                <p className="flex items-center gap-2 text-[0.95rem] text-paper">
+                  <span className="truncate">{player.name}</span>
+                  <MembershipBadge membership={player.membership} className="shrink-0" />
+                </p>
                 <p className="truncate text-xs text-mist">
-                  #{player.number} · {positionLabel[player.position]} · {player.rating.toFixed(2)}
+                  #{player.number} · {positionNames(player)} · {player.rating.toFixed(2)}
                 </p>
                 <p className="mt-0.5 text-xs text-paper-dim">
                   {player.appearances} apps · {player.goals} G · {player.assists} A · {player.cleanSheets} CS
@@ -103,20 +100,21 @@ export default function AdminSquad() {
           </thead>
           <tbody>
             {sorted.map((player) => (
-              <tr key={player.number} className="border-b border-ink-line last:border-b-0">
+              <tr key={player.id} className="border-b border-ink-line last:border-b-0">
                 <td className="px-4 py-3 text-paper">{player.number}</td>
                 <td className="px-4 py-3">
-                  <Link to={`/squad/${player.number}`} className="flex items-center gap-3 hover:text-paper">
+                  <Link to={`/squad/${player.id}`} className="flex items-center gap-3 hover:text-paper">
                     <img
                       src={player.photo}
                       alt=""
                       className="duotone h-8 w-8 object-cover"
                     />
                     <span className="text-paper">{player.name}</span>
+                    <MembershipBadge membership={player.membership} />
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-paper-dim">
-                  {positionLabel[player.position]}
+                  {positionNames(player)}
                 </td>
                 <td className="px-4 py-3 text-paper-dim">{player.rating.toFixed(2)}</td>
                 <td className="px-4 py-3 text-paper-dim">{player.appearances}</td>
@@ -165,7 +163,7 @@ export default function AdminSquad() {
           suggestedNumber={editing.number}
           onClose={() => setEditing(null)}
           onSubmit={(player) => {
-            updatePlayer(editing.number, player);
+            updatePlayer(editing.id, player);
             setEditing(null);
           }}
         />
@@ -196,7 +194,7 @@ export default function AdminSquad() {
               <button
                 type="button"
                 onClick={() => {
-                  removePlayer(confirmDelete.number);
+                  removePlayer(confirmDelete.id);
                   setConfirmDelete(null);
                 }}
                 className="border border-loss bg-loss px-4 py-2 text-sm font-medium text-paper hover:bg-transparent hover:text-loss"

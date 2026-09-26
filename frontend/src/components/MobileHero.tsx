@@ -36,12 +36,34 @@ export default function MobileHero({
     <section className="relative flex min-h-[100svh] flex-col overflow-hidden border-b border-ink-line bg-ink pb-tabbar md:hidden">
       {/* Photo, ending on the centre-circle arc */}
       <div className="kickoff-photo relative h-[40svh] min-h-[260px] shrink-0 overflow-hidden">
-        <img
-          src={imageUrl}
-          alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
-          className="duotone absolute inset-0 h-full w-full object-cover object-top"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-transparent to-ink/50" />
+        <div className="kickoff-zoom absolute inset-0">
+          <img
+            src={imageUrl}
+            alt="Noisers FC playing under floodlights on a five-a-side pitch at night"
+            className="kickoff-base duotone absolute inset-0 h-full w-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-transparent to-ink/50" />
+          {/* Colour copy keeping only the green pitch, over the black-and-white photo */}
+          <img
+            src={imageUrl}
+            alt=""
+            aria-hidden="true"
+            className="kickoff-pitch absolute inset-0 h-full w-full object-cover object-top"
+          />
+        </div>
+        <svg className="absolute h-0 w-0" aria-hidden="true" focusable="false">
+          <filter id="pitch-green" colorInterpolationFilters="sRGB">
+            {/* Opaque only where green outweighs blue: the grass, not the teal night sky */}
+            <feColorMatrix
+              in="SourceGraphic"
+              type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 6 -6 0 -0.12"
+              result="grass"
+            />
+            <feColorMatrix in="SourceGraphic" type="saturate" values="1.35" result="vivid" />
+            <feComposite in="vivid" in2="grass" operator="in" />
+          </filter>
+        </svg>
         {/* The arc line on the photo's edge, drawn out from the centre spot */}
         <div className="kickoff-arc pointer-events-none absolute inset-0" aria-hidden="true" />
       </div>

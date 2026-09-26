@@ -67,16 +67,16 @@ export default function AdminReports() {
   const cardedPlayers = useMemo(() => {
     const byPlayer = new Map<number, { yellow: number; red: number }>();
     for (const c of cards) {
-      const entry = byPlayer.get(c.playerNumber) ?? { yellow: 0, red: 0 };
+      const entry = byPlayer.get(c.playerId) ?? { yellow: 0, red: 0 };
       if (c.type === "yellow") entry.yellow += 1;
       else entry.red += 1;
-      byPlayer.set(c.playerNumber, entry);
+      byPlayer.set(c.playerId, entry);
     }
     return [...byPlayer.entries()]
-      .map(([number, counts]) => {
-        const player = players.find((p) => p.number === number);
+      .map(([playerId, counts]) => {
+        const player = players.find((p) => p.id === playerId);
         return {
-          label: player ? player.name : `#${number}`,
+          label: player ? player.name : "Former player",
           segments: [
             { name: "Yellow", value: counts.yellow, color: CARD_YELLOW },
             { name: "Red", value: counts.red, color: CARD_RED },

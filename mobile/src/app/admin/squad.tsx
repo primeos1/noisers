@@ -7,7 +7,7 @@ import { errorMessage } from "../../lib/api";
 import { plural, positionLabel } from "../../lib/derive";
 import type { Player } from "../../lib/types";
 import { confirm } from "../../components/form";
-import { Avatar, Button, Empty, ErrorBanner, Group, Row, Screen, Txt, text } from "../../components/ui";
+import { Avatar, Button, Empty, ErrorBanner, Group, MembershipBadge, Row, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 function csvCell(value: string | number) {
@@ -20,7 +20,7 @@ function squadCsv(players: Player[]) {
   const header = ["Number", "Name", "Position", "Rating", "Appearances", "Goals", "Assists", "Clean sheets"];
   const rows = [...players]
     .sort((a, b) => a.number - b.number)
-    .map((p) => [p.number, p.name, p.position, p.rating, p.appearances, p.goals, p.assists, p.cleanSheets].map(csvCell).join(","));
+    .map((p) => [p.number, p.name, p.secondaryPosition ? `${p.position} / ${p.secondaryPosition}` : p.position, p.rating, p.appearances, p.goals, p.assists, p.cleanSheets].map(csvCell).join(","));
   return [header.join(","), ...rows].join("\n");
 }
 
@@ -38,7 +38,7 @@ export default function SquadAdminScreen() {
     confirm("Remove player?", `Remove ${player.name} (#${player.number}) from the squad? This can't be undone.`, "Remove", async () => {
       setError("");
       try {
-        await removePlayer(player.number);
+        await removePlayer(player.id);
       } catch (err) {
         setError(errorMessage(err, "Couldn't remove that player."));
       }
@@ -78,8 +78,8 @@ export default function SquadAdminScreen() {
         <Group title={plural(players.length, "player")} aside="Tap to edit, long-press to remove">
           {sorted.map((p) => (
             <Row
-              key={p.number}
-              onPress={() => router.push({ pathname: "/admin/player", params: { number: String(p.number) } })}
+              key={p.id}
+              onPress={() => router.push({ pathname: "/admin/player", params: { id: String(p.id) } })}
               onLongPress={() => confirmRemove(p)}
               accessibilityLabel={`Edit ${p.name}`}
             >
@@ -89,8 +89,10 @@ export default function SquadAdminScreen() {
                   {p.name}
                   {p.active ? "" : "  (inactive)"}
                 </Txt>
+                <MembershipBadge membership={p.membership} />
                 <Txt style={text.small} numberOfLines={1}>
-                  #{p.number} · {positionLabel[p.position]} · {p.rating.toFixed(2)}
+                  #{p.number} · {positionLabel[p.position]}
+                  {p.secondaryPosition ? ` / ${positionLabel[p.secondaryPosition]}` : ""} · {p.rating.toFixed(2)}
                 </Txt>
                 <Txt style={[text.small, styles.stats]} numberOfLines={1}>
                   {p.appearances} apps · {p.goals} G · {p.assists} A · {p.cleanSheets} CS

@@ -15,6 +15,8 @@ class Player extends Model
         'number',
         'name',
         'position',
+        'secondary_position',
+        'membership',
         'rating',
         'bio',
         'phone',
@@ -25,6 +27,7 @@ class Player extends Model
 
     protected $attributes = [
         'active' => true,
+        'membership' => 'member',
         'rating' => 6.0,
     ];
 

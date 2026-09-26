@@ -34,7 +34,7 @@ class PlayerController extends Controller
             $query->where('position', $request->string('position'));
         }
 
-        $players = $query->orderBy('number')->get();
+        $players = $query->orderBy('number')->orderBy('name')->get();
 
         $this->attachMatchDayStats($players);
 
@@ -66,14 +66,16 @@ class PlayerController extends Controller
     {
         $data = $request->validate([
             'passcode' => ['required', 'string', 'max:64'],
-            'number' => ['required', 'integer', 'min:1', 'max:99', 'unique:players,number'],
+            'number' => ['required', 'integer', 'min:1', 'max:99'],
             'name' => ['required', 'string', 'max:255'],
             'position' => ['required', 'in:GK,DEF,MID,FWD'],
+            'secondary_position' => ['nullable', 'in:GK,DEF,MID,FWD', 'different:position'],
+            'membership' => ['required', 'in:member,guest'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'photo' => ['nullable', 'image', 'max:5120'],
         ], [
-            'number.unique' => 'That shirt number is already taken — pick another.',
+            'secondary_position.different' => 'Pick a second position that differs from your main one.',
         ]);
 
         $setting = ClubSetting::current();
@@ -128,7 +130,12 @@ class PlayerController extends Controller
     {
         $this->authorize('update', $player);
 
-        $player->update($request->validated());
+        $data = $request->validated();
+        // A second position matching the main one is no second position.
+        if (($data['secondary_position'] ?? $player->secondary_position) === ($data['position'] ?? $player->position)) {
+            $data['secondary_position'] = null;
+        }
+        $player->update($data);
         $this->attachMatchDayStats(collect([$player]));
 
         return new PlayerResource($player);
@@ -168,7 +175,7 @@ class PlayerController extends Controller
             ->groupBy('player_id');
 
         foreach ($players as $player) {
-            $row = $stats[$player->number] ?? null;
+            $row = $stats[$player->id] ?? null;
             foreach ($manualCards[$player->id] ?? [] as $count) {
                 $row ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'yellowCards' => 0, 'redCards' => 0];
                 $row[$count->type === 'red' ? 'redCards' : 'yellowCards'] += (int) $count->total;

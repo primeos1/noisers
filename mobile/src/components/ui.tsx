@@ -23,7 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, radius, space } from "../theme";
 import { resolveMediaUrl } from "../lib/config";
 import { RATING_MAX, RATING_MIN, type Result } from "../lib/derive";
-import type { Player } from "../lib/types";
+import { membershipLabels, type Membership, type Player } from "../lib/types";
 
 export function Txt({ style, ...props }: TextProps) {
   return <Text {...props} style={[styles.txt, style]} />;
@@ -360,7 +360,7 @@ function stockPhoto(number: number) {
  *  if the image fails to load. */
 export function Avatar({ player, size = 40, rounded = size / 2 }: { player: Player; size?: number; rounded?: number }) {
   const [failed, setFailed] = useState(false);
-  const uri = resolveMediaUrl(player.photoUrl) ?? stockPhoto(player.number);
+  const uri = resolveMediaUrl(player.photoUrl) ?? stockPhoto(player.id);
   const box = { width: size, height: size, borderRadius: rounded };
   if (!uri || failed) {
     return (
@@ -462,4 +462,19 @@ const styles = StyleSheet.create({
 
   avatarFallback: { backgroundColor: colors.inkLine, alignItems: "center", justifyContent: "center" },
   avatarImage: { backgroundColor: colors.inkLine },
+});
+
+/** Teal "Member" / gold "Guest member" pill — matches the website's badge. */
+export function MembershipBadge({ membership }: { membership: Membership }) {
+  const tone = membership === "guest" ? colors.draw : colors.win;
+  return (
+    <View style={[badgeStyles.badge, { borderColor: tone, backgroundColor: `${tone}26` }]}>
+      <Txt style={[badgeStyles.text, { color: tone }]}>{membershipLabels[membership]}</Txt>
+    </View>
+  );
+}
+
+const badgeStyles = StyleSheet.create({
+  badge: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  text: { fontFamily: fonts.bodySemi, fontSize: 11 },
 });

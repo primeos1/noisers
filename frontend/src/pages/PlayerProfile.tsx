@@ -6,28 +6,23 @@ import { useCards } from "../lib/CardsContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
 import { formatNaira } from "../lib/cards";
+import { positionNames } from "../lib/clubData";
+import MembershipBadge from "../components/MembershipBadge";
 
-const positionLabel: Record<string, string> = {
-  GK: "Goalkeeper",
-  DEF: "Defender",
-  MID: "Midfielder",
-  FWD: "Forward",
-};
-
-function playedFor(game: MatchDayGame, number: number): 0 | 1 | null {
-  if (game.teams[0].players.includes(number)) return 0;
-  if (game.teams[1].players.includes(number)) return 1;
+function playedFor(game: MatchDayGame, playerId: number): 0 | 1 | null {
+  if (game.teams[0].players.includes(playerId)) return 0;
+  if (game.teams[1].players.includes(playerId)) return 1;
   return null;
 }
 
 export default function PlayerProfile() {
-  const { number } = useParams<{ number: string }>();
+  const { id } = useParams<{ id: string }>();
   const { players } = useSquad();
   const { cards } = useCards();
   const { events } = useMatchDay();
 
-  const playerNumber = Number(number);
-  const player = players.find((p) => p.number === playerNumber);
+  const playerId = Number(id);
+  const player = players.find((p) => p.id === playerId);
 
   if (!player) {
     return (
@@ -36,7 +31,7 @@ export default function PlayerProfile() {
         <section className="bg-ink">
           <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
             <p className="text-sm text-paper-dim">
-              No player wears #{number} for Noisers FC.{" "}
+              We couldn't find that player.{" "}
               <Link to="/squad" className="text-paper underline underline-offset-4">
                 Back to the squad
               </Link>
@@ -47,19 +42,24 @@ export default function PlayerProfile() {
     );
   }
 
-  const playerCards = cards.filter((c) => c.playerNumber === playerNumber);
+  const playerCards = cards.filter((c) => c.playerId === playerId);
   const owed = playerCards.filter((c) => !c.paid).reduce((sum, c) => sum + c.fine, 0);
 
   const games = allGames(events)
-    .filter(({ game }) => playedFor(game, playerNumber) !== null)
+    .filter(({ game }) => playedFor(game, playerId) !== null)
     .reverse();
 
   return (
     <Layout>
       <PageHeader
-        eyebrow={positionLabel[player.position]}
+        eyebrow={positionNames(player)}
         title={player.name}
-        description={`#${player.number} — rated ${player.rating.toFixed(2)}`}
+        description={
+          <span className="flex flex-wrap items-center gap-3">
+            <span>#{player.number} — rated {player.rating.toFixed(2)}</span>
+            <MembershipBadge membership={player.membership} />
+          </span>
+        }
       />
 
       <section className="border-b border-ink-line bg-ink">
@@ -156,13 +156,13 @@ export default function PlayerProfile() {
           ) : (
             <div className="mt-4 space-y-2">
               {games.map(({ event, game }) => {
-                const side = playedFor(game, playerNumber);
+                const side = playedFor(game, playerId);
                 if (side === null) return null;
                 const goals = game.goals.filter(
-                  (g) => g.playerId === playerNumber && !g.ownGoal,
+                  (g) => g.playerId === playerId && !g.ownGoal,
                 ).length;
-                const assists = game.goals.filter((g) => g.assistPlayerId === playerNumber).length;
-                const playerCardsInGame = game.cards.filter((c) => c.playerId === playerNumber);
+                const assists = game.goals.filter((g) => g.assistPlayerId === playerId).length;
+                const playerCardsInGame = game.cards.filter((c) => c.playerId === playerId);
 
                 return (
                   <div key={game.id} className="border border-ink-line bg-ink-raised p-4 text-sm">

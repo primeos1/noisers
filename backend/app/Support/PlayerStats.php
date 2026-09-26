@@ -3,7 +3,7 @@
 namespace App\Support;
 
 /**
- * Computes per-player-number Match Day stats (appearances/goals/assists/
+ * Computes per-player (keyed by player id) Match Day stats (appearances/goals/assists/
  * clean sheets/cards) by scanning finished games across all match day events.
  * Computed on read rather than stored, since event volume for a grassroots
  * club is small enough that this stays cheap and avoids a recalculation
@@ -19,8 +19,8 @@ class PlayerStats
     {
         $stats = [];
 
-        $ensure = function (int $number) use (&$stats) {
-            $stats[$number] ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'yellowCards' => 0, 'redCards' => 0];
+        $ensure = function (int $playerId) use (&$stats) {
+            $stats[$playerId] ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'yellowCards' => 0, 'redCards' => 0];
         };
 
         foreach ($events as $event) {
@@ -101,10 +101,10 @@ class PlayerStats
     {
         $top = null;
         $topKey = null;
-        foreach ($stats as $number => $s) {
+        foreach ($stats as $playerId => $s) {
             $key = [$s['yellowCards'] + $s['redCards'], $s['redCards']];
             if ($key[0] > 0 && ($topKey === null || $key > $topKey)) {
-                [$top, $topKey] = [$number, $key];
+                [$top, $topKey] = [$playerId, $key];
             }
         }
 

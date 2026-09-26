@@ -36,11 +36,11 @@ class MatchDayDeleteTest extends TestCase
                 'id' => 'g1',
                 'status' => 'finished',
                 'teams' => [
-                    ['name' => 'Reds', 'players' => [$scorer->number]],
-                    ['name' => 'Blues', 'players' => [$other->number]],
+                    ['name' => 'Reds', 'players' => [$scorer->id]],
+                    ['name' => 'Blues', 'players' => [$other->id]],
                 ],
-                'goals' => [['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $scorer->number]],
-                'cards' => [['id' => 'c1', 'playerId' => $other->number, 'type' => 'yellow', 'reason' => 'Dissent']],
+                'goals' => [['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $scorer->id]],
+                'cards' => [['id' => 'c1', 'playerId' => $other->id, 'type' => 'yellow', 'reason' => 'Dissent']],
             ]],
         ])->assertOk();
 
@@ -67,7 +67,7 @@ class MatchDayDeleteTest extends TestCase
         $this->assertSame(1, Card::count());
         $this->assertSame(0, PlayerRatingChange::where('match_day_event_id', 'second')->count());
         $this->assertEqualsWithDelta($ratingAfterFirst, (float) $scorer->fresh()->rating, 0.001);
-        $this->assertSame(1, PlayerStats::computeAll(MatchDayEvent::all())[$scorer->number]['goals']);
+        $this->assertSame(1, PlayerStats::computeAll(MatchDayEvent::all())[$scorer->id]['goals']);
         $this->assertSame('Session first', ValeContent::current()->team_week_title);
 
         $this->deleteJson('/api/match-day-events/first')->assertNoContent();
@@ -76,6 +76,6 @@ class MatchDayDeleteTest extends TestCase
         $this->assertEqualsWithDelta(6.0, (float) $scorer->fresh()->rating, 0.001);
         $this->assertEqualsWithDelta(6.0, (float) $other->fresh()->rating, 0.001);
         $this->assertNull(ValeContent::current()->team_week_title);
-        $this->assertNull(ValeContent::current()->potw_player_number);
+        $this->assertNull(ValeContent::current()->potw_player_id);
     }
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { isStockPhoto, seedSquad, stockPhoto, type Player, type Position, type RatingPoint } from "./clubData";
+import { isStockPhoto, seedSquad, stockPhoto, type Membership, type Player, type Position, type RatingPoint } from "./clubData";
 import { apiFetch, ApiError } from "./api";
 
 interface ApiPlayer {
@@ -7,6 +7,8 @@ interface ApiPlayer {
   number: number;
   name: string;
   position: Position;
+  secondaryPosition?: Position | null;
+  membership?: Membership;
   bio: string | null;
   photoUrl: string | null;
   active: boolean;
@@ -22,10 +24,13 @@ interface ApiPlayer {
 
 function fromApi(p: ApiPlayer): Player {
   return {
+    id: p.id,
     number: p.number,
     name: p.name,
     position: p.position,
-    photo: p.photoUrl && !isStockPhoto(p.photoUrl) ? p.photoUrl : stockPhoto(p.number),
+    secondaryPosition: p.secondaryPosition ?? null,
+    membership: p.membership ?? "member",
+    photo: p.photoUrl && !isStockPhoto(p.photoUrl) ? p.photoUrl : stockPhoto(p.id),
     rating: p.rating,
     appearances: p.appearances,
     goals: p.goals,
@@ -42,6 +47,8 @@ function toApiBody(player: Partial<Player>) {
   if (player.number !== undefined) body.number = player.number;
   if (player.name !== undefined) body.name = player.name;
   if (player.position !== undefined) body.position = player.position;
+  if (player.membership !== undefined) body.membership = player.membership;
+  if (player.secondaryPosition !== undefined) body.secondary_position = player.secondaryPosition || null;
   if (player.rating !== undefined) body.rating = player.rating;
   if (player.photo !== undefined) body.photo_url = player.photo && !isStockPhoto(player.photo) ? player.photo : null;
   return body;
@@ -51,9 +58,9 @@ interface SquadContextValue {
   players: Player[];
   loading: boolean;
   error: string;
-  addPlayer: (player: Player) => void;
-  updatePlayer: (number: number, patch: Partial<Player>) => void;
-  removePlayer: (number: number) => void;
+  addPlayer: (player: Omit<Player, "id">) => Promise<Player | null>;
+  updatePlayer: (id: number, patch: Partial<Player>) => void;
+  removePlayer: (id: number) => void;
   refresh: () => Promise<void>;
 }
 
@@ -80,33 +87,41 @@ export function SquadProvider({ children }: { children: ReactNode }) {
     refresh().finally(() => setLoading(false));
   }, []);
 
-  function addPlayer(player: Player) {
+  /** Resolves with the saved player (null on failure) — its id comes from the server. */
+  function addPlayer(player: Omit<Player, "id">): Promise<Player | null> {
     setError("");
-    apiFetch<{ data: ApiPlayer }>("/players", {
+    return apiFetch<{ data: ApiPlayer }>("/players", {
       method: "POST",
       body: JSON.stringify(toApiBody(player)),
     })
-      .then((res) => setPlayers((prev) => [...prev, fromApi(res.data)]))
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Couldn't add that player."));
+      .then((res) => {
+        const created = fromApi(res.data);
+        setPlayers((prev) => [...prev, created]);
+        return created;
+      })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Couldn't add that player.");
+        return null;
+      });
   }
 
-  function updatePlayer(number: number, patch: Partial<Player>) {
+  function updatePlayer(id: number, patch: Partial<Player>) {
     setError("");
     const previous = playersRef.current;
     setPlayers((prev) =>
       prev.map((p) => {
-        if (p.number !== number) return p;
-        const next = { ...p, ...patch };
-        return next.photo ? next : { ...next, photo: stockPhoto(next.number) };
+        if (p.id !== id) return p;
+        const next = { ...p, ...patch, id };
+        return next.photo ? next : { ...next, photo: stockPhoto(id) };
       }),
     );
-    apiFetch<{ data: ApiPlayer }>(`/players/${number}`, {
+    apiFetch<{ data: ApiPlayer }>(`/players/${id}`, {
       method: "PUT",
       body: JSON.stringify(toApiBody(patch)),
     })
       .then((res) => {
         const updated = fromApi(res.data);
-        setPlayers((prev) => prev.map((p) => (p.number === number ? updated : p)));
+        setPlayers((prev) => prev.map((p) => (p.id === id ? updated : p)));
       })
       .catch((err) => {
         setPlayers(previous);
@@ -114,11 +129,11 @@ export function SquadProvider({ children }: { children: ReactNode }) {
       });
   }
 
-  function removePlayer(number: number) {
+  function removePlayer(id: number) {
     setError("");
     const previous = playersRef.current;
-    setPlayers((prev) => prev.filter((p) => p.number !== number));
-    apiFetch(`/players/${number}`, { method: "DELETE" }).catch((err) => {
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
+    apiFetch(`/players/${id}`, { method: "DELETE" }).catch((err) => {
       setPlayers(previous);
       setError(err instanceof ApiError ? err.message : "Couldn't remove that player.");
     });

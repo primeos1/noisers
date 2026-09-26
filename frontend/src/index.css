@@ -141,18 +141,44 @@
     border-bottom-right-radius: 50% 64px;
   }
 
-  .kickoff-photo img {
-    animation: kickoff-settle 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  .kickoff-zoom {
+    animation: kickoff-zoom 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  @keyframes kickoff-settle {
+  @keyframes kickoff-zoom {
     from {
       transform: scale(1.18);
-      filter: grayscale(1) brightness(0.3);
     }
     to {
       transform: scale(1);
+    }
+  }
+
+  .kickoff-base {
+    animation: kickoff-lights 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes kickoff-lights {
+    from {
+      filter: grayscale(1) brightness(0.3);
+    }
+    to {
       filter: grayscale(1) contrast(1.05) brightness(1.1);
+    }
+  }
+
+  /* Only the grass keeps its colour; it greens up once the lights are on. */
+  .kickoff-pitch {
+    filter: url(#pitch-green);
+    animation: pitch-green-in 1.2s ease-out 1.1s both;
+  }
+
+  @keyframes pitch-green-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.8;
     }
   }
 
@@ -599,6 +625,573 @@
   @keyframes rating-fill {
     from {
       transform: scaleX(0);
+    }
+  }
+}
+
+/* ---- Join the squad (/join) ------------------------------------------- */
+@layer components {
+  .join-glow {
+    position: absolute;
+    left: 50%;
+    top: -10%;
+    width: 140vmax;
+    height: 70vmax;
+    transform: translateX(-50%);
+    transition: opacity 0.6s ease;
+  }
+  .join-glow-member {
+    background: radial-gradient(closest-side, rgba(47, 158, 138, 0.22), transparent);
+  }
+  .join-glow-guest {
+    background: radial-gradient(closest-side, rgba(168, 132, 31, 0.24), transparent);
+  }
+  @media (min-width: 768px) {
+    .join-glow {
+      left: 25%;
+      top: 10%;
+      width: 80vmax;
+      height: 80vmax;
+    }
+  }
+
+  /* Shirt: two faces that flip round when the player joins. */
+  .join-shirt-stage {
+    perspective: 1200px;
+  }
+  .join-shirt {
+    position: relative;
+    aspect-ratio: 300 / 320;
+    transform-style: preserve-3d;
+    transition: transform 1s cubic-bezier(0.2, 0.9, 0.25, 1.15);
+    filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+  }
+  .join-shirt[data-flipped="true"] {
+    transform: rotateY(180deg);
+  }
+  .join-shirt-face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .join-shirt-front {
+    transform: rotateY(180deg);
+  }
+  .join-trim {
+    transition: stroke 0.45s ease;
+  }
+  .join-pop {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: join-pop 0.38s cubic-bezier(0.3, 1.7, 0.5, 1);
+  }
+  @keyframes join-pop {
+    from {
+      transform: scale(0.72);
+      opacity: 0.35;
+    }
+  }
+
+  /* Steps slide in from the side the player is heading. */
+  .join-step-fwd {
+    animation: join-in-right 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .join-step-back {
+    animation: join-in-left 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes join-in-right {
+    from {
+      transform: translateX(32px);
+      opacity: 0;
+    }
+  }
+  @keyframes join-in-left {
+    from {
+      transform: translateX(-32px);
+      opacity: 0;
+    }
+  }
+  .join-shake {
+    animation: join-shake 0.4s ease;
+  }
+  @keyframes join-shake {
+    20%,
+    60% {
+      transform: translateX(-7px);
+    }
+    40%,
+    80% {
+      transform: translateX(7px);
+    }
+  }
+
+  .join-progress {
+    height: 4px;
+    flex: 1;
+    border-radius: 999px;
+    background: var(--color-ink-line);
+    position: relative;
+    overflow: hidden;
+  }
+  .join-progress::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--color-paper);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.45s ease;
+  }
+  .join-progress[data-done="true"]::after {
+    transform: scaleX(1);
+  }
+
+  /* Member / Guest member radios as big tappable tiles. */
+  .join-choice {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--color-ink-line);
+    border-radius: 1rem;
+    color: var(--color-paper-dim);
+    cursor: pointer;
+    transition: border-color 0.25s, background-color 0.25s, color 0.25s, transform 0.15s;
+  }
+  .join-choice:active {
+    transform: scale(0.97);
+  }
+  .join-choice:has(input:focus-visible) {
+    outline: 2px solid var(--color-paper);
+    outline-offset: 2px;
+  }
+  .join-choice-dot {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    transition: box-shadow 0.25s, background-color 0.25s;
+  }
+  .join-choice[data-checked="true"] {
+    color: var(--color-paper);
+  }
+  .join-choice[data-tone="member"][data-checked="true"] {
+    border-color: var(--color-win);
+    background: rgba(47, 158, 138, 0.14);
+  }
+  .join-choice[data-tone="guest"][data-checked="true"] {
+    border-color: var(--color-draw);
+    background: rgba(168, 132, 31, 0.16);
+  }
+  .join-choice[data-checked="true"] .join-choice-dot {
+    background: var(--color-paper);
+    box-shadow: inset 0 0 0 3px var(--color-ink);
+  }
+
+  /* Number strip */
+  .join-strip {
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .join-strip-fade {
+    mask-image: linear-gradient(to right, transparent, #000 22%, #000 78%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 22%, #000 78%, transparent);
+  }
+  .join-strip::-webkit-scrollbar {
+    display: none;
+  }
+  .join-strip-number {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--color-paper);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .join-nudge {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: 1px solid var(--color-ink-line);
+    font-size: 1.5rem;
+    color: var(--color-paper-dim);
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .join-nudge:hover {
+    border-color: var(--color-paper);
+    color: var(--color-paper);
+  }
+  .join-nudge:active {
+    transform: scale(0.9);
+  }
+
+  /* Pitch zones */
+  .join-zone {
+    position: relative;
+    transition: background-color 0.25s ease;
+  }
+  .join-zone + .join-zone {
+    border-left: 1px dashed rgba(246, 246, 243, 0.12);
+  }
+  .join-zone:hover {
+    background: rgba(246, 246, 243, 0.05);
+  }
+  .join-zone:focus-visible {
+    outline: 2px solid var(--color-paper);
+    outline-offset: -4px;
+  }
+  .join-zone[data-role="main"] {
+    background: rgba(246, 246, 243, 0.2);
+    animation: join-zone-pulse 0.45s ease;
+  }
+  .join-zone[data-role="second"] {
+    background: rgba(246, 246, 243, 0.09);
+    animation: join-zone-pulse 0.45s ease;
+  }
+  @keyframes join-zone-pulse {
+    from {
+      box-shadow: inset 0 0 0 40px rgba(246, 246, 243, 0.25);
+    }
+  }
+  .join-zone-chip {
+    min-height: 1.1rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+  .join-zone[data-role] .join-zone-chip {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  .join-photo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 999px;
+    border: 2px dashed var(--color-ink-line);
+    cursor: pointer;
+    transition: border-color 0.25s, transform 0.15s;
+  }
+  .join-photo:hover,
+  .join-photo:focus-within {
+    border-color: var(--color-paper);
+  }
+  .join-photo:active {
+    transform: scale(0.95);
+  }
+
+  .join-bar {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--color-ink) 70%, transparent);
+  }
+  .join-cta {
+    display: block;
+    border-radius: 999px;
+    background: var(--color-paper);
+    padding: 1rem 1.5rem;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    transition: transform 0.15s ease, opacity 0.2s ease;
+  }
+  .join-cta:active {
+    transform: scale(0.97);
+  }
+  .join-cta:disabled {
+    opacity: 0.6;
+  }
+  .join-cta:focus-visible {
+    outline: 2px solid var(--color-paper);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .join-shirt,
+    .join-trim,
+    .join-glow,
+    .join-progress::after {
+      transition: none;
+    }
+    .join-pop,
+    .join-step-fwd,
+    .join-step-back,
+    .join-shake,
+    .join-zone[data-role] {
+      animation: none;
+    }
+  }
+}
+
+/* ---- Player login: the scoreboard (/player-login) --------------------- */
+@layer components {
+  .board {
+    position: relative;
+    display: block;
+    cursor: text;
+    border-radius: 1.25rem;
+    border: 2px solid var(--color-ink-line);
+    padding: 1.25rem 1.25rem 1.5rem;
+    background-color: #06080f;
+    background-image: radial-gradient(rgba(246, 246, 243, 0.07) 1px, transparent 1.6px);
+    background-size: 8px 8px;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.7);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    --led: #f4c542;
+  }
+  .board[data-focused="true"] {
+    border-color: rgba(244, 197, 66, 0.55);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(244, 197, 66, 0.12);
+  }
+  .board[data-state="wrong"] {
+    --led: #ff5c8f;
+    border-color: var(--color-loss);
+    animation: join-shake 0.4s ease;
+  }
+  .board[data-state="right"] {
+    --led: #4fe0bf;
+    border-color: var(--color-win);
+  }
+  .board-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    font-size: 16px; /* stops iOS zooming in on focus */
+    cursor: text;
+  }
+  .board-headline {
+    display: flex;
+    flex-wrap: wrap;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(2.1rem, 10vw, 3.25rem);
+    line-height: 1;
+    letter-spacing: 0.06em;
+    color: var(--led);
+    text-shadow: 0 0 14px color-mix(in srgb, var(--led) 55%, transparent);
+    perspective: 400px;
+  }
+  .board-letter {
+    display: inline-block;
+    animation: board-flip 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+  @keyframes board-flip {
+    from {
+      transform: rotateX(90deg);
+      opacity: 0;
+    }
+  }
+  .board-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    margin-top: 1rem;
+  }
+  .board-bulb {
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 999px;
+    background: var(--led);
+    box-shadow: 0 0 10px var(--led);
+    animation: board-bulb 0.25s ease-out;
+  }
+  @keyframes board-bulb {
+    from {
+      transform: scale(0.2);
+      box-shadow: 0 0 24px var(--led);
+    }
+  }
+  .board-char {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--led);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--led) 55%, transparent);
+    animation: board-bulb 0.25s ease-out;
+  }
+  .board-hint {
+    font-size: 0.9rem;
+    color: var(--color-mist);
+  }
+  .board-caret {
+    width: 0.55rem;
+    height: 1.7rem;
+    background: var(--led);
+    animation: board-blink 1s steps(1) infinite;
+  }
+  @keyframes board-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  /* Gates close behind the player on the way into the portal. */
+  .board-gate {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50.5%;
+    background-color: var(--color-ink-raised);
+    background-image: repeating-linear-gradient(to right, transparent 0 22px, rgba(246, 246, 243, 0.07) 22px 26px);
+    transition: transform 0.6s cubic-bezier(0.7, 0, 0.2, 1) 0.35s;
+  }
+  .board-gate-left {
+    left: 0;
+    transform: translateX(-101%);
+    box-shadow: inset -3px 0 0 var(--color-win);
+  }
+  .board-gate-right {
+    right: 0;
+    transform: translateX(101%);
+    box-shadow: inset 3px 0 0 var(--color-win);
+  }
+  .board-gates[data-open="true"] .board-gate {
+    transform: translateX(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .board,
+    .board-letter,
+    .board-bulb,
+    .board-char,
+    .board-caret {
+      animation: none !important;
+    }
+    .board-gate {
+      transition: none;
+    }
+  }
+}
+
+/* ---- Committee login: floodlights (/login) ---------------------------- */
+@layer components {
+  .flood-tower {
+    position: absolute;
+    top: 4.25rem;
+    width: 44px;
+  }
+  .flood-tower-left {
+    left: 5%;
+    --aim: -30deg;
+  }
+  .flood-tower-right {
+    right: 5%;
+    --aim: 30deg;
+  }
+  @media (min-width: 768px) {
+    .flood-tower {
+      top: 5.5rem;
+      width: 60px;
+    }
+    .flood-tower-left {
+      left: 12%;
+      --aim: -34deg;
+    }
+    .flood-tower-right {
+      right: 12%;
+      --aim: 34deg;
+    }
+  }
+  .flood-mast {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+  .flood-lamp {
+    fill: #2a3044;
+    transition: fill 0.3s ease, filter 0.3s ease;
+  }
+  .flood-tower[data-on="true"] .flood-lamp {
+    fill: #fffbe8;
+    filter: drop-shadow(0 0 4px #fff3c4);
+  }
+  .flood-beam {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    width: 75vw;
+    height: 115vh;
+    transform-origin: top center;
+    transform: translateX(-50%) rotate(var(--aim));
+    clip-path: polygon(47% 0, 53% 0, 100% 100%, 0 100%);
+    background: linear-gradient(to bottom, rgba(255, 248, 220, 0.55), rgba(255, 248, 220, 0.12) 55%, transparent 80%);
+    opacity: 0.12;
+    animation: flood-sweep 4.5s ease-in-out infinite alternate;
+    transition: opacity 0.5s ease;
+  }
+  .flood-tower-right .flood-beam {
+    animation-delay: -2.2s;
+  }
+  @keyframes flood-sweep {
+    from {
+      transform: translateX(-50%) rotate(calc(var(--aim) - 16deg));
+    }
+    to {
+      transform: translateX(-50%) rotate(calc(var(--aim) + 12deg));
+    }
+  }
+  .flood-tower[data-on="true"] .flood-beam {
+    animation: none;
+    opacity: 0.5;
+  }
+  .flood-page[data-flare="true"] .flood-beam {
+    opacity: 0.95;
+    transition-duration: 0.25s;
+  }
+  .flood-pitch {
+    transition: opacity 0.5s ease;
+    opacity: 0.6;
+  }
+  .flood-page[data-flare="true"] .flood-pitch {
+    opacity: 1;
+  }
+  [data-flicker="true"] .flood-tower {
+    animation: flood-flicker 0.7s steps(1);
+  }
+  @keyframes flood-flicker {
+    0%,
+    30%,
+    60% {
+      opacity: 0.15;
+    }
+    15%,
+    45%,
+    80% {
+      opacity: 1;
+    }
+  }
+  .flood-cta {
+    transition: transform 0.15s ease, box-shadow 0.4s ease;
+  }
+  .flood-cta[data-ready="true"] {
+    box-shadow: 0 0 36px rgba(255, 248, 220, 0.35);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flood-beam,
+    [data-flicker="true"] .flood-tower {
+      animation: none;
     }
   }
 }

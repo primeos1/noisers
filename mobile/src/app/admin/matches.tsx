@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { useClub } from "../../lib/club";
 import { plural, scoreOf, sortEvents } from "../../lib/derive";
-import { confirmRemoveEvent } from "../../components/form";
-import { Empty, ErrorBanner, Group, LiveTag, PageTitle, Row, Screen, Txt, text } from "../../components/ui";
+import { confirmRemoveEvent, Intro } from "../../components/form";
+import { Empty, ErrorBanner, Group, LiveTag, Row, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 export default function MatchesAdminScreen() {
@@ -14,10 +14,7 @@ export default function MatchesAdminScreen() {
 
   return (
     <Screen onRefresh={refresh}>
-      <PageTitle
-        title="Matches"
-        sub="Every match day, with every game played. Tap one for the full match sheet; long-press to delete it."
-      />
+      <Intro>Every match day, with every game played. Tap one for the full match sheet; long-press to delete it.</Intro>
       <ErrorBanner message={error} />
 
       {sorted.length === 0 ? (

@@ -21,11 +21,9 @@ use App\Http\Controllers\Api\ValeContentController;
 use Illuminate\Support\Facades\Route;
 
 // Public — powers the marketing site (squad, fixtures, results, seasons).
-// Bound by jersey number, not the database id — the number is the durable
-// identity used everywhere else a player is referenced (cards, match days,
-// Vale awards, highlights).
+// Bound by database id — shirt numbers can repeat, so they're display-only.
 Route::get('/players', [PlayerController::class, 'index']);
-Route::get('/players/{player:number}', [PlayerController::class, 'show']);
+Route::get('/players/{player}', [PlayerController::class, 'show']);
 
 Route::get('/seasons', [SeasonController::class, 'index']);
 Route::get('/seasons/{season}', [SeasonController::class, 'show']);
@@ -73,8 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Writes for the public-facing entities (public reads stay above, no auth).
     Route::post('/players', [PlayerController::class, 'store']);
-    Route::put('/players/{player:number}', [PlayerController::class, 'update']);
-    Route::delete('/players/{player:number}', [PlayerController::class, 'destroy']);
+    Route::put('/players/{player}', [PlayerController::class, 'update']);
+    Route::delete('/players/{player}', [PlayerController::class, 'destroy']);
 
     Route::post('/seasons', [SeasonController::class, 'store']);
     Route::put('/seasons/{season}', [SeasonController::class, 'update']);

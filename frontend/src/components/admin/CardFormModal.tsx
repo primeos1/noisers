@@ -30,8 +30,8 @@ export default function CardFormModal({
     yellow: settings.yellowCardFine,
     red: settings.redCardFine,
   };
-  const sorted = [...players].sort((a, b) => a.number - b.number);
-  const [playerNumber, setPlayerNumber] = useState<number>(sorted[0]?.number ?? 0);
+  const sorted = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  const [playerId, setPlayerId] = useState<number>(sorted[0]?.id ?? 0);
   const [type, setType] = useState<CardType>("yellow");
   const [reason, setReason] = useState("");
   const [date, setDate] = useState(today());
@@ -45,7 +45,7 @@ export default function CardFormModal({
     }
     onSubmit({
       id: `card${Date.now()}`,
-      playerNumber,
+      playerId,
       type,
       reason: reason.trim(),
       fine: fineAmounts[type],
@@ -61,11 +61,11 @@ export default function CardFormModal({
           Player
           <select
             className={inputClass}
-            value={playerNumber}
-            onChange={(e) => setPlayerNumber(Number(e.target.value))}
+            value={playerId}
+            onChange={(e) => setPlayerId(Number(e.target.value))}
           >
             {sorted.map((p) => (
-              <option key={p.number} value={p.number}>
+              <option key={p.id} value={p.id}>
                 #{p.number} {p.name}
               </option>
             ))}

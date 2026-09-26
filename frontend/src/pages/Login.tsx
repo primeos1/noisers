@@ -1,12 +1,46 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useState, type FormEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
-import { photos } from "../lib/photos";
 import { useAuth } from "../lib/AuthContext";
 import { ApiError } from "../lib/api";
 
+// Committee sign-in, set on a pitch at night. Two floodlight towers sweep
+// the dark until their field is filled — left for email, right for
+// password — then lock on. A wrong sign-in makes them flicker; a right one
+// brings them up to full before the admin opens.
+
+function buzz(pattern: number | number[]) {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    // Not supported — the lights say it anyway.
+  }
+}
+
+function reducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function Tower({ side, on }: { side: "left" | "right"; on: boolean }) {
+  return (
+    <div className={`flood-tower flood-tower-${side}`} data-on={on} aria-hidden="true">
+      <span className="flood-beam" />
+      <svg viewBox="0 0 60 150" className="flood-mast">
+        <line x1="30" y1="34" x2="30" y2="150" stroke="var(--color-ink-line)" strokeWidth="4" />
+        <line x1="30" y1="60" x2="16" y2="150" stroke="var(--color-ink-line)" strokeWidth="2" />
+        <line x1="30" y1="60" x2="44" y2="150" stroke="var(--color-ink-line)" strokeWidth="2" />
+        <rect x="4" y="4" width="52" height="30" rx="3" fill="var(--color-ink-raised)" stroke="var(--color-ink-line)" strokeWidth="2" />
+        {[0, 1, 2].map((col) =>
+          [0, 1].map((row) => (
+            <circle key={`${col}-${row}`} className="flood-lamp" cx={15 + col * 15} cy={13 + row * 12} r="5" />
+          )),
+        )}
+      </svg>
+    </div>
+  );
+}
+
 export default function Login() {
-  const stageRef = useRef<HTMLDivElement>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,153 +48,129 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [flare, setFlare] = useState(false);
+  const [flicker, setFlicker] = useState(0);
+
+  const emailOn = /\S+@\S+\.\S+/.test(email.trim());
+  const passwordOn = password.length > 0;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setError("Enter both an email and a password to continue.");
+    if (!emailOn || !passwordOn) {
+      setError(!emailOn ? "Enter the email address you use for the club." : "Enter your password.");
+      setFlicker((n) => n + 1);
+      buzz(40);
       return;
     }
     setError("");
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate(from, { replace: true });
+      setFlare(true);
+      buzz([20, 40, 20]);
+      window.setTimeout(() => navigate(from, { replace: true }), reducedMotion() ? 0 : 900);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't sign in — try again.");
-    } finally {
+      setError(err instanceof ApiError ? err.message : "Couldn't reach the club server. Check your connection and try again.");
+      setFlicker((n) => n + 1);
+      buzz([60, 40, 60]);
       setSubmitting(false);
     }
   }
 
-  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-    const stage = stageRef.current;
-    if (!stage) return;
-    const rect = stage.getBoundingClientRect();
-    stage.style.setProperty(
-      "--spot-x",
-      `${((event.clientX - rect.left) / rect.width) * 100}%`,
-    );
-    stage.style.setProperty(
-      "--spot-y",
-      `${((event.clientY - rect.top) / rect.height) * 100}%`,
-    );
-  }
+  const fieldClass =
+    "mt-1 w-full border-b-2 border-ink-line bg-transparent py-3 text-lg text-paper outline-none transition-colors duration-300 placeholder:text-mist/50 focus:border-paper";
 
   return (
-    <div
-      ref={stageRef}
-      onPointerMove={handlePointerMove}
-      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-ink px-5 py-16"
-    >
-      <img
-        src={photos.tunnel}
-        alt=""
-        aria-hidden="true"
-        className="duotone absolute inset-0 h-full w-full object-cover opacity-30"
-      />
-      <div className="duotone-wash pointer-events-none absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink via-ink/80 to-ink" />
-      <div className="floodlight-sweep pointer-events-none absolute inset-0" aria-hidden="true" />
-      <div className="spotlight pointer-events-none absolute inset-0" aria-hidden="true" />
-      <div className="grain pointer-events-none absolute inset-0" aria-hidden="true" />
-
-      <Link
-        to="/"
-        className="animate-hero-in relative z-10 mb-10 flex items-center gap-3"
-      >
-        <img src={logoWhite} alt="Noisers FC crest" className="h-12 w-12" />
-        <span className="font-display text-2xl tracking-wide text-paper">
-          NOISERS FC
-        </span>
-        <span className="eq" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-        </span>
-      </Link>
-
-      <div className="animate-hero-in relative z-10 w-full max-w-sm [animation-delay:100ms]">
-        <div className="relative border border-ink-line bg-ink-raised/90 p-6 backdrop-blur-sm sm:p-8">
-          <span className="corner corner-tl" />
-          <span className="corner corner-tr" />
-          <span className="corner corner-bl" />
-          <span className="corner corner-br" />
-
-          <p className="text-xs uppercase tracking-[0.3em] text-mist">
-            Access
-          </p>
-          <h1 className="reveal-text mt-2 font-display text-4xl text-paper">
-            Club login
-          </h1>
-          <p className="mt-2 text-sm text-paper-dim">
-            For committee and team management access.
-          </p>
-
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
-            <label className="group block">
-              <span className="text-sm text-paper-dim">Email</span>
-              <div className="relative mt-2">
-                <input
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-ink-line bg-ink px-4 py-3 text-paper outline-none transition-colors duration-300 focus:border-paper"
-                  placeholder="you@noisersfc.com"
-                />
-                <span className="pointer-events-none absolute inset-x-0 -bottom-px h-[2px] origin-left scale-x-0 bg-paper transition-transform duration-500 ease-out group-focus-within:scale-x-100" />
-              </div>
-            </label>
-
-            <label className="group block">
-              <span className="text-sm text-paper-dim">Password</span>
-              <div className="relative mt-2">
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-ink-line bg-ink px-4 py-3 text-paper outline-none transition-colors duration-300 focus:border-paper"
-                  placeholder="••••••••"
-                />
-                <span className="pointer-events-none absolute inset-x-0 -bottom-px h-[2px] origin-left scale-x-0 bg-paper transition-transform duration-500 ease-out group-focus-within:scale-x-100" />
-              </div>
-            </label>
-
-            {error && <p className="text-sm text-loss">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="shimmer-btn relative w-full overflow-hidden border border-paper bg-paper px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span className="relative z-10">{submitting ? "Signing in…" : "Sign in"}</span>
-            </button>
-          </form>
-
-          <p className="mt-6 text-xs text-mist">
-            Admin accounts are provisioned by the club committee.
-          </p>
-        </div>
+    <div className="flood-page relative flex min-h-dvh flex-col overflow-hidden bg-ink text-paper" data-flare={flare}>
+      {/* Lights, re-mounted on each failed try so the flicker replays. */}
+      <div key={flicker} className="pointer-events-none absolute inset-0" data-flicker={flicker > 0}>
+        <Tower side="left" on={emailOn || flare} />
+        <Tower side="right" on={passwordOn || flare} />
       </div>
 
-      <p className="animate-hero-in relative z-10 mt-8 text-sm text-paper-dim [animation-delay:150ms]">
-        Squad player?{" "}
-        <Link to="/player-login" className="text-paper underline underline-offset-4 hover:text-paper-dim">
-          Use the player login
-        </Link>
-      </p>
-
-      <Link
-        to="/"
-        className="animate-hero-in relative z-10 mt-4 text-sm text-paper-dim transition-colors hover:text-paper [animation-delay:200ms]"
+      {/* The pitch, in perspective under the lights. */}
+      <svg
+        className="flood-pitch pointer-events-none absolute inset-x-0 bottom-0 h-[20vh] w-full"
+        viewBox="0 0 400 200"
+        preserveAspectRatio="none"
+        aria-hidden="true"
       >
-        ← Back to the club site
-      </Link>
+        <g fill="none" stroke="rgba(246,246,243,0.1)" strokeWidth="1.2">
+          <path d="M60 10 L340 10 L400 200 L0 200 Z" />
+          <line x1="200" y1="10" x2="200" y2="200" />
+          <ellipse cx="200" cy="80" rx="46" ry="16" />
+        </g>
+      </svg>
+      <div className="grain pointer-events-none absolute inset-0" aria-hidden="true" />
+
+      <header className="relative z-10 flex items-center justify-between px-5 pt-5 md:px-10 md:pt-8">
+        <Link to="/" className="flex items-center gap-2">
+          <img src={logoWhite} alt="Noisers FC" className="h-9 w-9" />
+          <span className="font-display text-xl tracking-wide">Noisers FC</span>
+        </Link>
+        <Link to="/player-login" className="text-sm text-paper-dim underline-offset-4 hover:text-paper hover:underline">
+          Player portal
+        </Link>
+      </header>
+
+      <main className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 pb-16 pt-28 md:pt-16">
+        <h1 className="font-display text-5xl font-extrabold leading-none md:text-6xl">Committee sign-in</h1>
+        <p className="mt-3 text-paper-dim">For staff running match days, cards and the club site.</p>
+
+        <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-6">
+          <label className="block text-sm text-paper-dim">
+            Email
+            <input
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              enterKeyHint="next"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@noisersfc.com"
+              className={fieldClass}
+            />
+          </label>
+
+          <label className="block text-sm text-paper-dim">
+            Password
+            <span className="relative block">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                enterKeyHint="go"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${fieldClass} pr-16`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-pressed={showPassword}
+                className="absolute right-0 bottom-3 text-xs text-paper-dim underline-offset-4 hover:text-paper hover:underline"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </span>
+          </label>
+
+          <p className="min-h-5 text-sm text-loss" role="alert">
+            {error}
+          </p>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="join-cta flood-cta w-full"
+            data-ready={emailOn && passwordOn}
+          >
+            {flare ? "Lights on" : submitting ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </main>
     </div>
   );
 }

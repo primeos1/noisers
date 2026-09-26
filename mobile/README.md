@@ -13,9 +13,27 @@ Laravel API as the web app in `../frontend`.
 | **Matches** | Match-day history, filtered by All / Results / Live | `GET /match-day-events` |
 | **Match sheet** | Game scores with goal and card timelines, contributions, card fines, and team rosters | plus `GET /settings` |
 | **Stats** | Overview, leaderboards, positions, and recent activity | same data |
-| **Club** | Committee sign-in, then a fines dashboard and the squad passcode to read out to players | `POST /login`, `GET /user`, `GET /settings/passcode`, `POST /logout` |
-| **Cards & fines** | Filter unpaid/paid. Tap a card to toggle paid; long-press to delete it | `PUT` / `DELETE /cards/{id}` |
-| **Log a card** | Pick a player, choose the card type, and optionally add a reason. The fine starts at the club default | `POST /cards` |
+| **Club** | Committee sign-in, then the committee home: greeting, key numbers, every committee tool, recent cards, top scorers and the squad passcode | `POST /login`, `GET /user`, `GET /settings/passcode`, `POST /logout` |
+
+### Committee tools (`src/app/admin/`)
+
+The same sections as the web admin, opened from the Club tab once signed in.
+
+| Screen | What it does | API |
+| --- | --- | --- |
+| **Match Day** | Create or resume a session, tick who's present, add guests, build teams (random / by rating / by position), then run each game: the clock, goals with assists and own goals, cards, subs, end match, end match day | `POST` / `PUT /match-day-events` |
+| **Squad** | Search, add, edit (number, name, position, rating, photo) and remove players; export the squad as CSV through the share sheet | `POST` / `PUT` / `DELETE /players` |
+| **Matches** | Every match day with its scores; tap for the match sheet, long-press to delete (rolls back its stats, fines and ratings) | `DELETE /match-day-events/{id}` |
+| **Cards & fines** | Owed / collected / yellow / red totals; filter all, unpaid, paid, yellow, red. Tap to toggle paid, long-press to delete | `PUT` / `DELETE /cards/{id}` |
+| **Log a card** | Pick a player, the card type and an optional reason. The fine starts at the club default | `POST /cards` |
+| **Reports** | Season totals, top scorers / assists / ratings, squad by position, cards by type, most carded players | same data |
+| **Home page** | All public homepage copy, images, the "Club in numbers" band and its custom tiles, and the gallery strip | `PUT /home-content`, `/home-stats`, `/gallery-images` |
+| **The Vale** | Team, player of the week, most improved, weekly leaders | `PUT /vale-content` |
+| **Highlights** | The public photo/video gallery: add, edit, remove | `/highlights` |
+| **Settings** | Fines, match day rules, rating points, automatic awards, squad passcode, sign-up link, and deleting match days. Committee accounts can view but not edit (admin only, as on the web) | `PUT /settings`, `PUT /settings/passcode` |
+
+Photos are picked from the library, resized on the phone (`expo-image-picker`,
+`expo-image-manipulator`) and uploaded to `POST /media`.
 
 - The app works like the web portal. You need the squad passcode, or a committee sign-in, before any screen opens.
 - The passcode is checked by the API, so changing it in web Settings affects every phone at once.
@@ -71,7 +89,5 @@ how form, fines or contributions are calculated, update both files.
 
 ## Not built yet
 
-- Running a live match day from the phone (team picking, the clock, recording goals). This is still web-only in `/admin/matchday`.
-- Squad editing, CMS content, and settings. These are also web-only.
 - Push notifications.
 - A proper app icon. The Expo default icon is still in place. Add a 1024×1024 crest at `assets/icon.png` before building for the stores.

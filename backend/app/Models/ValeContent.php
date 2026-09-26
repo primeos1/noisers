@@ -16,20 +16,20 @@ class ValeContent extends Model
         'team_rival',
         'team_score',
         'team_photo_url',
-        'team_lineup_numbers',
-        'potw_player_number',
+        'team_lineup_player_ids',
+        'potw_player_id',
         'potw_note',
         'potw_rating',
-        'improved_player_number',
+        'improved_player_id',
         'improved_note',
         'improved_prev_rating',
         'improved_curr_rating',
-        'leader_top_scorer_number',
+        'leader_top_scorer_player_id',
         'leader_top_scorer_value',
-        'leader_top_assist_number',
+        'leader_top_assist_player_id',
         'leader_top_assist_value',
-        'leader_clean_sheet_numbers',
-        'leader_roughest_number',
+        'leader_clean_sheet_player_ids',
+        'leader_roughest_player_id',
         'leader_roughest_yellow',
         'leader_roughest_red',
     ];
@@ -37,8 +37,8 @@ class ValeContent extends Model
     protected function casts(): array
     {
         return [
-            'team_lineup_numbers' => 'array',
-            'leader_clean_sheet_numbers' => 'array',
+            'team_lineup_player_ids' => 'array',
+            'leader_clean_sheet_player_ids' => 'array',
         ];
     }
 

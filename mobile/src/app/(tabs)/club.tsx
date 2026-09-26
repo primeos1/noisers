@@ -159,7 +159,7 @@ function Dashboard() {
               <RefCard type={c.type} size="md" />
               <View style={styles.flex}>
                 <Txt style={text.semi} numberOfLines={1}>
-                  {c.playerNumber != null ? participantName(players, [], c.playerNumber) : "Unknown player"}
+                  {c.playerId != null ? participantName(players, [], c.playerId) : "Unknown player"}
                 </Txt>
                 <Txt style={text.small} numberOfLines={1}>
                   {[c.reason, cardDate(c)].filter(Boolean).join(", ")}
@@ -178,7 +178,7 @@ function Dashboard() {
           </Row>
         ) : (
           scorers.map((p, i) => (
-            <Row key={p.number} onPress={() => router.push(`/player/${p.number}`)}>
+            <Row key={p.id} onPress={() => router.push(`/player/${p.id}`)}>
               <Txt style={styles.rank}>{i + 1}</Txt>
               <Avatar player={p} size={36} />
               <View style={styles.flex}>

@@ -89,8 +89,7 @@ class MatchDayEventController extends Controller
      */
     public function teamOfWeek(MatchDayEvent $matchDayEvent)
     {
-        $squadNumbers = Player::pluck('number')->all();
-        $team = MatchDayFinalizer::computeTeamOfWeek($matchDayEvent, $squadNumbers);
+        $team = MatchDayFinalizer::computeTeamOfWeek($matchDayEvent, Player::pluck('id')->all());
 
         return response()->json([
             'data' => $team ? [
@@ -100,7 +99,7 @@ class MatchDayEventController extends Controller
                 'sessionsPlayed' => $team['sessionsPlayed'],
                 'rivalTeam' => $team['rivalTeam'],
                 'score' => $team['score'],
-                'lineupNumbers' => $team['lineupNumbers'],
+                'lineupPlayerIds' => $team['lineupPlayerIds'],
             ] : null,
         ]);
     }

@@ -22,6 +22,7 @@ class PlayerJoinTest extends TestCase
             'number' => 14,
             'name' => 'New Signing',
             'position' => 'MID',
+            'membership' => 'member',
             'phone' => '08012345678',
             'rating' => 9.5,
             'active' => false,
@@ -44,6 +45,7 @@ class PlayerJoinTest extends TestCase
             'number' => 22,
             'name' => 'Photo Guy',
             'position' => 'DEF',
+            'membership' => 'member',
             'photo' => UploadedFile::fake()->createWithContent('me.png', $png),
         ], ['Accept' => 'application/json'])->assertCreated();
 
@@ -62,6 +64,7 @@ class PlayerJoinTest extends TestCase
             'number' => 22,
             'name' => 'Stranger',
             'position' => 'DEF',
+            'membership' => 'member',
             'photo' => UploadedFile::fake()->createWithContent('me.png', $png),
         ], ['Accept' => 'application/json'])->assertUnprocessable();
 
@@ -75,20 +78,55 @@ class PlayerJoinTest extends TestCase
             'number' => 14,
             'name' => 'Stranger',
             'position' => 'FWD',
+            'membership' => 'member',
         ])->assertUnprocessable()->assertJsonValidationErrors('passcode');
 
         $this->assertDatabaseCount('players', 0);
     }
 
-    public function test_taken_number_is_rejected(): void
+    public function test_players_can_share_a_number_and_pick_a_second_position(): void
     {
         Player::create(['number' => 7, 'name' => 'Existing', 'position' => 'FWD']);
 
         $this->postJson('/api/players/join', [
             'passcode' => 'vale2zenith',
             'number' => 7,
-            'name' => 'Copycat',
+            'name' => 'Second Seven',
+            'position' => 'MID',
+            'membership' => 'member',
+            'secondary_position' => 'FWD',
+        ])->assertCreated()->assertJsonPath('data.secondaryPosition', 'FWD');
+
+        $this->assertSame(2, Player::where('number', 7)->count());
+    }
+
+    public function test_second_position_must_differ_from_the_main_one(): void
+    {
+        $this->postJson('/api/players/join', [
+            'passcode' => 'vale2zenith',
+            'number' => 7,
+            'name' => 'Double Mid',
+            'position' => 'MID',
+            'membership' => 'member',
+            'secondary_position' => 'MID',
+        ])->assertUnprocessable()->assertJsonValidationErrors('secondary_position');
+    }
+
+    public function test_player_can_join_as_a_guest_member(): void
+    {
+        $this->postJson('/api/players/join', [
+            'passcode' => 'vale2zenith',
+            'number' => 30,
+            'name' => 'Visiting Vic',
             'position' => 'FWD',
-        ])->assertUnprocessable()->assertJsonValidationErrors('number');
+            'membership' => 'guest',
+        ])->assertCreated()->assertJsonPath('data.membership', 'guest');
+
+        $this->postJson('/api/players/join', [
+            'passcode' => 'vale2zenith',
+            'number' => 31,
+            'name' => 'No Choice',
+            'position' => 'FWD',
+        ])->assertUnprocessable()->assertJsonValidationErrors('membership');
     }
 }

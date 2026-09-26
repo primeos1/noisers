@@ -218,7 +218,7 @@ export default function AdminHome() {
           ) : (
             <ul className="divide-y divide-ink-line border-t border-ink-line">
               {recent.map((card) => {
-                const player = players.find((p) => p.number === card.playerNumber);
+                const player = players.find((p) => p.id === card.playerId);
                 return (
                   <li key={card.id} className="flex items-center gap-3 px-4 py-3 md:px-5">
                     <span className="relative shrink-0">
@@ -226,7 +226,7 @@ export default function AdminHome() {
                         <img src={player.photo} alt="" className="duotone h-10 w-10 rounded-full object-cover" />
                       ) : (
                         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-xs text-mist">
-                          #{card.playerNumber}
+                          ?
                         </span>
                       )}
                       <span
@@ -237,7 +237,7 @@ export default function AdminHome() {
                       />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-paper">{player ? player.name : `#${card.playerNumber}`}</p>
+                      <p className="truncate text-sm text-paper">{player ? player.name : "Former player"}</p>
                       <p className="truncate text-xs text-mist">
                         {card.reason} · {card.date}
                       </p>
@@ -272,7 +272,7 @@ export default function AdminHome() {
           ) : (
             <ol className="divide-y divide-ink-line border-t border-ink-line">
               {scorers.map((player, i) => (
-                <li key={player.number} className="flex items-center gap-3 px-4 py-3 md:px-5">
+                <li key={player.id} className="flex items-center gap-3 px-4 py-3 md:px-5">
                   <span className="w-4 shrink-0 text-center font-display text-lg text-mist">{i + 1}</span>
                   <img src={player.photo} alt="" className="duotone h-10 w-10 shrink-0 rounded-full object-cover" />
                   <div className="min-w-0 flex-1">

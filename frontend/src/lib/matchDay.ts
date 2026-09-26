@@ -15,8 +15,10 @@ export type MatchDayStatus = "live" | "ended";
 export type GameStatus = "live" | "finished";
 export type TeamMode = "random" | "rating" | "position";
 
-// A squad player is referenced by their jersey number; a guest (someone
-// who isn't a squad member) by a string id like "guest-1".
+// A squad player is referenced by their player id (shirt numbers can
+// repeat); a guest (someone who isn't a squad member) by a string id like
+// "guest-1". Match days saved before the switch to ids may also hold "#<n>"
+// for a player who has since been removed.
 export type ParticipantId = number | string;
 
 export interface Guest {
@@ -108,8 +110,8 @@ export function nextGuestId(guests: Guest[]): string {
 
 export function participantName(players: Player[], guests: Guest[], id: ParticipantId): string {
   if (typeof id === "number") {
-    const player = players.find((p) => p.number === id);
-    return player ? player.name : `#${id}`;
+    const player = players.find((p) => p.id === id);
+    return player ? player.name : "Former player";
   }
   const guest = guests.find((g) => g.id === id);
   return guest ? guest.name : id;
@@ -166,7 +168,7 @@ function distributeByRating(present: Player[], capacities: number[]): number[][]
       }
     }
     if (bestIdx === -1) break;
-    teams[bestIdx].push(player.number);
+    teams[bestIdx].push(player.id);
     totals[bestIdx] += player.rating;
   }
   return teams;
@@ -174,7 +176,8 @@ function distributeByRating(present: Player[], capacities: number[]): number[][]
 
 // Same greedy idea, but balancing each position across teams rather than a
 // single rating total — every team ends up with as even a mix of
-// goalkeepers/defenders/midfielders/forwards as the numbers allow.
+// goalkeepers/defenders/midfielders/forwards as the numbers allow. Players
+// are balanced by their main position; a second position doesn't count.
 function distributeByPosition(present: Player[], capacities: number[]): number[][] {
   const positions: Position[] = ["GK", "DEF", "MID", "FWD"];
   const groups = positions.map((pos) => shuffle(present.filter((p) => p.position === pos)));
@@ -210,7 +213,7 @@ function distributeByPosition(present: Player[], capacities: number[]): number[]
         }
       }
       if (bestIdx === -1) continue;
-      teams[bestIdx].push(player.number);
+      teams[bestIdx].push(player.id);
       posCounts[bestIdx][pos] += 1;
       remaining -= 1;
     }

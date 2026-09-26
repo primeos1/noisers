@@ -111,13 +111,13 @@ export default function AdminCards() {
         {/* Phones: card list */}
         <ul className="mt-4 divide-y divide-ink-line overflow-hidden rounded-2xl border border-ink-line bg-ink-raised md:hidden">
           {visible.map((card) => {
-            const player = players.find((p) => p.number === card.playerNumber);
+            const player = players.find((p) => p.id === card.playerId);
             return (
               <li key={card.id} className="flex items-center gap-3 px-4 py-3">
                 <span className={`h-9 w-6 shrink-0 rounded-[4px] ${card.type === "red" ? "bg-loss" : "bg-draw"}`} aria-label={`${card.type} card`} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[0.95rem] text-paper">
-                    {player ? player.name : `#${card.playerNumber}`}
+                    {player ? player.name : "Former player"}
                   </p>
                   <p className="truncate text-xs text-mist">{card.reason} · {card.date}</p>
                   <div className="mt-1 flex items-center gap-3 text-xs">
@@ -157,7 +157,7 @@ export default function AdminCards() {
             </thead>
             <tbody>
               {visible.map((card, i) => {
-                const player = players.find((p) => p.number === card.playerNumber);
+                const player = players.find((p) => p.id === card.playerId);
                 return (
                   <tr
                     key={card.id}
@@ -170,7 +170,7 @@ export default function AdminCards() {
                           <img src={player.photo} alt="" className="duotone h-9 w-9 object-cover" />
                         )}
                         <div>
-                          <p className="text-paper">{player ? player.name : `#${card.playerNumber}`}</p>
+                          <p className="text-paper">{player ? player.name : "Former player"}</p>
                           {player && <p className="text-xs text-mist">#{player.number}</p>}
                         </div>
                       </div>

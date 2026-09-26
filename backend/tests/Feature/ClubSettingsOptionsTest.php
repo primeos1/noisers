@@ -30,11 +30,11 @@ class ClubSettingsOptionsTest extends TestCase
                 'id' => 'g1',
                 'status' => 'finished',
                 'teams' => [
-                    ['name' => 'Reds', 'players' => [$scorer->number]],
-                    ['name' => 'Blues', 'players' => [$other->number]],
+                    ['name' => 'Reds', 'players' => [$scorer->id]],
+                    ['name' => 'Blues', 'players' => [$other->id]],
                 ],
-                'goals' => [['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $scorer->number]],
-                'cards' => [['id' => 'c1', 'playerId' => $other->number, 'type' => 'red', 'reason' => 'Foul']],
+                'goals' => [['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $scorer->id]],
+                'cards' => [['id' => 'c1', 'playerId' => $other->id, 'type' => 'red', 'reason' => 'Foul']],
             ]],
         ])->assertCreated();
 

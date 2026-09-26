@@ -19,6 +19,8 @@ class PlayerResource extends JsonResource
             'number' => $this->number,
             'name' => $this->name,
             'position' => $this->position,
+            'secondaryPosition' => $this->secondary_position,
+            'membership' => $this->membership ?? 'member',
             'bio' => $this->bio,
             'phone' => $this->when($request->user()?->isCommittee(), $this->phone),
             'email' => $this->when($request->user()?->isCommittee(), $this->email),

@@ -15,22 +15,58 @@ function PlayerSelect({
 }: {
   label: string;
   value: number;
-  onChange: (number: number) => void;
+  onChange: (playerId: number) => void;
 }) {
   const { players } = useSquad();
-  const sorted = [...players].sort((a, b) => a.number - b.number);
+  const sorted = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
   return (
     <label className={labelClass}>
       {label}
       <select className={inputClass} value={value} onChange={(e) => onChange(Number(e.target.value))}>
         <option value={0}>— None —</option>
         {sorted.map((p) => (
-          <option key={p.number} value={p.number}>
+          <option key={p.id} value={p.id}>
             #{p.number} {p.name}
           </option>
         ))}
       </select>
     </label>
+  );
+}
+
+// Tick-box list of the squad — shirt numbers can repeat, so players are
+// picked by name rather than typed in as numbers.
+function PlayerChecklist({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number[];
+  onChange: (playerIds: number[]) => void;
+}) {
+  const { players } = useSquad();
+  const sorted = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  return (
+    <fieldset className="mt-4">
+      <legend className={labelClass}>
+        {label} <span className="text-mist">({value.length} picked)</span>
+      </legend>
+      <div className="mt-1 grid max-h-56 grid-cols-1 gap-x-4 overflow-y-auto border border-ink-line bg-ink p-2 sm:grid-cols-2">
+        {sorted.map((p) => (
+          <label key={p.id} className="flex items-center gap-2 py-1 text-sm text-paper-dim">
+            <input
+              type="checkbox"
+              checked={value.includes(p.id)}
+              onChange={(e) => onChange(e.target.checked ? [...value, p.id] : value.filter((id) => id !== p.id))}
+            />
+            <span className="truncate">
+              #{p.number} {p.name}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -40,18 +76,9 @@ function ValeForm() {
   const [potw, setPotw] = useState(content.playerOfTheWeek);
   const [improved, setImproved] = useState(content.mostImproved);
   const [leaders, setLeaders] = useState(content.weeklyLeaders);
-  const [cleanSheetsDraft, setCleanSheetsDraft] = useState(content.weeklyLeaders.cleanSheets.join(", "));
-  const [lineupDraft, setLineupDraft] = useState(content.teamOfTheWeek.lineupNumbers.join(", "));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-
-  function parseNumberList(text: string): number[] {
-    return text
-      .split(",")
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n) && n > 0);
-  }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -59,10 +86,10 @@ function ValeForm() {
     setSaving(true);
     try {
       const patch: Partial<ValeContentData> = {
-        teamOfTheWeek: { ...team, lineupNumbers: parseNumberList(lineupDraft) },
+        teamOfTheWeek: team,
         playerOfTheWeek: potw,
         mostImproved: improved,
-        weeklyLeaders: { ...leaders, cleanSheets: parseNumberList(cleanSheetsDraft) },
+        weeklyLeaders: leaders,
       };
       await updateContent(patch);
       setSaved(true);
@@ -104,10 +131,11 @@ function ValeForm() {
             <input className={inputClass} value={team.score} onChange={(e) => setTeam({ ...team, score: e.target.value })} placeholder="2–1" />
           </label>
         </div>
-        <label className={`${labelClass} mt-4 block`}>
-          Lineup — jersey numbers, comma separated
-          <input className={inputClass} value={lineupDraft} onChange={(e) => setLineupDraft(e.target.value)} placeholder="1, 4, 5, 7, 8, 9, 10, 14" />
-        </label>
+        <PlayerChecklist
+          label="Lineup"
+          value={team.lineupPlayerIds}
+          onChange={(ids) => setTeam({ ...team, lineupPlayerIds: ids })}
+        />
         <div className="mt-4">
           <ImageUploadField
             label="Photo"
@@ -122,7 +150,7 @@ function ValeForm() {
       <div>
         <h2 className="font-display text-2xl text-paper">Player of the week</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <PlayerSelect label="Player" value={potw.playerNumber} onChange={(n) => setPotw({ ...potw, playerNumber: n })} />
+          <PlayerSelect label="Player" value={potw.playerId} onChange={(n) => setPotw({ ...potw, playerId: n })} />
           <label className={labelClass}>
             Week rating
             <input type="number" step="0.1" min="0" max="10" className={inputClass} value={potw.weekRating} onChange={(e) => setPotw({ ...potw, weekRating: Number(e.target.value) })} />
@@ -137,7 +165,7 @@ function ValeForm() {
       <div>
         <h2 className="font-display text-2xl text-paper">Most improved player</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <PlayerSelect label="Player" value={improved.playerNumber} onChange={(n) => setImproved({ ...improved, playerNumber: n })} />
+          <PlayerSelect label="Player" value={improved.playerId} onChange={(n) => setImproved({ ...improved, playerId: n })} />
           <label className={labelClass}>
             Previous rating
             <input type="number" step="0.01" min="0" max="10" className={inputClass} value={improved.previousRating} onChange={(e) => setImproved({ ...improved, previousRating: Number(e.target.value) })} />
@@ -158,8 +186,8 @@ function ValeForm() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <PlayerSelect
             label="Top scorer"
-            value={leaders.topScorer.playerNumber}
-            onChange={(n) => setLeaders({ ...leaders, topScorer: { ...leaders.topScorer, playerNumber: n } })}
+            value={leaders.topScorer.playerId}
+            onChange={(n) => setLeaders({ ...leaders, topScorer: { ...leaders.topScorer, playerId: n } })}
           />
           <label className={labelClass}>
             Goals
@@ -173,8 +201,8 @@ function ValeForm() {
           </label>
           <PlayerSelect
             label="Top assist"
-            value={leaders.topAssist.playerNumber}
-            onChange={(n) => setLeaders({ ...leaders, topAssist: { ...leaders.topAssist, playerNumber: n } })}
+            value={leaders.topAssist.playerId}
+            onChange={(n) => setLeaders({ ...leaders, topAssist: { ...leaders.topAssist, playerId: n } })}
           />
           <label className={labelClass}>
             Assists
@@ -187,15 +215,16 @@ function ValeForm() {
             />
           </label>
         </div>
-        <label className={`${labelClass} mt-4 block`}>
-          Clean sheet leaders — jersey numbers, comma separated
-          <input className={inputClass} value={cleanSheetsDraft} onChange={(e) => setCleanSheetsDraft(e.target.value)} placeholder="1, 4, 5" />
-        </label>
+        <PlayerChecklist
+          label="Clean sheet leaders"
+          value={leaders.cleanSheets}
+          onChange={(ids) => setLeaders({ ...leaders, cleanSheets: ids })}
+        />
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <PlayerSelect
             label="Roughest player"
-            value={leaders.roughest.playerNumber}
-            onChange={(n) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, playerNumber: n } })}
+            value={leaders.roughest.playerId}
+            onChange={(n) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, playerId: n } })}
           />
           <label className={labelClass}>
             Yellow cards

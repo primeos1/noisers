@@ -19,17 +19,17 @@ class MatchDayFinalizer
 {
     public static function finalize(MatchDayEvent $event): void
     {
-        $numbers = Player::pluck('id', 'number');
+        $squadIds = Player::pluck('id')->all();
         $settings = ClubSetting::current();
 
         if ($settings->fines_from_match_day) {
-            self::recordCards($event, $numbers->all());
+            self::recordCards($event, $squadIds);
         }
         if ($settings->ratings_enabled) {
             PlayerRatings::apply($event);
         }
         if ($settings->vale_auto_awards) {
-            self::updateWeeklyAwards($event, $numbers->keys()->all());
+            self::updateWeeklyAwards($event, $squadIds);
         }
     }
 
@@ -79,20 +79,20 @@ class MatchDayFinalizer
             'team_sessions_played' => 0,
             'team_rival' => null,
             'team_score' => null,
-            'team_lineup_numbers' => null,
-            'potw_player_number' => null,
+            'team_lineup_player_ids' => null,
+            'potw_player_id' => null,
             'potw_note' => null,
             'potw_rating' => null,
-            'improved_player_number' => null,
+            'improved_player_id' => null,
             'improved_note' => null,
             'improved_prev_rating' => null,
             'improved_curr_rating' => null,
-            'leader_top_scorer_number' => null,
+            'leader_top_scorer_player_id' => null,
             'leader_top_scorer_value' => null,
-            'leader_top_assist_number' => null,
+            'leader_top_assist_player_id' => null,
             'leader_top_assist_value' => null,
-            'leader_clean_sheet_numbers' => null,
-            'leader_roughest_number' => null,
+            'leader_clean_sheet_player_ids' => null,
+            'leader_roughest_player_id' => null,
             'leader_roughest_yellow' => null,
             'leader_roughest_red' => null,
         ]);
@@ -104,21 +104,21 @@ class MatchDayFinalizer
             ->get()
             ->first(fn ($e) => collect($e->games ?? [])->contains(fn ($g) => ($g['status'] ?? null) === 'finished'));
         if ($previous) {
-            self::updateWeeklyAwards($previous, Player::pluck('number')->all());
+            self::updateWeeklyAwards($previous, Player::pluck('id')->all());
         }
     }
 
     /**
-     * @param  array<int, int>  $playerIdsByNumber
+     * @param  array<int, int>  $squadIds
      */
-    private static function recordCards(MatchDayEvent $event, array $playerIdsByNumber): void
+    private static function recordCards(MatchDayEvent $event, array $squadIds): void
     {
         $settings = ClubSetting::current();
 
         foreach (($event->games ?? []) as $game) {
             foreach (($game['cards'] ?? []) as $card) {
-                $number = $card['playerId'] ?? null;
-                if (! is_int($number) || ! isset($playerIdsByNumber[$number])) {
+                $playerId = $card['playerId'] ?? null;
+                if (! is_int($playerId) || ! in_array($playerId, $squadIds, true)) {
                     continue; // guests carry no fines
                 }
 
@@ -127,7 +127,7 @@ class MatchDayFinalizer
                 Card::firstOrCreate(
                     ['match_day_ref' => "{$event->id}:{$game['id']}:{$card['id']}"],
                     [
-                        'player_id' => $playerIdsByNumber[$number],
+                        'player_id' => $playerId,
                         'type' => $type,
                         'reason' => $card['reason'] ?? null,
                         'fine_amount' => $type === 'red' ? $settings->red_card_fine : $settings->yellow_card_fine,
@@ -145,10 +145,10 @@ class MatchDayFinalizer
      * read-only — used both to rewrite The Vale on finalize() and to answer
      * "what was the team of the week for match day X" for any past event.
      *
-     * @param  array<int, int>  $squadNumbers
-     * @return array{sessionsWon: int, sessionsPlayed: int, rivalTeam: string, score: string, lineupNumbers: int[]}|null
+     * @param  array<int, int>  $squadIds
+     * @return array{sessionsWon: int, sessionsPlayed: int, rivalTeam: string, score: string, lineupPlayerIds: int[]}|null
      */
-    public static function computeTeamOfWeek(MatchDayEvent $event, array $squadNumbers): ?array
+    public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds): ?array
     {
         $games = array_values(array_filter(
             $event->games ?? [],
@@ -158,7 +158,7 @@ class MatchDayFinalizer
             return null;
         }
 
-        $inSquad = fn ($id) => is_int($id) && in_array($id, $squadNumbers, true);
+        $inSquad = fn ($id) => is_int($id) && in_array($id, $squadIds, true);
 
         $teams = [];
         foreach ($games as $game) {
@@ -190,14 +190,14 @@ class MatchDayFinalizer
             'sessionsPlayed' => $best['played'],
             'rivalTeam' => $best['rival'],
             'score' => $best['score'],
-            'lineupNumbers' => $best['players'],
+            'lineupPlayerIds' => $best['players'],
         ];
     }
 
     /**
-     * @param  array<int, int>  $squadNumbers
+     * @param  array<int, int>  $squadIds
      */
-    private static function updateWeeklyAwards(MatchDayEvent $event, array $squadNumbers): void
+    private static function updateWeeklyAwards(MatchDayEvent $event, array $squadIds): void
     {
         $games = array_values(array_filter(
             $event->games ?? [],
@@ -207,36 +207,36 @@ class MatchDayFinalizer
             return;
         }
 
-        $inSquad = fn ($id) => is_int($id) && in_array($id, $squadNumbers, true);
+        $inSquad = fn ($id) => is_int($id) && in_array($id, $squadIds, true);
         $awards = ValeContent::current();
         $changes = [
             'team_week_title' => $event->title,
             'team_week_date_range' => $event->date,
         ];
 
-        $team = self::computeTeamOfWeek($event, $squadNumbers);
+        $team = self::computeTeamOfWeek($event, $squadIds);
         if ($team) {
             $changes += [
                 'team_sessions_won' => $team['sessionsWon'],
                 'team_sessions_played' => $team['sessionsPlayed'],
                 'team_rival' => $team['rivalTeam'],
                 'team_score' => $team['score'],
-                'team_lineup_numbers' => $team['lineupNumbers'],
+                'team_lineup_player_ids' => $team['lineupPlayerIds'],
             ];
         }
 
         // Player of the week and weekly leaders — this match day's stats only.
         $stats = array_filter(
             PlayerStats::computeAll([$event]),
-            fn ($number) => $inSquad($number),
+            fn ($playerId) => $inSquad($playerId),
             ARRAY_FILTER_USE_KEY,
         );
 
         $leader = function (string $key) use ($stats): ?int {
             $top = null;
-            foreach ($stats as $number => $s) {
+            foreach ($stats as $playerId => $s) {
                 if ($s[$key] > 0 && ($top === null || $s[$key] > $stats[$top][$key])) {
-                    $top = $number;
+                    $top = $playerId;
                 }
             }
 
@@ -246,31 +246,31 @@ class MatchDayFinalizer
         $scorer = $leader('goals');
         $assister = $leader('assists');
         $changes += [
-            'leader_top_scorer_number' => $scorer,
+            'leader_top_scorer_player_id' => $scorer,
             'leader_top_scorer_value' => $scorer ? $stats[$scorer]['goals'] : 0,
-            'leader_top_assist_number' => $assister,
+            'leader_top_assist_player_id' => $assister,
             'leader_top_assist_value' => $assister ? $stats[$assister]['assists'] : 0,
-            'leader_clean_sheet_numbers' => array_keys(array_filter($stats, fn ($s) => $s['cleanSheets'] > 0)),
+            'leader_clean_sheet_player_ids' => array_keys(array_filter($stats, fn ($s) => $s['cleanSheets'] > 0)),
         ];
 
         $roughest = PlayerStats::roughest($stats);
         $changes += [
-            'leader_roughest_number' => $roughest,
+            'leader_roughest_player_id' => $roughest,
             'leader_roughest_yellow' => $roughest ? $stats[$roughest]['yellowCards'] : 0,
             'leader_roughest_red' => $roughest ? $stats[$roughest]['redCards'] : 0,
         ];
 
         $potw = null;
-        foreach ($stats as $number => $s) {
+        foreach ($stats as $playerId => $s) {
             $key = [$s['goals'] + $s['assists'], $s['goals'], $s['cleanSheets']];
             if ($key[0] + $key[2] > 0 && ($potw === null || $key > $potw['key'])) {
-                $potw = ['number' => $number, 'key' => $key, 'stats' => $s];
+                $potw = ['playerId' => $playerId, 'key' => $key, 'stats' => $s];
             }
         }
         if ($potw) {
             $s = $potw['stats'];
             $changes += [
-                'potw_player_number' => $potw['number'],
+                'potw_player_id' => $potw['playerId'],
                 'potw_note' => sprintf(
                     '%d goal%s and %d assist%s across %d game%s at %s.',
                     $s['goals'], $s['goals'] === 1 ? '' : 's',
@@ -289,7 +289,7 @@ class MatchDayFinalizer
             ->where('match_day_event_id', $event->id)
             ->with('player')
             ->get()
-            ->filter(fn ($c) => $c->player && $inSquad($c->player->number)
+            ->filter(fn ($c) => $c->player && $inSquad($c->player->id)
                 && (float) $c->rating_after > (float) $c->rating_before)
             ->sortBy([
                 fn ($a, $b) => (float) $a->rating_before <=> (float) $b->rating_before,
@@ -300,7 +300,7 @@ class MatchDayFinalizer
 
         if ($improved) {
             $changes += [
-                'improved_player_number' => $improved->player->number,
+                'improved_player_id' => $improved->player->id,
                 'improved_note' => sprintf(
                     'Rating climbed from %.2f to %.2f after %s.',
                     $improved->rating_before,

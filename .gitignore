@@ -34,3 +34,6 @@ mobile/.expo/
 
 # Cloudflare Wrangler local cache
 .wrangler/
+
+# Local database backups (contain password hashes)
+backups/

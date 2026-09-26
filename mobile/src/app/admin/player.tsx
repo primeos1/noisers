@@ -5,47 +5,55 @@ import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
 import { positionLabel, positions, RATING_MAX, RATING_MIN } from "../../lib/derive";
 import { nextJerseyNumber } from "../../lib/matchDay";
-import type { Position } from "../../lib/types";
+import { membershipLabels, type Membership, type Position } from "../../lib/types";
 import { Choice, Col, FieldRow, FormError, Hint, ImageField, Label, NumberField, TextField } from "../../components/form";
 import { Button, Figures, Screen } from "../../components/ui";
-import { colors } from "../../theme";
 
 /**
- * Add a player, or edit one (`?number=7`). `?present=<event id>` also ticks
- * the new player as present on that match day — used from Match Day.
+ * Add a player, or edit one (`?id=12`, the player id). `?present=<event id>`
+ * also ticks the new player as present on that match day — used from Match Day.
  */
 export default function PlayerFormScreen() {
-  const params = useLocalSearchParams<{ number?: string; present?: string }>();
+  const params = useLocalSearchParams<{ id?: string; present?: string }>();
   const { players, events, settings, addPlayer, updatePlayer, updateEvent } = useClub();
-  const initial = params.number ? players.find((p) => p.number === Number(params.number)) : undefined;
+  const initial = params.id ? players.find((p) => p.id === Number(params.id)) : undefined;
 
   const [number, setNumber] = useState(initial?.number ?? nextJerseyNumber(players));
   const [name, setName] = useState(initial?.name ?? "");
+  const [membership, setMembership] = useState<Membership>(initial?.membership ?? "member");
   const [position, setPosition] = useState<Position>(initial?.position ?? "MID");
+  const [secondaryPosition, setSecondaryPosition] = useState<Position | "">(initial?.secondaryPosition ?? "");
   const [rating, setRating] = useState(initial?.rating ?? settings.ratingNewPlayer);
   const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Jersey numbers identify players everywhere (cards, match days, awards).
-  const numberOwner = players.find((p) => p.number === number && p.number !== initial?.number);
+  // Shirt numbers can be shared — just let the admin know who else wears it.
+  const sharedWith = players.filter((p) => p.number === number && p.id !== initial?.id);
 
   async function submit() {
     if (!name.trim()) return setError("Enter a player name.");
     if (!Number.isInteger(number) || number < 1 || number > 99) return setError("Jersey number must be a whole number from 1 to 99.");
-    if (numberOwner) return setError(`#${number} is already taken by ${numberOwner.name}. Pick another number.`);
     if (Number.isNaN(rating) || rating < RATING_MIN || rating > RATING_MAX) return setError(`Rating must be between ${RATING_MIN} and ${RATING_MAX}.`);
 
     setBusy(true);
     setError("");
     try {
-      const input = { number, name, position, rating, photoUrl: photoUrl.trim() || null };
+      const input = {
+        number,
+        name,
+        position,
+        secondaryPosition: secondaryPosition && secondaryPosition !== position ? secondaryPosition : null,
+        membership,
+        rating,
+        photoUrl: photoUrl.trim() || null,
+      };
       if (initial) {
-        await updatePlayer(initial.number, input);
+        await updatePlayer(initial.id, input);
       } else {
-        await addPlayer(input);
+        const created = await addPlayer(input);
         const event = params.present ? events.find((e) => e.id === params.present) : undefined;
-        if (event) await updateEvent(event.id, { presentPlayers: [...event.presentPlayers, number] });
+        if (event) await updateEvent(event.id, { presentPlayers: [...event.presentPlayers, created.id] });
       }
       router.back();
     } catch (err) {
@@ -61,7 +69,7 @@ export default function PlayerFormScreen() {
 
         <FieldRow>
           <Col>
-            <NumberField label="Jersey number" value={number} onChange={setNumber} hint={numberOwner ? `Taken by ${numberOwner.name}` : undefined} />
+            <NumberField label="Jersey number" value={number} onChange={setNumber} hint={sharedWith.length ? `Also worn by ${sharedWith.map((p) => p.name).join(", ")}` : undefined} />
           </Col>
           <Col>
             <NumberField label="Rating" value={rating} onChange={setRating} decimal />
@@ -70,8 +78,32 @@ export default function PlayerFormScreen() {
 
         <TextField label="Full name" value={name} onChangeText={setName} placeholder="e.g. Segun Owolabi" autoCapitalize="words" />
 
-        <Label>Position</Label>
-        <Choice<Position> value={position} onChange={setPosition} options={positions.map((p) => ({ value: p, label: positionLabel[p] }))} />
+        <Label>Membership</Label>
+        <Choice<Membership>
+          value={membership}
+          onChange={setMembership}
+          options={(Object.keys(membershipLabels) as Membership[]).map((m) => ({ value: m, label: membershipLabels[m] }))}
+        />
+
+        <Label>Main position</Label>
+        <Choice<Position>
+          value={position}
+          onChange={(next) => {
+            setPosition(next);
+            if (secondaryPosition === next) setSecondaryPosition("");
+          }}
+          options={positions.map((p) => ({ value: p, label: positionLabel[p] }))}
+        />
+
+        <Label>Second position (optional)</Label>
+        <Choice<Position | "">
+          value={secondaryPosition}
+          onChange={setSecondaryPosition}
+          options={[
+            { value: "", label: "None" },
+            ...positions.filter((p) => p !== position).map((p) => ({ value: p as Position | "", label: positionLabel[p] })),
+          ]}
+        />
 
         <ImageField label="Photo" value={photoUrl} onChange={setPhotoUrl} maxDim={480} />
 
@@ -98,7 +130,6 @@ export default function PlayerFormScreen() {
 
         <FormError message={error} />
         <Button label={initial ? "Save changes" : "Add player"} onPress={submit} busy={busy} />
-        {numberOwner ? <Hint tone={colors.loss}>Pick a number no one else wears.</Hint> : null}
       </Screen>
     </KeyboardAvoidingView>
   );

@@ -7,8 +7,8 @@ import { resolveMediaUrl } from "../../lib/config";
 import { LIVE_STATS, useHomeContent, type HomeContentPatch } from "../../lib/content";
 import { pickAndUploadImage } from "../../lib/media";
 import type { HomeContent, LiveStatId } from "../../lib/types";
-import { confirm, FormError, formStyles, Hint, ImageField, Label, SaveBar, Section, TextField } from "../../components/form";
-import { ErrorBanner, Loading, PageTitle, Screen, Txt, text } from "../../components/ui";
+import { confirm, FormError, formStyles, Hint, ImageField, Label, SaveBar, Section, TextField, Intro } from "../../components/form";
+import { ErrorBanner, Loading, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 type TextSections = Pick<HomeContent, "hero" | "story" | "atmosphere" | "matchday" | "footer"> & {
@@ -94,10 +94,7 @@ function HomeForm({ home }: { home: ReturnType<typeof useHomeContent> }) {
   return (
     <View style={styles.flex}>
       <Screen onRefresh={home.reload}>
-        <PageTitle
-          title="Home page"
-          sub="Every piece of copy and imagery on the public homepage. Images, switches, tiles and the gallery go live straight away; text goes live when you press Save."
-        />
+        <Intro>Every piece of copy and imagery on the public homepage. Images, switches, tiles and the gallery go live straight away; text goes live when you press Save.</Intro>
 
         <Section title="Hero" description="The full-bleed banner at the top of the site.">
           <TextField label="Eyebrow" value={draft.hero.eyebrow} onChangeText={(eyebrow) => edit("hero", { eyebrow })} />
