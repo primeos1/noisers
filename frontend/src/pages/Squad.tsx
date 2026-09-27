@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { formatCards, getSquadHonours, positionNames, roughestPlayer, type Position } from "../lib/clubData";
+import { formatCards, getSquadHonours, positionNames, roughestPlayer, squadLeaderboards, type Position } from "../lib/clubData";
 import { useSquad } from "../lib/SquadContext";
 import MembershipBadge from "../components/MembershipBadge";
+import SquadLeaderboards from "../components/SquadLeaderboards";
 
 const filters: { label: string; value: Position | "ALL" }[] = [
   { label: "All", value: "ALL" },
@@ -28,6 +29,7 @@ export default function Squad() {
 
   const squadHonours = useMemo(() => getSquadHonours(players), [players]);
   const roughest = useMemo(() => roughestPlayer(players), [players]);
+  const leaderboards = useMemo(() => squadLeaderboards(players), [players]);
 
   return (
     <Layout>
@@ -43,7 +45,7 @@ export default function Squad() {
             <div>
               <p className="text-sm text-paper-dim">Squad honours</p>
               <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">
-                Best in position
+                Season standouts
               </h2>
             </div>
             <Link
@@ -106,6 +108,14 @@ export default function Squad() {
               <span className="hidden shrink-0 text-sm text-paper-dim group-hover:text-paper sm:block">View profile →</span>
             </Link>
           )}
+        </div>
+      </section>
+
+      <section className="border-b border-ink-line bg-ink">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
+          <p className="text-sm text-paper-dim">Leaderboards</p>
+          <h2 className="mt-3 font-display text-4xl text-paper md:text-5xl">Who's leading</h2>
+          <SquadLeaderboards boards={leaderboards} />
         </div>
       </section>
 

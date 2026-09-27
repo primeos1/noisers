@@ -106,10 +106,10 @@ export function nextJerseyNumber(players: Player[]): number {
   return 99;
 }
 
-function bestBy(players: Player[], position: Position, key: "goals" | "assists" | "cleanSheets") {
-  const inPosition = players.filter((p) => p.position === position);
-  if (inPosition.length === 0) return null;
-  return inPosition.reduce((top, player) => (player[key] > top[key] ? player : top));
+function bestBy(players: Player[], position: Position | null, key: "goals" | "assists" | "cleanSheets") {
+  const pool = position ? players.filter((p) => p.position === position) : players;
+  if (pool.length === 0) return null;
+  return pool.reduce((top, player) => (player[key] > top[key] ? player : top));
 }
 
 export interface SquadHonour {
@@ -120,14 +120,15 @@ export interface SquadHonour {
 }
 
 export function getSquadHonours(players: Player[]): SquadHonour[] {
-  const striker = bestBy(players, "FWD", "goals");
-  const midfielder = bestBy(players, "MID", "assists");
+  // Goals and assists count for the whole squad, whatever the position.
+  const scorer = bestBy(players, null, "goals");
+  const provider = bestBy(players, null, "assists");
   const defender = bestBy(players, "DEF", "cleanSheets");
   const keeper = bestBy(players, "GK", "cleanSheets");
 
   return [
-    striker && { title: "Top striker", statLabel: "goals", value: striker.goals, player: striker },
-    midfielder && { title: "Top midfielder", statLabel: "assists", value: midfielder.assists, player: midfielder },
+    scorer && { title: "Top goal scorer", statLabel: "goals", value: scorer.goals, player: scorer },
+    provider && { title: "Top assist", statLabel: "assists", value: provider.assists, player: provider },
     defender && { title: "Top defender", statLabel: "clean sheets", value: defender.cleanSheets, player: defender },
     keeper && { title: "Top goalkeeper", statLabel: "clean sheets", value: keeper.cleanSheets, player: keeper },
   ].filter((h): h is SquadHonour => h !== null);
@@ -158,6 +159,60 @@ export function formatCards(yellow: number, red: number): string {
 
 export function topByStat(players: Player[], key: "goals" | "assists" | "cleanSheets" | "rating", count = 5) {
   return [...players].sort((a, b) => b[key] - a[key]).slice(0, count);
+}
+
+export interface LeaderRow {
+  player: Player;
+  value: number;
+  /** Shown instead of the number, e.g. "2Y · 1R". */
+  display?: string;
+}
+
+export interface Leaderboard {
+  id: string;
+  title: string;
+  unit: string;
+  rows: LeaderRow[];
+}
+
+/**
+ * The squad page leaderboards. Players on zero are left out so a board
+ * never shows a list of blanks early in the season.
+ */
+export function squadLeaderboards(players: Player[], count = 5): Leaderboard[] {
+  const board = (
+    id: string,
+    title: string,
+    unit: string,
+    value: (p: Player) => number,
+    tiebreak: (p: Player) => number = () => 0,
+    display?: (p: Player) => string,
+  ): Leaderboard => ({
+    id,
+    title,
+    unit,
+    rows: players
+      .filter((p) => value(p) > 0)
+      .sort((a, b) => value(b) - value(a) || tiebreak(b) - tiebreak(a) || a.name.localeCompare(b.name))
+      .slice(0, count)
+      .map((p) => ({ player: p, value: value(p), display: display?.(p) })),
+  });
+
+  return [
+    board("goals", "Top scorers", "goals", (p) => p.goals, (p) => -p.appearances),
+    board("assists", "Top assists", "assists", (p) => p.assists, (p) => -p.appearances),
+    board("clean-sheets", "Clean sheets", "clean sheets", (p) => p.cleanSheets, (p) => -p.appearances),
+    board("appearances", "Most appearances", "games", (p) => p.appearances),
+    board(
+      "cards",
+      "Roughest players",
+      "cards",
+      (p) => p.yellowCards + p.redCards,
+      (p) => p.redCards,
+      (p) => [p.yellowCards && `${p.yellowCards}Y`, p.redCards && `${p.redCards}R`].filter(Boolean).join(" · "),
+    ),
+    board("rating", "Highest rated", "rating", (p) => p.rating, () => 0, (p) => p.rating.toFixed(2)),
+  ];
 }
 
 const CSV_COLUMNS: { header: string; value: (p: Player) => string | number }[] = [
