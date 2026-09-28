@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Modal from "../../components/admin/Modal";
+import MatchRecordEditor from "../../components/admin/MatchRecordEditor";
 import { useAuth } from "../../lib/AuthContext";
 import { apiFetch } from "../../lib/api";
 import { DEFAULT_RATING_WEIGHTS, useSettings, type ClubSettings } from "../../lib/SettingsContext";
@@ -20,6 +21,7 @@ const sections = [
   { id: "ratings", label: "Player ratings" },
   { id: "vale", label: "The Vale" },
   { id: "portal", label: "Player portal" },
+  { id: "records", label: "Match records" },
   { id: "danger", label: "Danger zone" },
 ];
 
@@ -512,6 +514,14 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
           <JoinLink />
         </Section>
 
+        <Section
+          id="records"
+          title="Match records"
+          description="Fix a finished match day: correct its details, goals and cards, or delete games that shouldn't count. Stats, fines, ratings and The Vale update to match."
+        >
+          <MatchRecords />
+        </Section>
+
         {canEdit && (
           <Section
             id="danger"
@@ -572,6 +582,49 @@ function eventSummary(event: MatchDayEvent) {
 
 function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+function MatchRecords() {
+  const { events } = useMatchDay();
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Live match days are corrected from the Match Day screen as they run.
+  const ended = [...events].reverse().filter((e) => e.status === "ended");
+  const editing = events.find((e) => e.id === editingId);
+
+  return (
+    <div>
+      {ended.length === 0 ? (
+        <p className="text-sm text-mist">No finished match days yet.</p>
+      ) : (
+        <ul className="divide-y divide-ink-line overflow-hidden rounded-xl bg-ink">
+          {ended.map((event) => {
+            const s = eventSummary(event);
+            return (
+              <li key={event.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-paper">{event.title}</p>
+                  <p className="truncate text-xs text-mist">
+                    {[event.venue, event.date].filter(Boolean).join(" · ")} · {plural(s.games, "game")} ·{" "}
+                    {plural(s.goals, "goal")} · {plural(s.cards, "card")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(event.id)}
+                  className="shrink-0 rounded-full border border-ink-line px-3 py-1.5 text-xs font-semibold text-paper hover:border-paper"
+                >
+                  Edit
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {editing && <MatchRecordEditor key={editing.id} event={editing} onClose={() => setEditingId(null)} />}
+    </div>
+  );
 }
 
 function DeleteMatchDays() {

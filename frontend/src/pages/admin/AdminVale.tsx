@@ -124,7 +124,7 @@ function ValeForm() {
           </label>
           <label className={labelClass}>
             Rival team
-            <input className={inputClass} value={team.rivalTeam} onChange={(e) => setTeam({ ...team, rivalTeam: e.target.value })} placeholder="Team B" />
+            <input className={inputClass} value={team.rivalTeam} onChange={(e) => setTeam({ ...team, rivalTeam: e.target.value })} placeholder="Team Blue" />
           </label>
           <label className={labelClass}>
             Score

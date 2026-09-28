@@ -3,7 +3,9 @@ import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { formatNaira, outstandingFines, type CardRecord, type CardType } from "../../lib/cards";
 import { useSettings } from "../../lib/SettingsContext";
-import CardFormModal from "../../components/admin/CardFormModal";
+import CardFormModal, { type CardMatchLink } from "../../components/admin/CardFormModal";
+import { useMatchDay } from "../../lib/MatchDayContext";
+import { useValeContent } from "../../lib/ValeContentContext";
 
 type Filter = "all" | "unpaid" | "paid" | CardType;
 
@@ -16,12 +18,44 @@ const filters: { label: string; value: Filter }[] = [
 ];
 
 export default function AdminCards() {
-  const { players } = useSquad();
-  const { cards, addCard, removeCard, togglePaid } = useCards();
+  const { players, refresh: refreshSquad } = useSquad();
+  const { cards, addCard, removeCard, togglePaid, refresh: refreshCards, error: cardsError } = useCards();
+  const { events, updateEvent, refresh: refreshMatchDays, error: matchDayError } = useMatchDay();
+  const { refresh: refreshVale } = useValeContent();
   const { settings } = useSettings();
   const [filter, setFilter] = useState<Filter>("all");
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<CardRecord | null>(null);
+
+  // A card missed during a match day goes into that game's record; the
+  // server then logs its fine and updates stats, ratings and The Vale.
+  async function addToMatchDay(card: CardRecord, link: CardMatchLink) {
+    const event = events.find((e) => e.id === link.eventId);
+    if (!event) return;
+    const games = event.games.map((g) =>
+      g.id !== link.gameId
+        ? g
+        : {
+            ...g,
+            cards: [
+              ...g.cards,
+              {
+                id: `c${Date.now()}`,
+                teamIndex: g.teams[1].players.includes(card.playerId) ? (1 as const) : (0 as const),
+                playerId: card.playerId,
+                type: card.type,
+                reason: card.reason,
+                minute: 0,
+              },
+            ],
+          },
+    );
+    if (await updateEvent(event.id, { games })) {
+      refreshCards();
+      refreshSquad();
+      refreshVale();
+    }
+  }
 
   const sorted = useMemo(() => [...cards].reverse(), [cards]);
 
@@ -66,6 +100,10 @@ export default function AdminCards() {
           + Add card
         </button>
       </div>
+
+      {(cardsError || matchDayError) && (
+        <p className="mt-4 text-sm text-loss">{cardsError || matchDayError}</p>
+      )}
 
       <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-ink-line md:mt-10 md:rounded-none lg:grid-cols-4">
         {[
@@ -237,8 +275,9 @@ export default function AdminCards() {
         <CardFormModal
           players={players}
           onClose={() => setAdding(false)}
-          onSubmit={(card) => {
-            addCard(card);
+          onSubmit={(card, link) => {
+            if (link) addToMatchDay(card, link);
+            else addCard(card);
             setAdding(false);
           }}
         />
@@ -269,7 +308,13 @@ export default function AdminCards() {
               <button
                 type="button"
                 onClick={() => {
-                  removeCard(confirmDelete.id);
+                  // A match day card also comes off its game, which can move stats and ratings.
+                  removeCard(confirmDelete.id).then((ok) => {
+                    if (!ok) return;
+                    refreshMatchDays();
+                    refreshSquad();
+                    refreshVale();
+                  });
                   setConfirmDelete(null);
                 }}
                 className="border border-loss bg-loss px-4 py-2 text-sm font-medium text-paper hover:bg-transparent hover:text-loss"

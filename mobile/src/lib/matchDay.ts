@@ -40,8 +40,17 @@ export function nextGuestId(guests: Guest[]): string {
   return `guest-${n}`;
 }
 
+export const TEAM_NAMES = ["Team Black", "Team Blue", "Team Green", "Team Grey", "Team White Stripes"] as const;
+export const MAX_TEAMS = TEAM_NAMES.length;
+
 export function defaultTeamName(index: number) {
-  return `Team ${String.fromCharCode(65 + index)}`;
+  return TEAM_NAMES[index] ?? `Team ${index + 1}`;
+}
+
+/** The first colour not already taken by one of the existing teams. */
+export function nextTeamName(existing: { name: string }[]) {
+  const taken = new Set(existing.map((t) => t.name));
+  return TEAM_NAMES.find((n) => !taken.has(n)) ?? defaultTeamName(existing.length);
 }
 
 export function nextJerseyNumber(players: Player[]): number {
@@ -57,11 +66,16 @@ export function formatEventDate(date: Date) {
   return dateLabel.format(date);
 }
 
-// Teams fill to teamSize before the next one is opened — only the last
-// team (the leftover) can come in under size.
+// Teams fill to teamSize before the next one is opened — only the final
+// team (the leftover) can come in under size. There are only MAX_TEAMS
+// colours, so once that many teams are full the extra players are spread
+// across them as evenly as possible instead of opening another team.
 function teamCapacities(total: number, teamSize: number): number[] {
   if (total <= 0) return [];
-  const teamCount = Math.ceil(total / teamSize);
+  const teamCount = Math.min(MAX_TEAMS, Math.ceil(total / teamSize));
+  if (total > teamCount * teamSize) {
+    return Array.from({ length: teamCount }, (_, i) => Math.floor(total / teamCount) + (i < total % teamCount ? 1 : 0));
+  }
   const capacities = Array(teamCount).fill(teamSize);
   capacities[teamCount - 1] = total - teamSize * (teamCount - 1);
   return capacities;

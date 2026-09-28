@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { seedCards, type CardRecord, type CardType } from "./cards";
+import { type CardRecord, type CardType } from "./cards";
 import { apiFetch, ApiError } from "./api";
 import { useAuth } from "./AuthContext";
 
@@ -37,7 +37,7 @@ interface CardsContextValue {
   error: string;
   addCard: (card: CardRecord) => void;
   updateCard: (id: string, patch: Partial<CardRecord>) => void;
-  removeCard: (id: string) => void;
+  removeCard: (id: string) => Promise<boolean>;
   togglePaid: (id: string) => void;
   refresh: () => Promise<void>;
 }
@@ -45,7 +45,7 @@ interface CardsContextValue {
 const CardsContext = createContext<CardsContextValue | null>(null);
 
 export function CardsProvider({ children }: { children: ReactNode }) {
-  const [cards, setCards] = useState<CardRecord[]>(seedCards);
+  const [cards, setCards] = useState<CardRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const cardsRef = useRef(cards);
@@ -62,7 +62,7 @@ export function CardsProvider({ children }: { children: ReactNode }) {
   }
 
   // /cards needs a staff token, so reload once an admin signs in — otherwise
-  // the page keeps showing the seed cards from before login.
+  // the page stays empty until the next full reload.
   useEffect(() => {
     refresh().finally(() => setLoading(false));
   }, [user?.role]);
@@ -77,6 +77,7 @@ export function CardsProvider({ children }: { children: ReactNode }) {
         reason: card.reason,
         fine_amount: card.fine,
         paid: card.paid,
+        ...(card.occurredOn && { occurred_on: card.occurredOn }),
       }),
     })
       .then((res) => setCards((prev) => [...prev, fromApi(res.data)]))
@@ -110,10 +111,13 @@ export function CardsProvider({ children }: { children: ReactNode }) {
     setError("");
     const previous = cardsRef.current;
     setCards((prev) => prev.filter((c) => c.id !== id));
-    apiFetch(`/cards/${id}`, { method: "DELETE" }).catch((err) => {
-      setCards(previous);
-      setError(err instanceof ApiError ? err.message : "Couldn't remove that card.");
-    });
+    return apiFetch(`/cards/${id}`, { method: "DELETE" })
+      .then(() => true)
+      .catch((err) => {
+        setCards(previous);
+        setError(err instanceof ApiError ? err.message : "Couldn't remove that card.");
+        return false;
+      });
   }
 
   function togglePaid(id: string) {

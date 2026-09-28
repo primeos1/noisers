@@ -115,6 +115,7 @@ function RootNavigator() {
           <Stack.Screen name="admin/vale" options={{ title: "The Vale" }} />
           <Stack.Screen name="admin/highlights" options={{ title: "Highlights" }} />
           <Stack.Screen name="admin/settings" options={{ title: "Settings" }} />
+          <Stack.Screen name="admin/match-record" options={{ title: "Match record", presentation: "modal" }} />
         </Stack.Protected>
       </Stack.Protected>
       <Stack.Protected guard={!hasAccess}>

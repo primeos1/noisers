@@ -18,14 +18,9 @@ export interface CardRecord {
   fine: number;
   paid: boolean;
   date: string;
+  /** "YYYY-MM-DD" — sent to the API when adding a card; `date` is its display label. */
+  occurredOn?: string;
 }
-
-export const seedCards: CardRecord[] = [
-  { id: "c1", playerId: 7, type: "yellow", reason: "Dissent", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: true, date: "Sun 16 Aug" },
-  { id: "c2", playerId: 5, type: "yellow", reason: "Late challenge", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: false, date: "Sun 30 Aug" },
-  { id: "c3", playerId: 15, type: "yellow", reason: "Time-wasting", fine: DEFAULT_FINE_AMOUNTS.yellow, paid: false, date: "Sun 13 Sep" },
-  { id: "c4", playerId: 12, type: "red", reason: "Second yellow", fine: DEFAULT_FINE_AMOUNTS.red, paid: false, date: "Sun 20 Sep" },
-];
 
 export function outstandingFines(records: CardRecord[]) {
   return records.filter((c) => !c.paid).reduce((sum, c) => sum + c.fine, 0);

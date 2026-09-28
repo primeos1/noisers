@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCardRequest;
 use App\Http\Resources\CardResource;
 use App\Models\Card;
+use App\Models\MatchDayEvent;
+use App\Support\MatchDayFinalizer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CardController extends Controller
 {
@@ -79,7 +82,32 @@ class CardController extends Controller
     {
         $this->authorize('delete', $card);
 
-        $card->delete();
+        DB::transaction(function () use ($card) {
+            $card->delete();
+
+            // A card logged during a match day is also taken off that game's
+            // record — otherwise editing the match day later would bring the
+            // fine back — and its stats, ratings and The Vale follow.
+            [$eventId, $gameId, $cardId] = array_pad(explode(':', (string) $card->match_day_ref, 3), 3, null);
+            $event = $eventId ? MatchDayEvent::find($eventId) : null;
+            if (! $event) {
+                return;
+            }
+            $valeShowedIt = MatchDayFinalizer::valeShows($event);
+            $event->update(['games' => array_map(
+                fn ($game) => ($game['id'] ?? null) !== $gameId ? $game : [
+                    ...$game,
+                    'cards' => array_values(array_filter(
+                        $game['cards'] ?? [],
+                        fn ($c) => (string) ($c['id'] ?? '') !== $cardId,
+                    )),
+                ],
+                $event->games ?? [],
+            )]);
+            if ($event->status === 'ended' && $event->wasChanged('games')) {
+                MatchDayFinalizer::reapply($event, $valeShowedIt);
+            }
+        });
 
         return response()->noContent();
     }

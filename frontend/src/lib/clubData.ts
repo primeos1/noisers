@@ -56,28 +56,6 @@ export function isStockPhoto(url: string) {
   return url.includes("pravatar.cc");
 }
 
-export const seedSquad: Player[] = [
-  { id: 1, number: 1, name: "Femi Adaralegbe", position: "GK", membership: "member", photo: avatar(12), rating: 7.8, appearances: 14, goals: 0, assists: 1, cleanSheets: 9, yellowCards: 0, redCards: 0 },
-  { id: 2, number: 23, name: "Chuka Nwafor", position: "GK", membership: "member", photo: avatar(13), rating: 7.1, appearances: 6, goals: 0, assists: 0, cleanSheets: 3, yellowCards: 0, redCards: 0 },
-
-  { id: 3, number: 4, name: "Tunde Bakare", position: "DEF", membership: "member", photo: avatar(14), rating: 7.4, appearances: 16, goals: 1, assists: 2, cleanSheets: 9, yellowCards: 0, redCards: 0 },
-  { id: 4, number: 5, name: "Chike Obinna", position: "DEF", membership: "member", photo: avatar(15), rating: 7.6, appearances: 15, goals: 2, assists: 0, cleanSheets: 8, yellowCards: 0, redCards: 0 },
-  { id: 5, number: 22, name: "Biodun Salako", position: "DEF", membership: "member", photo: avatar(11), rating: 6.9, appearances: 13, goals: 0, assists: 1, cleanSheets: 7, yellowCards: 0, redCards: 0 },
-  { id: 6, number: 3, name: "Wale Ogundipe", position: "DEF", membership: "member", photo: avatar(17), rating: 7.0, appearances: 12, goals: 0, assists: 2, cleanSheets: 6, yellowCards: 0, redCards: 0 },
-  { id: 7, number: 6, name: "Ifeanyi Chukwu", position: "DEF", membership: "member", photo: avatar(18), rating: 6.8, appearances: 10, goals: 1, assists: 0, cleanSheets: 5, yellowCards: 0, redCards: 0 },
-
-  { id: 8, number: 7, name: "Segun Owolabi", position: "MID", membership: "member", photo: avatar(33), rating: 8.2, appearances: 17, goals: 6, assists: 8, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 9, number: 8, name: "Kelechi Uzo", position: "MID", membership: "member", photo: avatar(56), rating: 7.7, appearances: 16, goals: 4, assists: 5, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 10, number: 14, name: "Ola Jegede", position: "MID", membership: "member", photo: avatar(57), rating: 7.5, appearances: 15, goals: 3, assists: 7, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 11, number: 16, name: "Tobi Alade", position: "MID", membership: "member", photo: avatar(58), rating: 7.0, appearances: 11, goals: 2, assists: 4, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 12, number: 18, name: "Emeka Nnamdi", position: "MID", membership: "member", photo: avatar(59), rating: 6.7, appearances: 9, goals: 1, assists: 3, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-
-  { id: 13, number: 9, name: "Marcus Idehen", position: "FWD", membership: "member", photo: avatar(51), rating: 8.6, appearances: 17, goals: 11, assists: 3, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 14, number: 10, name: "Dayo Fashola", position: "FWD", membership: "member", photo: avatar(52), rating: 8.1, appearances: 16, goals: 9, assists: 6, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 15, number: 11, name: "Rasheed Animashaun", position: "FWD", membership: "member", photo: avatar(53), rating: 7.6, appearances: 14, goals: 7, assists: 4, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-  { id: 16, number: 17, name: "Kola Adisa", position: "FWD", membership: "member", photo: avatar(54), rating: 6.8, appearances: 10, goals: 3, assists: 1, cleanSheets: 0, yellowCards: 0, redCards: 0 },
-];
-
 export function findPlayer(players: Player[], id: number): Player {
   const player = players.find((p) => p.id === id);
   if (!player) throw new Error(`Unknown player ${id}`);

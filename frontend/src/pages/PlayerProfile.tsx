@@ -17,7 +17,7 @@ function playedFor(game: MatchDayGame, playerId: number): 0 | 1 | null {
 
 export default function PlayerProfile() {
   const { id } = useParams<{ id: string }>();
-  const { players } = useSquad();
+  const { players, loading } = useSquad();
   const { cards } = useCards();
   const { events } = useMatchDay();
 
@@ -27,15 +27,17 @@ export default function PlayerProfile() {
   if (!player) {
     return (
       <Layout>
-        <PageHeader eyebrow="Squad" title="Player not found" />
+        <PageHeader eyebrow="Squad" title={loading ? "Loading player…" : "Player not found"} />
         <section className="bg-ink">
           <div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-16">
-            <p className="text-sm text-paper-dim">
-              We couldn't find that player.{" "}
-              <Link to="/squad" className="text-paper underline underline-offset-4">
-                Back to the squad
-              </Link>
-            </p>
+            {!loading && (
+              <p className="text-sm text-paper-dim">
+                We couldn't find that player.{" "}
+                <Link to="/squad" className="text-paper underline underline-offset-4">
+                  Back to the squad
+                </Link>
+              </p>
+            )}
           </div>
         </section>
       </Layout>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { isStockPhoto, seedSquad, stockPhoto, type Membership, type Player, type Position, type RatingPoint } from "./clubData";
+import { isStockPhoto, stockPhoto, type Membership, type Player, type Position, type RatingPoint } from "./clubData";
 import { apiFetch, ApiError } from "./api";
 
 export interface ApiPlayer {
@@ -70,7 +70,7 @@ interface SquadContextValue {
 const SquadContext = createContext<SquadContextValue | null>(null);
 
 export function SquadProvider({ children }: { children: ReactNode }) {
-  const [players, setPlayers] = useState<Player[]>(seedSquad);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const playersRef = useRef(players);

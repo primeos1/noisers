@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, Share, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { DEFAULT_RATING_WEIGHTS, useClub } from "../../lib/club";
 import { apiFetch, errorMessage } from "../../lib/api";
@@ -244,6 +245,8 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
           <Hint>Share this with new players. They add their own name, number and position using the squad passcode.</Hint>
         </Section>
 
+        <MatchRecords />
+
         {canEdit ? <DangerZone /> : null}
       </Screen>
 
@@ -262,6 +265,44 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
         />
       ) : null}
     </View>
+  );
+}
+
+function MatchRecords() {
+  const { events } = useClub();
+  // Live match days are corrected from the Match Day screen as they run.
+  const ended = sortEvents(events).filter((e) => e.status === "ended");
+  return (
+    <Section
+      title="Match records"
+      description="Fix a finished match day: correct its details, goals and cards, or delete games that shouldn't count. Stats, fines, ratings and The Vale update to match."
+    >
+      {ended.length === 0 ? (
+        <Txt style={text.small}>No finished match days yet.</Txt>
+      ) : (
+        <Group>
+          {ended.map((event) => {
+            const s = matchDaySummary(event);
+            return (
+              <Row
+                key={event.id}
+                onPress={() => router.push({ pathname: "/admin/match-record", params: { id: event.id } })}
+                accessibilityLabel={`Edit ${event.title}`}
+              >
+                <View style={styles.flex}>
+                  <Txt style={text.semi} numberOfLines={1}>
+                    {event.title}
+                  </Txt>
+                  <Txt style={text.small} numberOfLines={1}>
+                    {[event.date, plural(s.games, "game"), plural(s.goals, "goal"), plural(s.cards, "card")].join(" · ")}
+                  </Txt>
+                </View>
+              </Row>
+            );
+          })}
+        </Group>
+      )}
+    </Section>
   );
 }
 

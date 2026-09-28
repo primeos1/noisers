@@ -12,6 +12,9 @@ class RandomizedTeam extends Model
     /** @use HasFactory<\Database\Factories\RandomizedTeamFactory> */
     use HasFactory;
 
+    /** Teams are named by bib colour, which also caps how many there can be. */
+    public const NAMES = ['Team Black', 'Team Blue', 'Team Green', 'Team Grey', 'Team White Stripes'];
+
     protected $fillable = [
         'training_session_id',
         'name',

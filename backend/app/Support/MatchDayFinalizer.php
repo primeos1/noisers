@@ -42,11 +42,72 @@ class MatchDayFinalizer
      */
     public static function revert(MatchDayEvent $event): void
     {
-        Card::whereNotNull('match_day_ref')
-            ->get(['id', 'match_day_ref'])
-            ->filter(fn ($card) => str_starts_with($card->match_day_ref, "{$event->id}:"))
-            ->each(fn ($card) => $card->delete());
+        self::cardsOf($event)->each(fn ($card) => $card->delete());
+        self::rollBackRatings($event);
 
+        // With automatic awards off, The Vale is maintained by hand — leave it.
+        if (! ClubSetting::current()->vale_auto_awards || ! self::valeShows($event)) {
+            return;
+        }
+
+        self::clearWeeklyAwards();
+        self::awardLatestExcept($event->id);
+    }
+
+    /**
+     * Brings everything an already-ended match day fed into back in line
+     * after its record was edited (a game deleted, a goal or card fixed):
+     * cards and fines follow the games' cards — keeping paid status for the
+     * ones that survive — ratings are rolled back and re-applied, and The
+     * Vale is rebuilt if it was showing this match day.
+     *
+     * @param  bool  $valeShowedIt  whether The Vale showed this match day before
+     *                              the edit (its title or date may have changed)
+     */
+    public static function reapply(MatchDayEvent $event, bool $valeShowedIt): void
+    {
+        $squadIds = Player::pluck('id')->all();
+        $settings = ClubSetting::current();
+
+        self::syncCards($event, $squadIds, $settings->fines_from_match_day);
+
+        if ($settings->ratings_enabled) {
+            self::rollBackRatings($event);
+            PlayerRatings::apply($event);
+        }
+
+        if ($settings->vale_auto_awards && $valeShowedIt) {
+            self::clearWeeklyAwards();
+            if (self::hasFinishedGames($event)) {
+                self::updateWeeklyAwards($event, $squadIds);
+            } else {
+                self::awardLatestExcept($event->id);
+            }
+        }
+    }
+
+    /** Whether The Vale's weekly awards currently come from this match day. */
+    public static function valeShows(MatchDayEvent $event): bool
+    {
+        $awards = ValeContent::current();
+
+        return $awards->team_week_title === $event->title && $awards->team_week_date_range === $event->date;
+    }
+
+    /**
+     * The disciplinary cards created from this event's games.
+     *
+     * @return \Illuminate\Support\Collection<int, Card>
+     */
+    private static function cardsOf(MatchDayEvent $event)
+    {
+        return Card::whereNotNull('match_day_ref')
+            ->get()
+            ->filter(fn ($card) => str_starts_with($card->match_day_ref, "{$event->id}:"));
+    }
+
+    private static function rollBackRatings(MatchDayEvent $event): void
+    {
         $changes = PlayerRatingChange::query()
             ->where('match_day_event_id', $event->id)
             ->with('player')
@@ -61,18 +122,16 @@ class MatchDayFinalizer
             }
             $change->delete();
         }
+    }
 
-        // With automatic awards off, The Vale is maintained by hand — leave it.
-        if (! ClubSetting::current()->vale_auto_awards) {
-            return;
-        }
+    private static function hasFinishedGames(MatchDayEvent $event): bool
+    {
+        return collect($event->games ?? [])->contains(fn ($g) => ($g['status'] ?? null) === 'finished');
+    }
 
-        $awards = ValeContent::current();
-        if ($awards->team_week_title !== $event->title || $awards->team_week_date_range !== $event->date) {
-            return;
-        }
-
-        $awards->update([
+    private static function clearWeeklyAwards(): void
+    {
+        ValeContent::current()->update([
             'team_week_title' => null,
             'team_week_date_range' => null,
             'team_sessions_won' => 0,
@@ -96,16 +155,81 @@ class MatchDayFinalizer
             'leader_roughest_yellow' => null,
             'leader_roughest_red' => null,
         ]);
+    }
 
+    /** Rebuilds The Vale from the latest other ended match day with a finished game, if any. */
+    private static function awardLatestExcept(string $eventId): void
+    {
         $previous = MatchDayEvent::query()
-            ->where('id', '!=', $event->id)
+            ->where('id', '!=', $eventId)
             ->where('status', 'ended')
             ->orderByDesc('created_at')
             ->get()
-            ->first(fn ($e) => collect($e->games ?? [])->contains(fn ($g) => ($g['status'] ?? null) === 'finished'));
+            ->first(fn ($e) => self::hasFinishedGames($e));
         if ($previous) {
             self::updateWeeklyAwards($previous, Player::pluck('id')->all());
         }
+    }
+
+    /**
+     * Makes the event's disciplinary cards match its games' cards: drops the
+     * ones whose match day card is gone, corrects the rest (a changed card
+     * type re-prices an unpaid fine) and, when fines are on, adds new ones.
+     *
+     * @param  array<int, int>  $squadIds
+     */
+    private static function syncCards(MatchDayEvent $event, array $squadIds, bool $createMissing): void
+    {
+        $settings = ClubSetting::current();
+        $wanted = self::matchDayCards($event, $squadIds);
+
+        foreach (self::cardsOf($event) as $card) {
+            $source = $wanted[$card->match_day_ref] ?? null;
+            if (! $source) {
+                $card->delete();
+
+                continue;
+            }
+            $changes = [
+                'player_id' => $source['playerId'],
+                'type' => $source['type'],
+                'reason' => $source['reason'],
+            ];
+            if ($card->type !== $source['type'] && ! $card->paid) {
+                $changes['fine_amount'] = $source['type'] === 'red' ? $settings->red_card_fine : $settings->yellow_card_fine;
+            }
+            $card->update($changes);
+        }
+
+        if ($createMissing) {
+            self::recordCards($event, $squadIds);
+        }
+    }
+
+    /**
+     * The event's squad-player cards, keyed by their disciplinary match_day_ref.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array<string, array{playerId: int, type: string, reason: ?string}>
+     */
+    private static function matchDayCards(MatchDayEvent $event, array $squadIds): array
+    {
+        $cards = [];
+        foreach (($event->games ?? []) as $game) {
+            foreach (($game['cards'] ?? []) as $card) {
+                $playerId = $card['playerId'] ?? null;
+                if (! is_int($playerId) || ! in_array($playerId, $squadIds, true)) {
+                    continue; // guests carry no fines
+                }
+                $cards["{$event->id}:{$game['id']}:{$card['id']}"] = [
+                    'playerId' => $playerId,
+                    'type' => ($card['type'] ?? 'yellow') === 'red' ? 'red' : 'yellow',
+                    'reason' => $card['reason'] ?? null,
+                ];
+            }
+        }
+
+        return $cards;
     }
 
     /**
@@ -115,27 +239,18 @@ class MatchDayFinalizer
     {
         $settings = ClubSetting::current();
 
-        foreach (($event->games ?? []) as $game) {
-            foreach (($game['cards'] ?? []) as $card) {
-                $playerId = $card['playerId'] ?? null;
-                if (! is_int($playerId) || ! in_array($playerId, $squadIds, true)) {
-                    continue; // guests carry no fines
-                }
-
-                $type = ($card['type'] ?? 'yellow') === 'red' ? 'red' : 'yellow';
-
-                Card::firstOrCreate(
-                    ['match_day_ref' => "{$event->id}:{$game['id']}:{$card['id']}"],
-                    [
-                        'player_id' => $playerId,
-                        'type' => $type,
-                        'reason' => $card['reason'] ?? null,
-                        'fine_amount' => $type === 'red' ? $settings->red_card_fine : $settings->yellow_card_fine,
-                        'paid' => false,
-                        'occurred_on' => now()->toDateString(),
-                    ]
-                );
-            }
+        foreach (self::matchDayCards($event, $squadIds) as $ref => $card) {
+            Card::firstOrCreate(
+                ['match_day_ref' => $ref],
+                [
+                    'player_id' => $card['playerId'],
+                    'type' => $card['type'],
+                    'reason' => $card['reason'],
+                    'fine_amount' => $card['type'] === 'red' ? $settings->red_card_fine : $settings->yellow_card_fine,
+                    'paid' => false,
+                    'occurred_on' => now()->toDateString(),
+                ]
+            );
         }
     }
 

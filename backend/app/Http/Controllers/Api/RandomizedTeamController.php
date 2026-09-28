@@ -8,7 +8,6 @@ use App\Http\Resources\RandomizedTeamResource;
 use App\Models\Player;
 use App\Models\RandomizedTeam;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class RandomizedTeamController extends Controller
 {
@@ -63,7 +62,7 @@ class RandomizedTeamController extends Controller
             foreach ($teams as $index => $playerIds) {
                 $created[] = RandomizedTeam::create([
                     'training_session_id' => $request->integer('training_session_id'),
-                    'name' => 'Team '.Str::upper(chr(65 + $index)),
+                    'name' => RandomizedTeam::NAMES[$index],
                     'player_ids' => $playerIds,
                 ]);
             }

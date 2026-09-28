@@ -71,10 +71,16 @@ class MatchDayEventController extends Controller
         $wasLive = $matchDayEvent->status !== 'ended';
 
         DB::transaction(function () use ($matchDayEvent, $validated, $wasLive) {
+            // Read before the update — an edit can change the title/date The Vale matches on.
+            $valeShowedIt = ! $wasLive && MatchDayFinalizer::valeShows($matchDayEvent);
+
             $matchDayEvent->update($validated);
 
             if ($wasLive && $matchDayEvent->status === 'ended') {
                 MatchDayFinalizer::finalize($matchDayEvent);
+            } elseif (! $wasLive && $matchDayEvent->status === 'ended' && $matchDayEvent->wasChanged(['games', 'title', 'date'])) {
+                // Editing a finished match day's record (Settings → Match records).
+                MatchDayFinalizer::reapply($matchDayEvent, $valeShowedIt);
             }
         });
 

@@ -20,7 +20,7 @@ export const teamOfTheWeek: TeamOfTheWeek = {
   dateRange: "15–21 Sep 2026",
   sessionsWon: 4,
   sessionsPlayed: 5,
-  rivalTeam: "Team B",
+  rivalTeam: "Team Blue",
   score: "2–1",
   photo: photos.stadiumCrowd,
   lineupPlayerIds: [1, 3, 4, 8, 9, 13, 14, 10],

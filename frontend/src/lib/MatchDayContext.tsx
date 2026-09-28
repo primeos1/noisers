@@ -50,6 +50,7 @@ interface MatchDayContextValue {
   addEvent: (event: MatchDayEvent) => void;
   updateEvent: (id: string, patch: Partial<MatchDayEvent>) => Promise<boolean>;
   removeEvent: (id: string) => Promise<boolean>;
+  refresh: () => Promise<void>;
 }
 
 const MatchDayContext = createContext<MatchDayContextValue | null>(null);
@@ -59,13 +60,16 @@ export function MatchDayProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    apiFetch<{ data: ApiMatchDayEvent[] }>("/match-day-events")
+  function refresh() {
+    return apiFetch<{ data: ApiMatchDayEvent[] }>("/match-day-events")
       .then((res) => setEvents(res.data.map(fromApi)))
       .catch(() => {
         // API unreachable — app still works with an empty history.
-      })
-      .finally(() => setLoading(false));
+      });
+  }
+
+  useEffect(() => {
+    refresh().finally(() => setLoading(false));
   }, []);
 
   function addEvent(event: MatchDayEvent) {
@@ -116,7 +120,7 @@ export function MatchDayProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <MatchDayContext.Provider value={{ events, loading, error, addEvent, updateEvent, removeEvent }}>
+    <MatchDayContext.Provider value={{ events, loading, error, addEvent, updateEvent, removeEvent, refresh }}>
       {children}
     </MatchDayContext.Provider>
   );

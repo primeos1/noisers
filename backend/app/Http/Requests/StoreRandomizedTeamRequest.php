@@ -20,7 +20,7 @@ class StoreRandomizedTeamRequest extends FormRequest
             'training_session_id' => ['required', 'exists:training_sessions,id'],
             'player_ids' => ['required', 'array', 'min:2'],
             'player_ids.*' => ['integer', 'exists:players,id'],
-            'team_count' => ['sometimes', 'integer', 'min:2', 'max:4'],
+            'team_count' => ['sometimes', 'integer', 'min:2', 'max:'.count(\App\Models\RandomizedTeam::NAMES)],
             'balance_by_position' => ['sometimes', 'boolean'],
         ];
     }

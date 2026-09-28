@@ -20,7 +20,7 @@ class RandomizedTeamFactory extends Factory
     {
         return [
             'training_session_id' => TrainingSession::factory(),
-            'name' => 'Team '.$this->faker->randomLetter(),
+            'name' => $this->faker->randomElement(\App\Models\RandomizedTeam::NAMES),
             'player_ids' => [],
         ];
     }

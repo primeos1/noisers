@@ -71,7 +71,7 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
           </FieldRow>
           <FieldRow>
             <Col>
-              <TextField label="Rival team" value={team.rivalTeam} onChangeText={(rivalTeam) => edit("teamOfTheWeek", { rivalTeam })} placeholder="Team B" />
+              <TextField label="Rival team" value={team.rivalTeam} onChangeText={(rivalTeam) => edit("teamOfTheWeek", { rivalTeam })} placeholder="Team Blue" />
             </Col>
             <Col>
               <TextField label="Score" value={team.score} onChangeText={(score) => edit("teamOfTheWeek", { score })} placeholder="2–1" />

@@ -8,10 +8,11 @@ import { errorMessage } from "../../lib/api";
 import { participantName, plural, scoreOf } from "../../lib/derive";
 import {
   buildTeams,
-  defaultTeamName,
   formatClock,
   formatEventDate,
+  MAX_TEAMS,
   nextGuestId,
+  nextTeamName,
   uniqueEventId,
   useMatchTimer,
 } from "../../lib/matchDay";
@@ -318,7 +319,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
             <Button label={event.groups.length ? "Re-randomize" : "Randomize"} icon="shuffle" onPress={randomize} disabled={allPresent.length < 2} />
           </View>
           <View style={styles.flex}>
-            <Button label="New team" variant="secondary" icon="add" onPress={() => setGroups([...event.groups, { name: defaultTeamName(event.groups.length), players: [] }])} />
+            <Button label="New team" variant="secondary" icon="add" disabled={event.groups.length >= MAX_TEAMS} onPress={() => setGroups([...event.groups, { name: nextTeamName(event.groups), players: [] }])} />
           </View>
         </View>
         {unassigned.length > 0 ? <Hint>Not on a team: {unassigned.map(name).join(", ")}</Hint> : null}

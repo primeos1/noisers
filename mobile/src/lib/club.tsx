@@ -181,6 +181,9 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   async function removeCard(id: number) {
     await apiFetch(`/cards/${id}`, { method: "DELETE" });
     setCards((prev) => prev.filter((c) => c.id !== id));
+    // A match day card also comes off its game on the server, which can
+    // move stats, ratings and The Vale — reload them.
+    refresh();
   }
 
   async function addPlayer(player: PlayerInput) {

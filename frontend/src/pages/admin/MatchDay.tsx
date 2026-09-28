@@ -8,7 +8,8 @@ import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 import {
   buildTeams,
-  defaultTeamName,
+  MAX_TEAMS,
+  nextTeamName,
   nextGuestId,
   participantName,
   scoreOf,
@@ -164,8 +165,8 @@ export default function MatchDay() {
   }
 
   function addNewTeam() {
-    if (!activeEvent) return;
-    patch({ groups: [...activeEvent.groups, { name: defaultTeamName(activeEvent.groups.length), players: [] }] });
+    if (!activeEvent || activeEvent.groups.length >= MAX_TEAMS) return;
+    patch({ groups: [...activeEvent.groups, { name: nextTeamName(activeEvent.groups), players: [] }] });
   }
 
   function renameTeam(index: number, newName: string) {
@@ -558,7 +559,9 @@ export default function MatchDay() {
               <button
                 type="button"
                 onClick={addNewTeam}
-                className="border border-ink-line px-5 py-2.5 text-sm text-paper-dim hover:text-paper"
+                disabled={activeEvent.groups.length >= MAX_TEAMS}
+                title={activeEvent.groups.length >= MAX_TEAMS ? `Maximum of ${MAX_TEAMS} teams` : undefined}
+                className="border border-ink-line px-5 py-2.5 text-sm text-paper-dim hover:text-paper disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-paper-dim"
               >
                 + New team
               </button>
