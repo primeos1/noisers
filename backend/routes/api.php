@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\ClubSettingController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ExecutiveController;
 use App\Http\Controllers\Api\FixtureController;
 use App\Http\Controllers\Api\GalleryImageController;
 use App\Http\Controllers\Api\GoalEventController;
@@ -51,6 +52,7 @@ Route::get('/match-day-events/{matchDayEvent}/team-of-week', [MatchDayEventContr
 Route::get('/home-content', [HomeContentController::class, 'show']);
 Route::get('/vale-content', [ValeContentController::class, 'show']);
 Route::get('/highlights', [HighlightController::class, 'index']);
+Route::get('/executives', [ExecutiveController::class, 'index']);
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
@@ -115,6 +117,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/highlights', [HighlightController::class, 'store']);
     Route::put('/highlights/{highlight}', [HighlightController::class, 'update']);
     Route::delete('/highlights/{highlight}', [HighlightController::class, 'destroy']);
+
+    Route::post('/executives', [ExecutiveController::class, 'store']);
+    Route::put('/executives/order', [ExecutiveController::class, 'reorder']);
+    Route::put('/executives/{executive}', [ExecutiveController::class, 'update']);
+    Route::delete('/executives/{executive}', [ExecutiveController::class, 'destroy']);
 
     Route::apiResource('training-sessions', TrainingSessionController::class);
 

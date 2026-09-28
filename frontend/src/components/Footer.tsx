@@ -40,6 +40,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/executives" className="hover:text-paper">
+                  Executives
+                </Link>
+              </li>
+              <li>
                 <Link to="/performance" className="hover:text-paper">
                   Performance
                 </Link>

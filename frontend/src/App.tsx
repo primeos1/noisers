@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Squad from "./pages/Squad";
 import TheVale from "./pages/TheVale";
 import Highlights from "./pages/Highlights";
+import Executives from "./pages/Executives";
 import Performance from "./pages/Performance";
 import Login from "./pages/Login";
 import PlayerLogin from "./pages/PlayerLogin";
@@ -26,6 +27,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHomeContent from "./pages/admin/AdminHomeContent";
 import AdminVale from "./pages/admin/AdminVale";
 import AdminHighlights from "./pages/admin/AdminHighlights";
+import AdminExecutives from "./pages/admin/AdminExecutives";
 import PlayerProfile from "./pages/PlayerProfile";
 
 // New screens open at the top, as in a native app (hash links excepted).
@@ -47,6 +49,7 @@ export default function App() {
       <Route path="/squad/:id" element={<PlayerProfile />} />
       <Route path="/the-vale" element={<TheVale />} />
       <Route path="/highlights" element={<Highlights />} />
+      <Route path="/executives" element={<Executives />} />
       <Route path="/performance" element={<Performance />} />
       <Route path="/login" element={<Login />} />
       <Route path="/player-login" element={<PlayerLogin />} />
@@ -84,6 +87,7 @@ export default function App() {
         <Route path="home-content" element={<AdminHomeContent />} />
         <Route path="vale" element={<AdminVale />} />
         <Route path="highlights" element={<AdminHighlights />} />
+        <Route path="executives" element={<AdminExecutives />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
     </Routes>

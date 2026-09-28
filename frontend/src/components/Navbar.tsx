@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
 import TabBar from "./TabBar";
-import { HomeIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon } from "./icons";
+import { HomeIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
 
 const links = [
   { label: "Home", to: "/", end: true, icon: <HomeIcon /> },
   { label: "Squad", to: "/squad", icon: <ShirtIcon /> },
   { label: "The Vale", to: "/the-vale", icon: <TrophyIcon /> },
   { label: "Highlights", to: "/highlights", icon: <PlayIcon /> },
+  { label: "Executives", to: "/executives", icon: <UsersIcon /> },
 ];
 
 /**

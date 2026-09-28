@@ -17,6 +17,7 @@ import {
   PlayIcon,
   ShirtIcon,
   TrophyIcon,
+  UsersIcon,
   WhistleIcon,
 } from "../icons";
 
@@ -30,6 +31,7 @@ const links = [
   { label: "Home Page", to: "/admin/home-content", end: false, icon: <HomeIcon /> },
   { label: "The Vale", to: "/admin/vale", end: false, icon: <TrophyIcon /> },
   { label: "Highlights", to: "/admin/highlights", end: false, icon: <PlayIcon /> },
+  { label: "Executives", to: "/admin/executives", end: false, icon: <UsersIcon /> },
   { label: "Settings", to: "/admin/settings", end: false, icon: <GearIcon /> },
 ];
 

@@ -11,6 +11,7 @@ import { SettingsProvider } from "./lib/SettingsContext";
 import { HomeContentProvider } from "./lib/HomeContentContext";
 import { ValeContentProvider } from "./lib/ValeContentContext";
 import { HighlightsProvider } from "./lib/HighlightsContext";
+import { ExecutivesProvider } from "./lib/ExecutivesContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -20,13 +21,15 @@ createRoot(document.getElementById("root")!).render(
           <HomeContentProvider>
             <ValeContentProvider>
               <HighlightsProvider>
-                <SquadProvider>
-                  <MatchDayProvider>
-                    <CardsProvider>
-                      <App />
-                    </CardsProvider>
-                  </MatchDayProvider>
-                </SquadProvider>
+                <ExecutivesProvider>
+                  <SquadProvider>
+                    <MatchDayProvider>
+                      <CardsProvider>
+                        <App />
+                      </CardsProvider>
+                    </MatchDayProvider>
+                  </SquadProvider>
+                </ExecutivesProvider>
               </HighlightsProvider>
             </ValeContentProvider>
           </HomeContentProvider>
