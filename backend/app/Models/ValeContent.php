@@ -29,6 +29,8 @@ class ValeContent extends Model
         'leader_top_assist_player_id',
         'leader_top_assist_value',
         'leader_clean_sheet_player_ids',
+        'leader_clean_sheet_team',
+        'leader_clean_sheet_value',
         'leader_roughest_player_id',
         'leader_roughest_yellow',
         'leader_roughest_red',

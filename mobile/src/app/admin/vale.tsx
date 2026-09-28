@@ -117,7 +117,15 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
             allowNone
           />
           <NumberField label="Assists" value={leaders.topAssist.value} onChange={(value) => editLeader("topAssist", { ...leaders.topAssist, value })} />
-          <ShirtMultiPicker label="Clean sheet leaders" players={players} value={leaders.cleanSheets} onChange={(cleanSheets) => editLeader("cleanSheets", cleanSheets)} />
+          <FieldRow>
+            <Col>
+              <TextField label="Clean sheet team" value={leaders.cleanSheetTeam.name} onChangeText={(name) => editLeader("cleanSheetTeam", { ...leaders.cleanSheetTeam, name })} />
+            </Col>
+            <Col>
+              <NumberField label="Clean sheets" value={leaders.cleanSheetTeam.value} onChange={(value) => editLeader("cleanSheetTeam", { ...leaders.cleanSheetTeam, value })} />
+            </Col>
+          </FieldRow>
+          <ShirtMultiPicker label="Clean sheet team players" players={players} value={leaders.cleanSheets} onChange={(cleanSheets) => editLeader("cleanSheets", cleanSheets)} />
           <ShirtPicker
             label="Roughest player"
             players={players}

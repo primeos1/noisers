@@ -116,6 +116,36 @@ class MatchDayEditTest extends TestCase
         $this->assertSame('Session md (renamed)', ValeContent::current()->team_week_title);
     }
 
+    public function test_clean_sheet_leader_is_the_team_with_the_most_clean_sheets(): void
+    {
+        $red = fn ($id) => ['id' => $id, 'teamIndex' => 0, 'playerId' => $this->scorer->id];
+        $blue = fn ($id) => ['id' => $id, 'teamIndex' => 1, 'playerId' => $this->other->id];
+        // Blues are team of the week on goal difference; Reds kept two clean sheets to their one.
+        $this->endedMatchDay([
+            $this->game('g1', [$blue('a'), $blue('b'), $blue('c'), $red('d')]),
+            $this->game('g2', []),
+            $this->game('g3', [$red('e')]),
+        ]);
+
+        $vale = ValeContent::current();
+        $this->assertSame('Reds', $vale->leader_clean_sheet_team);
+        $this->assertSame(2, $vale->leader_clean_sheet_value);
+        $this->assertSame([$this->scorer->id], $vale->leader_clean_sheet_player_ids);
+    }
+
+    public function test_clean_sheet_tie_goes_to_the_team_of_the_week(): void
+    {
+        $this->endedMatchDay([
+            $this->game('g1', [['id' => 'a', 'teamIndex' => 1, 'playerId' => $this->other->id], ['id' => 'b', 'teamIndex' => 1, 'playerId' => $this->other->id]]),
+            $this->game('g2', [['id' => 'c', 'teamIndex' => 0, 'playerId' => $this->scorer->id]]),
+        ]);
+
+        $vale = ValeContent::current();
+        $this->assertSame([$this->other->id], $vale->team_lineup_player_ids);
+        $this->assertSame('Blues', $vale->leader_clean_sheet_team);
+        $this->assertSame(1, $vale->leader_clean_sheet_value);
+    }
+
     public function test_deleting_every_game_clears_the_vale_it_fed(): void
     {
         $this->endedMatchDay([$this->game('g1', [['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $this->scorer->id]])]);

@@ -151,6 +151,8 @@ class MatchDayFinalizer
             'leader_top_assist_player_id' => null,
             'leader_top_assist_value' => null,
             'leader_clean_sheet_player_ids' => null,
+            'leader_clean_sheet_team' => null,
+            'leader_clean_sheet_value' => null,
             'leader_roughest_player_id' => null,
             'leader_roughest_yellow' => null,
             'leader_roughest_red' => null,
@@ -265,29 +267,75 @@ class MatchDayFinalizer
      */
     public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds): ?array
     {
-        $games = array_values(array_filter(
-            $event->games ?? [],
-            fn ($g) => ($g['status'] ?? null) === 'finished',
-        ));
-        if ($games === []) {
+        $teams = self::teamTable($event, $squadIds);
+        if ($teams === []) {
+            return null;
+        }
+        $best = reset($teams);
+
+        return [
+            'sessionsWon' => $best['won'],
+            'sessionsPlayed' => $best['played'],
+            'rivalTeam' => $best['rival'],
+            'score' => $best['score'],
+            'lineupPlayerIds' => $best['players'],
+        ];
+    }
+
+    /**
+     * The side that kept the most clean sheets this match day. A tie goes to
+     * the team of the week (then on down the same wins/goal-difference order).
+     * Null when nobody kept one.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array{name: string, value: int, playerIds: int[]}|null
+     */
+    public static function computeCleanSheetTeam(MatchDayEvent $event, array $squadIds): ?array
+    {
+        $teams = self::teamTable($event, $squadIds);
+        // uasort is stable, so teams level on clean sheets keep the
+        // team-of-the-week order teamTable() already sorted them into.
+        uasort($teams, fn ($a, $b) => $b['cleanSheets'] <=> $a['cleanSheets']);
+        $name = array_key_first($teams);
+        if ($name === null || $teams[$name]['cleanSheets'] === 0) {
             return null;
         }
 
+        return [
+            'name' => (string) $name,
+            'value' => $teams[$name]['cleanSheets'],
+            'playerIds' => $teams[$name]['players'],
+        ];
+    }
+
+    /**
+     * Every side (by team name) across this event's finished games, best
+     * first by wins then goal difference.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array<string, array{won: int, played: int, gd: int, cleanSheets: int, players: int[], rival: string, score: string}>
+     */
+    private static function teamTable(MatchDayEvent $event, array $squadIds): array
+    {
         $inSquad = fn ($id) => is_int($id) && in_array($id, $squadIds, true);
 
         $teams = [];
-        foreach ($games as $game) {
+        foreach (($event->games ?? []) as $game) {
+            if (($game['status'] ?? null) !== 'finished') {
+                continue;
+            }
             $score = [0, 0];
             foreach (($game['goals'] ?? []) as $goal) {
                 $score[($goal['teamIndex'] ?? 0) === 1 ? 1 : 0]++;
             }
             foreach ([0, 1] as $i) {
                 $name = $game['teams'][$i]['name'] ?? "Team {$i}";
-                $teams[$name] ??= ['won' => 0, 'played' => 0, 'gd' => 0, 'players' => [], 'rival' => '', 'score' => ''];
+                $teams[$name] ??= ['won' => 0, 'played' => 0, 'gd' => 0, 'cleanSheets' => 0, 'players' => [], 'rival' => '', 'score' => ''];
                 $t = &$teams[$name];
                 $t['played']++;
                 $t['won'] += $score[$i] > $score[1 - $i] ? 1 : 0;
                 $t['gd'] += $score[$i] - $score[1 - $i];
+                $t['cleanSheets'] += $score[1 - $i] === 0 ? 1 : 0;
                 $t['players'] = array_values(array_unique(array_merge(
                     $t['players'],
                     array_filter($game['teams'][$i]['players'] ?? [], $inSquad),
@@ -298,15 +346,8 @@ class MatchDayFinalizer
             }
         }
         uasort($teams, fn ($a, $b) => [$b['won'], $b['gd']] <=> [$a['won'], $a['gd']]);
-        $best = reset($teams);
 
-        return [
-            'sessionsWon' => $best['won'],
-            'sessionsPlayed' => $best['played'],
-            'rivalTeam' => $best['rival'],
-            'score' => $best['score'],
-            'lineupPlayerIds' => $best['players'],
-        ];
+        return $teams;
     }
 
     /**
@@ -365,7 +406,13 @@ class MatchDayFinalizer
             'leader_top_scorer_value' => $scorer ? $stats[$scorer]['goals'] : 0,
             'leader_top_assist_player_id' => $assister,
             'leader_top_assist_value' => $assister ? $stats[$assister]['assists'] : 0,
-            'leader_clean_sheet_player_ids' => array_keys(array_filter($stats, fn ($s) => $s['cleanSheets'] > 0)),
+        ];
+
+        $cleanSheetTeam = self::computeCleanSheetTeam($event, $squadIds);
+        $changes += [
+            'leader_clean_sheet_team' => $cleanSheetTeam['name'] ?? null,
+            'leader_clean_sheet_value' => $cleanSheetTeam['value'] ?? 0,
+            'leader_clean_sheet_player_ids' => $cleanSheetTeam['playerIds'] ?? [],
         ];
 
         $roughest = PlayerStats::roughest($stats);

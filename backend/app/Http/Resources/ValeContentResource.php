@@ -44,6 +44,10 @@ class ValeContentResource extends JsonResource
                     'value' => $this->leader_top_assist_value,
                 ],
                 'cleanSheets' => $this->leader_clean_sheet_player_ids ?? [],
+                'cleanSheetTeam' => [
+                    'name' => $this->leader_clean_sheet_team,
+                    'value' => $this->leader_clean_sheet_value,
+                ],
                 'roughest' => [
                     'playerId' => $this->leader_roughest_player_id,
                     'yellowCards' => $this->leader_roughest_yellow,

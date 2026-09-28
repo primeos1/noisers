@@ -23,6 +23,7 @@ export interface ValeContentData {
     topScorer: { playerId: number; value: number };
     topAssist: { playerId: number; value: number };
     cleanSheets: number[];
+    cleanSheetTeam: { name: string; value: number };
     roughest: { playerId: number; yellowCards: number; redCards: number };
   };
 }
@@ -49,6 +50,7 @@ interface ApiValeContent {
     topScorer: { playerId: number | null; value: number | null };
     topAssist: { playerId: number | null; value: number | null };
     cleanSheets: number[];
+    cleanSheetTeam?: { name: string | null; value: number | null };
     roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
   };
 }
@@ -70,6 +72,7 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
     topScorer: { playerId: 0, value: 0 },
     topAssist: { playerId: 0, value: 0 },
     cleanSheets: [],
+    cleanSheetTeam: { name: "", value: 0 },
     roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
   },
 };
@@ -107,6 +110,10 @@ function fromApi(data: ApiValeContent): ValeContentData {
         value: data.weeklyLeaders.topAssist.value ?? 0,
       },
       cleanSheets: data.weeklyLeaders.cleanSheets ?? [],
+      cleanSheetTeam: {
+        name: data.weeklyLeaders.cleanSheetTeam?.name ?? "",
+        value: data.weeklyLeaders.cleanSheetTeam?.value ?? 0,
+      },
       roughest: {
         playerId: data.weeklyLeaders.roughest?.playerId ?? 0,
         yellowCards: data.weeklyLeaders.roughest?.yellowCards ?? 0,
@@ -156,6 +163,8 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (w.topAssist?.playerId !== undefined) body.leader_top_assist_player_id = playerIdOrNull(w.topAssist.playerId);
     if (w.topAssist?.value !== undefined) body.leader_top_assist_value = w.topAssist.value;
     if (w.cleanSheets !== undefined) body.leader_clean_sheet_player_ids = w.cleanSheets;
+    if (w.cleanSheetTeam?.name !== undefined) body.leader_clean_sheet_team = w.cleanSheetTeam.name || null;
+    if (w.cleanSheetTeam?.value !== undefined) body.leader_clean_sheet_value = w.cleanSheetTeam.value;
     if (w.roughest?.playerId !== undefined) body.leader_roughest_player_id = playerIdOrNull(w.roughest.playerId);
     if (w.roughest?.yellowCards !== undefined) body.leader_roughest_yellow = w.roughest.yellowCards;
     if (w.roughest?.redCards !== undefined) body.leader_roughest_red = w.roughest.redCards;

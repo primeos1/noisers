@@ -176,6 +176,7 @@ export interface ValeContent {
     topScorer: { playerId: number; value: number };
     topAssist: { playerId: number; value: number };
     cleanSheets: number[];
+    cleanSheetTeam: { name: string; value: number };
     roughest: { playerId: number; yellowCards: number; redCards: number };
   };
 }
@@ -197,6 +198,7 @@ interface ApiVale {
     topScorer: { playerId: number | null; value: number | null };
     topAssist: { playerId: number | null; value: number | null };
     cleanSheets: number[] | null;
+    cleanSheetTeam?: { name: string | null; value: number | null };
     roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
   };
 }
@@ -209,6 +211,7 @@ const EMPTY_VALE: ValeContent = {
     topScorer: { playerId: 0, value: 0 },
     topAssist: { playerId: 0, value: 0 },
     cleanSheets: [],
+    cleanSheetTeam: { name: "", value: 0 },
     roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
   },
 };
@@ -242,6 +245,7 @@ function valeFromApi(d: ApiVale): ValeContent {
       topScorer: { playerId: w.topScorer.playerId ?? 0, value: w.topScorer.value ?? 0 },
       topAssist: { playerId: w.topAssist.playerId ?? 0, value: w.topAssist.value ?? 0 },
       cleanSheets: w.cleanSheets ?? [],
+      cleanSheetTeam: { name: w.cleanSheetTeam?.name ?? "", value: w.cleanSheetTeam?.value ?? 0 },
       roughest: {
         playerId: w.roughest?.playerId ?? 0,
         yellowCards: w.roughest?.yellowCards ?? 0,
@@ -277,6 +281,8 @@ function valeBody(v: ValeContent) {
     leader_top_assist_player_id: orNull(w.topAssist.playerId),
     leader_top_assist_value: w.topAssist.value,
     leader_clean_sheet_player_ids: w.cleanSheets,
+    leader_clean_sheet_team: w.cleanSheetTeam.name || null,
+    leader_clean_sheet_value: w.cleanSheetTeam.value,
     leader_roughest_player_id: orNull(w.roughest.playerId),
     leader_roughest_yellow: w.roughest.yellowCards,
     leader_roughest_red: w.roughest.redCards,

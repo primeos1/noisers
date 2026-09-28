@@ -215,8 +215,28 @@ function ValeForm() {
             />
           </label>
         </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>
+            Clean sheet team
+            <input
+              className={inputClass}
+              value={leaders.cleanSheetTeam.name}
+              onChange={(e) => setLeaders({ ...leaders, cleanSheetTeam: { ...leaders.cleanSheetTeam, name: e.target.value } })}
+            />
+          </label>
+          <label className={labelClass}>
+            Clean sheets
+            <input
+              type="number"
+              min={0}
+              className={inputClass}
+              value={leaders.cleanSheetTeam.value}
+              onChange={(e) => setLeaders({ ...leaders, cleanSheetTeam: { ...leaders.cleanSheetTeam, value: Number(e.target.value) } })}
+            />
+          </label>
+        </div>
         <PlayerChecklist
-          label="Clean sheet leaders"
+          label="Clean sheet team players"
           value={leaders.cleanSheets}
           onChange={(ids) => setLeaders({ ...leaders, cleanSheets: ids })}
         />

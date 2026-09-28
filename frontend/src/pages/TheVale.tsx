@@ -62,6 +62,7 @@ export default function TheVale() {
   const topScorer = players.find((p) => p.id === weeklyLeaders.topScorer.playerId);
   const topAssist = players.find((p) => p.id === weeklyLeaders.topAssist.playerId);
   const roughest = players.find((p) => p.id === weeklyLeaders.roughest.playerId);
+  const cleanSheetTeam = weeklyLeaders.cleanSheetTeam;
   const cleanSheetLeaders = weeklyLeaders.cleanSheets
     .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
@@ -243,11 +244,16 @@ export default function TheVale() {
                 Clean sheets
               </p>
               <p className="mt-4 font-display text-4xl text-paper">
-                {cleanSheetLeaders.length}
+                {cleanSheetTeam.name ? cleanSheetTeam.name : "—"}
               </p>
-              <p className="mt-2 text-sm text-paper-dim">
-                {cleanSheetLeaders.map((p) => p.name).join(", ") || "—"}
+              <p className="mt-2 text-sm text-paper">
+                {cleanSheetTeam.value} clean sheet{cleanSheetTeam.value === 1 ? "" : "s"}
               </p>
+              {cleanSheetLeaders.length > 0 && (
+                <p className="mt-1 text-sm text-paper-dim">
+                  {cleanSheetLeaders.map((p) => p.name).join(", ")}
+                </p>
+              )}
             </div>
 
             <div className="bg-ink p-8">
