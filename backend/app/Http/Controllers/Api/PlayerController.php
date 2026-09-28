@@ -15,6 +15,7 @@ use App\Support\PlayerStats;
 use App\Support\ShirtNumbers;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -87,22 +88,9 @@ class PlayerController extends Controller
             ]);
         }
 
-        // Stored like an admin upload (same disk, shows in the media library),
-        // but only once the passcode has checked out.
+        // Only stored once the passcode has checked out.
         if ($file = $request->file('photo')) {
-            $disk = config('filesystems.media_disk');
-            $path = $file->store('media', $disk);
-
-            $media = Media::create([
-                'disk' => $disk,
-                'path' => $path,
-                'url' => Storage::disk($disk)->url($path),
-                'original_filename' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-                'alt_text' => $data['name'],
-            ]);
-            $data['photo_url'] = $media->url;
+            $data['photo_url'] = $this->storePhoto($file, $data['name']);
         }
 
         unset($data['passcode'], $data['photo']);
@@ -110,6 +98,61 @@ class PlayerController extends Controller
         $data['active'] = true;
 
         $player = Player::create($data);
+
+        return new PlayerResource($player);
+    }
+
+    /**
+     * A player editing their own profile from the portal or the app. Players
+     * have no accounts, so it's gated like /join: the squad passcode, or a
+     * committee sign-in. Rating, membership and active status stay with the
+     * committee. Phone and email are write-only here — they're never shown
+     * to the squad — so they only change when sent non-empty.
+     */
+    public function updateProfile(Request $request, Player $player)
+    {
+        $staff = $request->user('sanctum')?->isCommittee() ?? false;
+
+        $data = $request->validate([
+            'passcode' => [$staff ? 'nullable' : 'required', 'string', 'max:64'],
+            'number' => ['sometimes', 'required', 'integer', 'min:1', 'max:99', ShirtNumbers::free($player)],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'position' => ['sometimes', 'required', 'in:GK,DEF,MID,FWD'],
+            'secondary_position' => ['nullable', 'in:GK,DEF,MID,FWD'],
+            'bio' => ['nullable', 'string', 'max:500'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:5120'],
+            'remove_photo' => ['boolean'],
+        ]);
+
+        if (! $staff && ! ClubSetting::current()->checkPlayerPasscode($data['passcode'])) {
+            throw ValidationException::withMessages([
+                'passcode' => ["That passcode isn't right — check with the committee."],
+            ]);
+        }
+
+        foreach (['phone', 'email'] as $contact) {
+            if (blank($data[$contact] ?? null)) {
+                unset($data[$contact]);
+            }
+        }
+
+        if ($file = $request->file('photo')) {
+            $data['photo_url'] = $this->storePhoto($file, $data['name'] ?? $player->name);
+        } elseif ($request->boolean('remove_photo')) {
+            $data['photo_url'] = null;
+        }
+
+        // A second position matching the main one is no second position.
+        if (array_key_exists('secondary_position', $data)
+            && $data['secondary_position'] === ($data['position'] ?? $player->position)) {
+            $data['secondary_position'] = null;
+        }
+
+        unset($data['passcode'], $data['photo'], $data['remove_photo']);
+        $player->update($data);
+        $this->attachMatchDayStats(collect([$player]));
 
         return new PlayerResource($player);
     }
@@ -152,6 +195,26 @@ class PlayerController extends Controller
         $player->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Stored like an admin upload — same disk, and it shows in the media
+     * library. Returns the public URL for the player's photo_url.
+     */
+    private function storePhoto(UploadedFile $file, string $name): string
+    {
+        $disk = config('filesystems.media_disk');
+        $path = $file->store('media', $disk);
+
+        return Media::create([
+            'disk' => $disk,
+            'path' => $path,
+            'url' => Storage::disk($disk)->url($path),
+            'original_filename' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'alt_text' => $name,
+        ])->url;
     }
 
     /**

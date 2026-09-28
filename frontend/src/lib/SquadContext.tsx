@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { isStockPhoto, seedSquad, stockPhoto, type Membership, type Player, type Position, type RatingPoint } from "./clubData";
 import { apiFetch, ApiError } from "./api";
 
-interface ApiPlayer {
+export interface ApiPlayer {
   id: number;
   number: number;
   name: string;
@@ -31,6 +31,7 @@ function fromApi(p: ApiPlayer): Player {
     secondaryPosition: p.secondaryPosition ?? null,
     membership: p.membership ?? "member",
     photo: p.photoUrl && !isStockPhoto(p.photoUrl) ? p.photoUrl : stockPhoto(p.id),
+    bio: p.bio,
     rating: p.rating,
     appearances: p.appearances,
     goals: p.goals,
@@ -62,6 +63,8 @@ interface SquadContextValue {
   updatePlayer: (id: number, patch: Partial<Player>) => void;
   removePlayer: (id: number) => void;
   refresh: () => Promise<void>;
+  /** Swap in a player the server just returned (e.g. after a profile edit). */
+  replacePlayer: (player: ApiPlayer) => void;
 }
 
 const SquadContext = createContext<SquadContextValue | null>(null);
@@ -129,6 +132,11 @@ export function SquadProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  function replacePlayer(player: ApiPlayer) {
+    const updated = fromApi(player);
+    setPlayers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  }
+
   function removePlayer(id: number) {
     setError("");
     const previous = playersRef.current;
@@ -140,7 +148,7 @@ export function SquadProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SquadContext.Provider value={{ players, loading, error, addPlayer, updatePlayer, removePlayer, refresh }}>
+    <SquadContext.Provider value={{ players, loading, error, addPlayer, updatePlayer, removePlayer, refresh, replacePlayer }}>
       {children}
     </SquadContext.Provider>
   );

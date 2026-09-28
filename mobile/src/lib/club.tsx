@@ -84,6 +84,8 @@ interface ClubContextValue {
   addPlayer: (player: PlayerInput) => Promise<Player>;
   updatePlayer: (id: number, player: PlayerInput) => Promise<void>;
   removePlayer: (id: number) => Promise<void>;
+  /** Swap in a player the server just returned (e.g. after a profile edit). */
+  replacePlayer: (player: Player) => void;
   addEvent: (event: MatchDayEvent) => Promise<void>;
   /** Applies the patch at once, then saves it; rejects if the save fails. */
   updateEvent: (id: string, patch: EventPatch) => Promise<void>;
@@ -224,6 +226,10 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     refresh();
   }
 
+  function replacePlayer(player: Player) {
+    setPlayers((prev) => prev.map((p) => (p.id === player.id ? player : p)));
+  }
+
   async function updateSettings(patch: Partial<ClubSettings>) {
     const body = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`), v]));
     const res = await apiFetch<{ data: ClubSettings }>("/settings", { method: "PUT", body });
@@ -248,6 +254,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         addPlayer,
         updatePlayer,
         removePlayer,
+        replacePlayer,
         addEvent,
         updateEvent,
         removeEvent,

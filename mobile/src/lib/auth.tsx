@@ -13,6 +13,8 @@ import type { StaffUser } from "./types";
 const TOKEN_KEY = "noisers_token";
 const USER_KEY = "noisers_staff_user";
 const SQUAD_ACCESS_KEY = "noisers_squad_access";
+// Kept so a player can edit their profile without typing it again.
+const SQUAD_PASSCODE_KEY = "noisers_squad_passcode";
 
 type Status = "restoring" | "signedOut" | "signedIn";
 
@@ -21,6 +23,9 @@ interface AuthContextValue {
   user: StaffUser | null;
   /** True once the squad passcode was accepted, or a committee member is signed in. */
   hasAccess: boolean;
+  /** The passcode that unlocked the app, or null if unknown (older install). */
+  squadPasscode: string | null;
+  rememberSquadPasscode: (passcode: string | null) => Promise<void>;
   /** `beforeEnter` runs once the API accepts, before the app moves on — for a success animation. */
   unlockSquad: (passcode: string, beforeEnter?: () => Promise<void>) => Promise<void>;
   /** Leave the app entirely: forget the passcode and sign any staff member out. */
@@ -35,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("restoring");
   const [user, setUser] = useState<StaffUser | null>(null);
   const [squadAccess, setSquadAccess] = useState(false);
+  const [squadPasscode, setSquadPasscode] = useState<string | null>(null);
 
   async function clear() {
     setApiToken(null);
@@ -46,13 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [token, cachedUser, squad] = await Promise.all([
+      const [token, cachedUser, squad, passcode] = await Promise.all([
         getItem(TOKEN_KEY),
         getItem(USER_KEY),
         getItem(SQUAD_ACCESS_KEY),
+        getItem(SQUAD_PASSCODE_KEY),
       ]);
       if (cancelled) return;
       setSquadAccess(squad === "1");
+      setSquadPasscode(passcode);
       if (!token) {
         setStatus("signedOut");
         return;
@@ -85,12 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await apiFetch("/player-login", { method: "POST", body: { passcode: passcode.trim() } });
     await beforeEnter?.();
     setSquadAccess(true);
-    await setItem(SQUAD_ACCESS_KEY, "1");
+    await Promise.all([setItem(SQUAD_ACCESS_KEY, "1"), rememberSquadPasscode(passcode.trim())]);
+  }
+
+  async function rememberSquadPasscode(passcode: string | null) {
+    setSquadPasscode(passcode);
+    await setItem(SQUAD_PASSCODE_KEY, passcode);
   }
 
   async function leave() {
     setSquadAccess(false);
-    await setItem(SQUAD_ACCESS_KEY, null);
+    await Promise.all([setItem(SQUAD_ACCESS_KEY, null), rememberSquadPasscode(null)]);
     if (status === "signedIn") await signOut();
   }
 
@@ -115,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasAccess = squadAccess || status === "signedIn";
 
   return (
-    <AuthContext value={{ status, user, hasAccess, unlockSquad, leave, signIn, signOut }}>{children}</AuthContext>
+    <AuthContext value={{ status, user, hasAccess, squadPasscode, rememberSquadPasscode, unlockSquad, leave, signIn, signOut }}>{children}</AuthContext>
   );
 }
 

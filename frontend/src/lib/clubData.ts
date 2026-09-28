@@ -23,6 +23,8 @@ export interface Player {
   secondaryPosition?: Position | null;
   membership: Membership;
   photo: string;
+  /** A line or two the player writes about themselves (from the API only). */
+  bio?: string | null;
   rating: number;
   appearances: number;
   goals: number;

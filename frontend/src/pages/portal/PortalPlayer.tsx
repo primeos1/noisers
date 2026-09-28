@@ -9,6 +9,8 @@ import { positionNames } from "../../lib/clubData";
 import MembershipBadge from "../../components/MembershipBadge";
 import { playerInsights } from "../../lib/insights";
 import { InsightsPanel } from "../../components/portal/Insights";
+import EditProfileModal from "../../components/portal/EditProfileModal";
+import { useAuth } from "../../lib/AuthContext";
 import {
   CardPips,
   Empty,
@@ -41,6 +43,8 @@ export default function PortalPlayer() {
   const { cards } = useCards();
   const { events } = useMatchDay();
   const [myShirt, setMyShirt] = useMyShirt();
+  const { user } = useAuth();
+  const [editing, setEditing] = useState(false);
   const [searchParams] = useSearchParams();
   const requested = searchParams.get("tab") as Tab | null;
   const [tab, setTab] = useState<Tab>(requested && TABS.includes(requested) ? requested : "insights");
@@ -68,6 +72,8 @@ export default function PortalPlayer() {
   const fines = cardCounts(cards, playerId);
   const contributions = player.goals + player.assists;
   const isMe = myShirt === playerId;
+  // Your own profile, or anyone's for the committee.
+  const canEdit = isMe || !!user?.staffRole;
 
   const matchDays = [...new Map(log.map((g) => [g.event.id, g.event])).values()].map((event) => {
     const games = log.filter((g) => g.event.id === event.id);
@@ -96,21 +102,35 @@ export default function PortalPlayer() {
         </div>
         <div>
           <div>
-            <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex gap-1.5" aria-label="Last five results">
                 {form.length ? form.slice(0, 5).map((g) => <ResultChip key={`${g.event.id}-${g.game.id}`} result={g.result} />) : <span className="text-sm text-mist">No results yet</span>}
               </div>
-              <button
-                type="button"
-                onClick={() => setMyShirt(isMe ? null : playerId)}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${isMe ? "bg-paper text-ink" : "bg-ink text-paper-dim ring-1 ring-ink-line hover:text-paper"}`}
-              >
-                {isMe ? "This is you" : "This is me"}
-              </button>
+              <div className="flex shrink-0 gap-2">
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    className="rounded-full bg-ink px-3.5 py-1.5 text-sm font-semibold text-paper-dim ring-1 ring-ink-line transition-colors hover:text-paper"
+                  >
+                    Edit profile
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setMyShirt(isMe ? null : playerId)}
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${isMe ? "bg-paper text-ink" : "bg-ink text-paper-dim ring-1 ring-ink-line hover:text-paper"}`}
+                >
+                  {isMe ? "This is you" : "This is me"}
+                </button>
+              </div>
             </div>
+            {player.bio && <p className="mt-4 whitespace-pre-line text-sm text-paper-dim">{player.bio}</p>}
           </div>
         </div>
       </section>
+
+      {editing && <EditProfileModal player={player} onClose={() => setEditing(false)} />}
 
       <Figures
         items={[

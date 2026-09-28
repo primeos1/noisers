@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useClub } from "../../lib/club";
+import { useAuth } from "../../lib/auth";
 import { cardCounts, cardDate, formatNaira, playerGameLog, plural, positionLabel } from "../../lib/derive";
 import {
   Avatar,
@@ -37,6 +38,7 @@ function Line({ label, value, tone = colors.paper }: { label: string; value: str
 export default function PlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { players, cards, events, loading, refresh, myShirt, setMyShirt } = useClub();
+  const { status } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
 
   const playerId = Number(id);
@@ -60,6 +62,8 @@ export default function PlayerScreen() {
   const fines = cardCounts(cards, playerId);
   const contributions = player.goals + player.assists;
   const isMe = myShirt === playerId;
+  // Your own profile, or anyone's for the committee.
+  const canEdit = isMe || status === "signedIn";
   const form = finished.slice(0, 10);
   const firstName = player.name.split(" ")[0];
 
@@ -95,15 +99,27 @@ export default function PlayerScreen() {
               <Txt style={text.small}>No results yet</Txt>
             )}
           </View>
-          <Pressable
-            onPress={() => setMyShirt(isMe ? null : playerId)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isMe }}
-            style={[styles.meButton, isMe ? styles.meButtonActive : null]}
-          >
-            <Txt style={[text.semi, styles.meText, isMe ? styles.meTextActive : null]}>{isMe ? "This is you" : "This is me"}</Txt>
-          </Pressable>
+          <View style={styles.heroActions}>
+            {canEdit ? (
+              <Pressable
+                onPress={() => router.push({ pathname: "/profile", params: { id: String(playerId) } })}
+                accessibilityRole="button"
+                style={styles.meButton}
+              >
+                <Txt style={[text.semi, styles.meText]}>Edit profile</Txt>
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={() => setMyShirt(isMe ? null : playerId)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isMe }}
+              style={[styles.meButton, isMe ? styles.meButtonActive : null]}
+            >
+              <Txt style={[text.semi, styles.meText, isMe ? styles.meTextActive : null]}>{isMe ? "This is you" : "This is me"}</Txt>
+            </Pressable>
+          </View>
         </View>
+        {player.bio ? <Txt style={[text.dim, styles.bio]}>{player.bio}</Txt> : null}
       </View>
 
       <Figures
@@ -254,7 +270,9 @@ const styles = StyleSheet.create({
   hero: { backgroundColor: colors.inkRaised, borderRadius: radius.lg, padding: space.lg, marginBottom: space.xl, borderWidth: 1, borderColor: "rgba(168,132,31,0.25)" },
   heroTop: { flexDirection: "row", alignItems: "center", gap: space.lg },
   rating: { fontFamily: fonts.displayHeavy, fontSize: 56, lineHeight: 58, color: colors.draw, fontVariant: ["tabular-nums"], marginBottom: 8 },
-  heroBottom: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md, marginTop: space.lg },
+  heroBottom: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space.md, marginTop: space.lg },
+  heroActions: { flexDirection: "row", gap: space.sm },
+  bio: { marginTop: space.lg },
   formRow: { flexDirection: "row", gap: 6 },
   meButton: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: colors.ink, borderWidth: 1, borderColor: colors.inkLine },
   meButtonActive: { backgroundColor: colors.paper, borderColor: colors.paper },

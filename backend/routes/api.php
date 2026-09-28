@@ -60,6 +60,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/player-login', [ClubSettingController::class, 'checkPasscode'])->middleware('throttle:10,1');
 // Public squad sign-up (the /join link) — same passcode, tighter throttle.
 Route::post('/players/join', [PlayerController::class, 'join'])->middleware('throttle:5,1');
+// A player editing their own profile and photo — the same passcode gate as
+// /join, or a committee token. POST because it may carry a file.
+Route::post('/players/{player}/profile', [PlayerController::class, 'updateProfile'])->middleware('throttle:10,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

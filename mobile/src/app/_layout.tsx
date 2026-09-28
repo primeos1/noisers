@@ -101,6 +101,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="player/[id]" options={{ title: "" }} />
         <Stack.Screen name="match/[id]" options={{ title: "Match sheet" }} />
+        <Stack.Screen name="profile" options={{ title: "Edit profile", presentation: "modal" }} />
         <Stack.Protected guard={status === "signedIn"}>
           {/* Committee tools — the same sections as the web admin. */}
           <Stack.Screen name="admin/matchday" options={{ title: "Match Day" }} />
