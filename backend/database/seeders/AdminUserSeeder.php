@@ -14,10 +14,10 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@noisersfc.test'],
+            ['email' => env('ADMIN_EMAIL', 'admin@noisersfc.com')],
             [
                 'name' => 'Club Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make(env('ADMIN_PASSWORD', 'password')),
                 'role' => 'admin',
                 'email_verified_at' => now(),
             ]
