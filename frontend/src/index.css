@@ -15,9 +15,9 @@
   --color-draw: #a8841f;
   --color-loss: #c23b6b;
 
-  /* Referee cards — Executives page, disciplinary committee. */
-  --color-ref-yellow: #f4c430;
-  --color-ref-red: #e0383e;
+  /* Brass gold — Executives page, disciplinary committee. */
+  --color-justice: #d8b56a;
+  --color-justice-deep: #8c6a2c;
 }
 
 @layer base {
@@ -1620,8 +1620,8 @@
   }
   .exec-section-disciplinary::before {
     background:
-      radial-gradient(50% 40% at 90% 15%, rgb(244 196 48 / 0.09), transparent 70%),
-      radial-gradient(40% 35% at 5% 90%, rgb(224 56 62 / 0.08), transparent 70%);
+      radial-gradient(50% 40% at 90% 15%, rgb(216 181 106 / 0.1), transparent 70%),
+      radial-gradient(40% 35% at 5% 90%, rgb(216 181 106 / 0.05), transparent 70%);
   }
 
   /* Chapter headings: title rises, tick and rule draw in. */
@@ -1809,13 +1809,13 @@
     }
   }
 
-  /* ---- Disciplinary: case files that flip down, referee cards pop ------- */
+  /* ---- Disciplinary: case files that flip down, sealed with a gavel ----- */
   .exec-case {
     perspective: 900px;
   }
   .exec-case-inner {
     background:
-      linear-gradient(100deg, rgb(244 196 48 / 0.07), transparent 45%),
+      linear-gradient(100deg, rgb(216 181 106 / 0.07), transparent 45%),
       var(--color-ink-raised);
     box-shadow: inset 0 0 0 1px rgb(246 246 243 / 0.07);
     transform-origin: top center;
@@ -1833,7 +1833,7 @@
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(var(--color-ref-yellow), var(--color-ref-red));
+    background: linear-gradient(var(--color-justice), var(--color-justice-deep));
     transform: scaleY(0);
     transform-origin: top;
     transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
@@ -1852,62 +1852,183 @@
     transition-delay: calc(var(--d, 0ms) + 0.5s);
   }
 
-  .exec-refcard {
-    width: 1.35rem;
-    height: 1.85rem;
-    border-radius: 3px;
-    background: linear-gradient(135deg, #ffe07a, var(--color-ref-yellow) 45%, #d9a514);
-    box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.7);
-    transform: scale(0) rotate(-40deg);
-    transition: transform 0.6s cubic-bezier(0.34, 1.8, 0.64, 1);
-    transition-delay: calc(var(--d, 0ms) + 0.6s);
+  /* Seal: stamps down onto the case file, then the gavel strikes. */
+  .exec-seal {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    color: var(--color-justice);
+    background: radial-gradient(circle at 35% 30%, rgb(216 181 106 / 0.16), rgb(216 181 106 / 0.04) 70%);
+    box-shadow:
+      inset 0 0 0 1.5px var(--color-justice),
+      inset 0 0 0 4px var(--color-ink-raised),
+      inset 0 0 0 5px rgb(216 181 106 / 0.35);
+    opacity: 0;
+    transform: scale(1.8) rotate(-20deg);
+    transition:
+      opacity 0.3s ease,
+      transform 0.45s cubic-bezier(0.5, 0, 0.75, 0);
+    transition-delay: calc(var(--d, 0ms) + 0.55s);
   }
-  .exec-refcard.is-red {
-    background: linear-gradient(135deg, #ff7a7e, var(--color-ref-red) 45%, #a8161c);
+  .exec-seal.is-chair {
+    color: var(--color-ink);
+    background: radial-gradient(circle at 35% 30%, #f1d9a0, var(--color-justice) 55%, var(--color-justice-deep));
+    box-shadow:
+      inset 0 0 0 4px rgb(10 14 26 / 0.18),
+      0 8px 20px -8px rgb(216 181 106 / 0.6);
   }
-  .exec-case[data-in] .exec-refcard {
-    transform: rotate(10deg);
+  .exec-case[data-in] .exec-seal {
+    opacity: 1;
+    transform: none;
+  }
+  /* The ripple left behind when the seal lands. */
+  .exec-seal::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid var(--color-justice);
+    opacity: 0;
+  }
+  .exec-case[data-in] .exec-seal::after {
+    animation: exec-seal-ring 0.9s ease-out both;
+    animation-delay: calc(var(--d, 0ms) + 1s);
+  }
+  @keyframes exec-seal-ring {
+    from {
+      opacity: 0.8;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+  }
+  .exec-gavel {
+    width: 1.4rem;
+    height: 1.4rem;
+    transform-box: view-box;
+    transform-origin: 4px 20px;
+  }
+  .exec-case[data-in] .exec-gavel {
+    animation: exec-strike 0.9s cubic-bezier(0.3, 0, 0.3, 1) both;
+    animation-delay: calc(var(--d, 0ms) + 1s);
   }
   @media (hover: hover) {
-    .exec-case[data-in] .exec-case-inner:hover .exec-refcard {
-      transform: rotate(-6deg) translateY(-4px) scale(1.1);
-      transition-delay: 0s;
+    .exec-case[data-in] .exec-case-inner:hover .exec-gavel {
+      animation: exec-strike 0.7s cubic-bezier(0.3, 0, 0.3, 1) both;
+    }
+  }
+  @keyframes exec-strike {
+    0% {
+      transform: none;
+    }
+    35% {
+      transform: rotate(-38deg);
+    }
+    55% {
+      transform: rotate(6deg);
+    }
+    70% {
+      transform: rotate(-4deg);
+    }
+    100% {
+      transform: none;
     }
   }
 
-  /* Heading art: a yellow and a red card fanned out like a referee holding both. */
-  .exec-fan-card {
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 62%;
-    height: 82%;
-    border-radius: 5px;
-    transform-origin: 50% 100%;
-    box-shadow: 0 16px 30px -10px rgb(0 0 0 / 0.8);
-    transition: transform 0.9s cubic-bezier(0.34, 1.6, 0.64, 1) 0.3s;
+  /* Heading art: the scales of justice tip, then settle level. */
+  .exec-scales {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 0.6s ease 0.2s,
+      transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
   }
-  .exec-fan-yellow {
-    background: linear-gradient(135deg, #ffe07a, var(--color-ref-yellow) 50%, #d9a514);
+  .exec-scales[data-in] {
+    opacity: 1;
+    transform: none;
   }
-  .exec-fan-red {
-    background: linear-gradient(135deg, #ff7a7e, var(--color-ref-red) 50%, #a8161c);
+  .exec-scales-beam,
+  .exec-scales-pan {
+    transform-box: view-box;
   }
-  .exec-fan[data-in] .exec-fan-yellow {
-    transform: rotate(-16deg) translateX(-18%);
+  .exec-scales-beam {
+    transform-origin: 60px 30px;
+    transform: rotate(-16deg);
   }
-  .exec-fan[data-in] .exec-fan-red {
-    transform: rotate(12deg) translateX(14%);
-    animation: exec-flash 3.5s ease-in-out 1.4s infinite;
+  .exec-scales-pan-l {
+    transform-origin: 18px 30px;
+    transform: rotate(16deg);
   }
-  @keyframes exec-flash {
-    0%,
-    82%,
-    100% {
-      transform: rotate(12deg) translateX(14%);
+  .exec-scales-pan-r {
+    transform-origin: 102px 30px;
+    transform: rotate(16deg);
+  }
+  .exec-scales[data-in] .exec-scales-beam {
+    animation:
+      exec-weigh 2.2s cubic-bezier(0.3, 0, 0.3, 1) 0.4s both,
+      exec-idle 7s ease-in-out 2.6s infinite;
+  }
+  .exec-scales[data-in] .exec-scales-pan {
+    animation:
+      exec-weigh-pan 2.2s cubic-bezier(0.3, 0, 0.3, 1) 0.4s both,
+      exec-idle-pan 7s ease-in-out 2.6s infinite;
+  }
+  @keyframes exec-weigh {
+    0% {
+      transform: rotate(-16deg);
     }
-    88% {
-      transform: rotate(18deg) translateX(22%) translateY(-10%);
+    30% {
+      transform: rotate(10deg);
+    }
+    52% {
+      transform: rotate(-5deg);
+    }
+    72% {
+      transform: rotate(2.5deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes exec-weigh-pan {
+    0% {
+      transform: rotate(16deg);
+    }
+    30% {
+      transform: rotate(-10deg);
+    }
+    52% {
+      transform: rotate(5deg);
+    }
+    72% {
+      transform: rotate(-2.5deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes exec-idle {
+    0%,
+    100% {
+      transform: none;
+    }
+    50% {
+      transform: rotate(2.5deg);
+    }
+  }
+  @keyframes exec-idle-pan {
+    0%,
+    100% {
+      transform: none;
+    }
+    50% {
+      transform: rotate(-2.5deg);
     }
   }
 
@@ -1915,7 +2036,11 @@
     .exec-switch-wrap,
     .exec-pass-avatar,
     .exec-rail[data-in] .exec-pass,
-    .exec-fan[data-in] .exec-fan-red {
+    .exec-case[data-in] .exec-seal::after,
+    .exec-case[data-in] .exec-gavel,
+    .exec-case[data-in] .exec-case-inner:hover .exec-gavel,
+    .exec-scales[data-in] .exec-scales-beam,
+    .exec-scales[data-in] .exec-scales-pan {
       animation: none;
     }
     .exec-switch-pill,
@@ -1926,8 +2051,8 @@
     .exec-chapter-line,
     .exec-case-inner,
     .exec-case-inner::before,
-    .exec-refcard,
-    .exec-fan-card {
+    .exec-seal,
+    .exec-scales {
       transition: none;
     }
     .exec-pass,
@@ -1936,15 +2061,16 @@
     .exec-chapter-blurb,
     .exec-chapter-line,
     .exec-case-inner,
-    .exec-case-inner::before {
+    .exec-case-inner::before,
+    .exec-seal,
+    .exec-scales,
+    .exec-scales-beam,
+    .exec-scales-pan {
       opacity: 1;
       transform: none;
     }
     .exec-chapter-tick {
       width: 2rem;
-    }
-    .exec-refcard {
-      transform: rotate(10deg);
     }
   }
 }

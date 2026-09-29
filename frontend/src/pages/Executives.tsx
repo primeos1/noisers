@@ -47,7 +47,7 @@ const sections: {
     short: "Discipline",
     heading: "The Panel",
     blurb: "The disciplinary committee. Fair play, firm hand — they hear every case and settle every fine.",
-    accent: "var(--color-ref-yellow)",
+    accent: "var(--color-justice)",
   },
 ];
 
@@ -63,7 +63,7 @@ function initials(name: string) {
 }
 
 /** Marks the element with data-in once it scrolls into view (once only). */
-function useReveal<T extends HTMLElement>(threshold = 0.2) {
+function useReveal<T extends Element>(threshold = 0.2) {
   const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
@@ -482,21 +482,59 @@ function StaffBody({ members }: { members: Executive[] }) {
   );
 }
 
-/* ---- 03 · Disciplinary: case files with referee cards ------------------ */
+/* ---- 03 · Disciplinary: case files sealed with a gavel ----------------- */
 
-function RefereeFan() {
-  const ref = useReveal<HTMLDivElement>(0.5);
+function Scales() {
+  const ref = useReveal<SVGSVGElement>(0.5);
   return (
-    <div ref={ref} aria-hidden="true" className="exec-fan relative mb-2 h-20 w-16 shrink-0 md:h-28 md:w-24">
-      <span className="exec-fan-card exec-fan-yellow" />
-      <span className="exec-fan-card exec-fan-red" />
-    </div>
+    <svg
+      ref={ref}
+      aria-hidden="true"
+      viewBox="0 0 120 120"
+      className="exec-scales mb-1 h-24 w-24 shrink-0 text-justice md:h-36 md:w-36"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M60 26v80M40 108h40M46 108c0-6 6-10 14-10s14 4 14 10" />
+      <circle cx="60" cy="20" r="4.5" fill="currentColor" stroke="none" />
+      <g className="exec-scales-beam">
+        <path d="M18 30h84" />
+        <g className="exec-scales-pan exec-scales-pan-l">
+          <path d="M18 30 7 70M18 30l11 40" strokeWidth="1.5" />
+          <path d="M3 70h30c-2 9-8 13-15 13S5 79 3 70Z" fill="currentColor" fillOpacity="0.25" />
+        </g>
+        <g className="exec-scales-pan exec-scales-pan-r">
+          <path d="m102 30-11 40m11-40 11 40" strokeWidth="1.5" />
+          <path d="M87 70h30c-2 9-8 13-15 13s-13-4-15-13Z" fill="currentColor" fillOpacity="0.25" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+function Gavel() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="exec-gavel"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m14.5 12.5-8 8a2.12 2.12 0 1 1-3-3l8-8" />
+      <path d="m16 16 6-6M8 8l6-6M9 7l8 8M21 11l-8-8" />
+    </svg>
   );
 }
 
 function PanelRow({ exec, index }: { exec: Executive; index: number }) {
   const ref = useReveal<HTMLLIElement>(0.3);
-  const red = index === 0;
+  const chair = index === 0;
   return (
     <li ref={ref} className="exec-case" style={{ "--d": `${(index % 2) * 120}ms` } as CSSProperties}>
       <article className="exec-case-inner relative flex items-center gap-4 overflow-hidden rounded-[18px] p-3 pr-5 md:gap-5 md:p-4 md:pr-6">
@@ -504,13 +542,15 @@ function PanelRow({ exec, index }: { exec: Executive; index: number }) {
           <Portrait exec={exec} size="text-3xl" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ref-yellow">{exec.title}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-justice">{exec.title}</p>
           <h3 className="mt-1.5 font-display text-[1.75rem] font-extrabold uppercase leading-[0.95] text-paper md:text-3xl">
             {exec.name}
           </h3>
           <p className="mt-1.5 font-display text-xs uppercase tracking-[0.2em] text-mist">Case panel · {pad(index + 1)}</p>
         </div>
-        <span aria-hidden="true" className={`exec-refcard shrink-0 ${red ? "is-red" : ""}`} />
+        <span aria-hidden="true" className={`exec-seal shrink-0 ${chair ? "is-chair" : ""}`}>
+          <Gavel />
+        </span>
       </article>
     </li>
   );
@@ -607,7 +647,7 @@ export default function Executives() {
                       label={s.label}
                       blurb={s.blurb}
                       accent={s.accent}
-                      art={s.id === "disciplinary" ? <RefereeFan /> : undefined}
+                      art={s.id === "disciplinary" ? <Scales /> : undefined}
                     />
                   </div>
 
