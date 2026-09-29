@@ -7,6 +7,7 @@ use App\Http\Resources\ExecutiveResource;
 use App\Models\Executive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ExecutiveController extends Controller
 {
@@ -85,6 +86,7 @@ class ExecutiveController extends Controller
         return [
             'name' => [$required, 'string', 'max:120'],
             'title' => [$required, 'string', 'max:120'],
+            'group' => ['sometimes', 'string', Rule::in(Executive::GROUPS)],
             'photo_url' => ['nullable', 'string', 'max:2048'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];

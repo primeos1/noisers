@@ -38,7 +38,10 @@ class ExecutivesTest extends TestCase
             'name' => 'Tunde Bakare',
             'title' => 'Chairman',
             'photo_url' => 'https://media.noisersfc.com/tunde.jpg',
-        ])->assertCreated()->assertJsonPath('data.sortOrder', 0)->json('data.id');
+        ])->assertCreated()
+            ->assertJsonPath('data.sortOrder', 0)
+            ->assertJsonPath('data.group', 'executive')
+            ->json('data.id');
 
         $b = $this->postJson('/api/executives', ['name' => 'Ada Obi', 'title' => 'Treasurer'])
             ->assertCreated()
@@ -47,6 +50,16 @@ class ExecutivesTest extends TestCase
             ->json('data.id');
 
         $this->postJson('/api/executives', ['name' => 'No title'])->assertUnprocessable();
+
+        $this->postJson('/api/executives', ['name' => 'Kemi', 'title' => 'Kit manager', 'group' => 'staff'])
+            ->assertCreated()
+            ->assertJsonPath('data.group', 'staff');
+
+        $this->postJson('/api/executives', ['name' => 'X', 'title' => 'Y', 'group' => 'fans'])->assertUnprocessable();
+
+        $this->putJson("/api/executives/{$a}", ['group' => 'disciplinary'])
+            ->assertOk()
+            ->assertJsonPath('data.group', 'disciplinary');
 
         $this->putJson("/api/executives/{$b}", ['title' => 'Vice Chairman'])
             ->assertOk()

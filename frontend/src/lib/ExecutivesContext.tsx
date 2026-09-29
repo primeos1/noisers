@@ -1,10 +1,19 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { apiFetch, ApiError } from "./api";
 
+export type ExecutiveGroup = "executive" | "staff" | "disciplinary";
+
+export const executiveGroups: { id: ExecutiveGroup; label: string; singular: string }[] = [
+  { id: "executive", label: "Executives", singular: "Executive" },
+  { id: "staff", label: "Staff members", singular: "Staff member" },
+  { id: "disciplinary", label: "Disciplinary committee", singular: "Disciplinary member" },
+];
+
 export interface Executive {
   id: string;
   name: string;
   title: string;
+  group: ExecutiveGroup;
   photo: string;
 }
 
@@ -12,17 +21,19 @@ interface ApiExecutive {
   id: number;
   name: string;
   title: string;
+  group?: ExecutiveGroup;
   photo: string | null;
   sortOrder: number;
 }
 
 function fromApi(e: ApiExecutive): Executive {
-  return { id: String(e.id), name: e.name, title: e.title, photo: e.photo ?? "" };
+  return { id: String(e.id), name: e.name, title: e.title, group: e.group ?? "executive", photo: e.photo ?? "" };
 }
 
 export interface ExecutiveInput {
   name: string;
   title: string;
+  group: ExecutiveGroup;
   photo: string;
 }
 
@@ -30,6 +41,7 @@ function toApiBody(input: Partial<ExecutiveInput>) {
   const body: Record<string, unknown> = {};
   if (input.name !== undefined) body.name = input.name;
   if (input.title !== undefined) body.title = input.title;
+  if (input.group !== undefined) body.group = input.group;
   if (input.photo !== undefined) body.photo_url = input.photo || null;
   return body;
 }

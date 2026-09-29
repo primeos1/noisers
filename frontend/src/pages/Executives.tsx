@@ -1,8 +1,55 @@
-import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import Layout from "../components/Layout";
-import { useExecutives, type Executive } from "../lib/ExecutivesContext";
+import { useExecutives, type Executive, type ExecutiveGroup } from "../lib/ExecutivesContext";
 
 const fallbackTitles = ["Chairman", "Secretary", "Treasurer", "Welfare", "Media"];
+
+/** How each section presents itself on the page — its own name, voice and accent. */
+const sections: {
+  id: ExecutiveGroup;
+  anchor: string;
+  label: string;
+  short: string;
+  heading: string;
+  blurb: string;
+  accent: string;
+}[] = [
+  {
+    id: "executive",
+    anchor: "executives",
+    label: "Executives",
+    short: "Executives",
+    heading: "The Executives",
+    blurb: "The committee that steers the club — every decision, every season.",
+    accent: "var(--color-win)",
+  },
+  {
+    id: "staff",
+    anchor: "staff",
+    label: "Staff members",
+    short: "Staff",
+    heading: "The Backroom",
+    blurb: "The staff who keep matchday moving — kit, pitch, cameras and everything in between.",
+    accent: "var(--color-paper)",
+  },
+  {
+    id: "disciplinary",
+    anchor: "disciplinary",
+    label: "Disciplinary committee",
+    short: "Discipline",
+    heading: "The Panel",
+    blurb: "The disciplinary committee. Fair play, firm hand — they hear every case and settle every fine.",
+    accent: "var(--color-ref-yellow)",
+  },
+];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -16,7 +63,7 @@ function initials(name: string) {
 }
 
 /** Marks the element with data-in once it scrolls into view (once only). */
-function useReveal<T extends HTMLElement>() {
+function useReveal<T extends HTMLElement>(threshold = 0.2) {
   const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
@@ -28,15 +75,15 @@ function useReveal<T extends HTMLElement>() {
           io.disconnect();
         }
       },
-      { threshold: 0.2 },
+      { threshold },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [threshold]);
   return ref;
 }
 
-function Portrait({ exec, className = "" }: { exec: Executive; className?: string }) {
+function Portrait({ exec, className = "", size = "text-[7rem]" }: { exec: Executive; className?: string; size?: string }) {
   if (exec.photo) {
     return (
       <img
@@ -49,7 +96,7 @@ function Portrait({ exec, className = "" }: { exec: Executive; className?: strin
   }
   return (
     <div className="exec-monogram flex h-full w-full items-center justify-center" role="img" aria-label={exec.name}>
-      <span className="exec-photo font-display text-[7rem] font-extrabold leading-none text-paper/80">{initials(exec.name)}</span>
+      <span className={`exec-photo font-display font-extrabold leading-none text-paper/80 ${size}`}>{initials(exec.name)}</span>
     </div>
   );
 }
@@ -63,7 +110,7 @@ function Letters({ text, outline = false, offset = 0 }: { text: string; outline?
           className={outline ? "exec-letter-outline inline-block" : "exec-letter"}
           style={{ "--i": i + offset } as CSSProperties}
         >
-          {ch === " " ? " " : ch}
+          {ch === " " ? " " : ch}
         </span>
       ))}
     </span>
@@ -110,13 +157,125 @@ function Hero({ titles }: { titles: string[] }) {
           className="exec-fade mt-8 max-w-md text-sm text-paper-dim md:text-base"
           style={{ "--d": "900ms" } as CSSProperties}
         >
-          The people who run Noisers FC off the pitch — organising every set, every fixture and every
-          fine, week in, week out.
+          The people who run Noisers FC off the pitch — the executives, the backroom staff and the disciplinary
+          committee, week in, week out.
         </p>
       </div>
     </header>
   );
 }
+
+/* ---- Section switcher -------------------------------------------------- */
+
+function SectionSwitcher({
+  items,
+  active,
+  onPick,
+}: {
+  items: { id: ExecutiveGroup; short: string; count: number; accent: string }[];
+  active: ExecutiveGroup;
+  onPick: (id: ExecutiveGroup) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ x: number; w: number } | null>(null);
+
+  // Slide the highlight under whichever section is in view.
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const measure = () => {
+      const btn = track.querySelector<HTMLElement>(`[data-id="${active}"]`);
+      if (btn) setPill({ x: btn.offsetLeft, w: btn.offsetWidth });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [active, items.length]);
+
+  const accent = items.find((i) => i.id === active)?.accent;
+
+  return (
+    <nav
+      aria-label="Sections"
+      className="exec-switch-wrap pointer-events-none sticky -mb-6 pt-6 md:-mb-8 md:pt-8 top-[calc(env(safe-area-inset-top)+4.25rem)] z-40 flex justify-center px-4 md:top-[5.75rem]"
+    >
+      <div ref={trackRef} className="exec-switch pointer-events-auto relative flex max-w-full rounded-full p-1">
+        {pill && (
+          <span
+            aria-hidden="true"
+            className="exec-switch-pill absolute bottom-1 top-1 left-0 rounded-full"
+            style={{ transform: `translateX(${pill.x}px)`, width: pill.w, background: accent } as CSSProperties}
+          />
+        )}
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            data-id={item.id}
+            aria-current={active === item.id ? "true" : undefined}
+            onClick={() => onPick(item.id)}
+            className={`relative z-10 flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold transition-colors duration-300 md:px-5 md:text-sm ${
+              active === item.id ? "text-ink" : "text-paper-dim hover:text-paper"
+            }`}
+          >
+            {item.short}
+            <span
+              className={`rounded-full px-1.5 py-px font-display text-[11px] leading-tight tabular-nums transition-colors duration-300 ${
+                active === item.id ? "bg-ink/15" : "bg-paper/10"
+              }`}
+            >
+              {item.count}
+            </span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+/* ---- Chapter heading shared by every section --------------------------- */
+
+function Chapter({
+  id,
+  number,
+  heading,
+  label,
+  blurb,
+  accent,
+  art,
+}: {
+  id: string;
+  number: number;
+  heading: string;
+  label: string;
+  blurb: string;
+  accent: string;
+  art?: ReactNode;
+}) {
+  const ref = useReveal<HTMLDivElement>(0.4);
+  return (
+    <div ref={ref} className="exec-chapter relative" style={{ "--accent": accent } as CSSProperties}>
+      <div className="flex items-end justify-between gap-6">
+        <div className="min-w-0">
+          <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: accent }}>
+            <span className="exec-chapter-num font-display text-base tracking-normal">{pad(number)}</span>
+            <span className="exec-chapter-tick" />
+            {label}
+          </p>
+          <h2 id={id} className="mt-3 overflow-hidden font-display text-[3.25rem] font-extrabold uppercase leading-[0.9] text-paper md:text-[5.5rem]">
+            <span className="exec-chapter-title block">{heading}</span>
+          </h2>
+        </div>
+        {art}
+      </div>
+      <p className="exec-chapter-blurb mt-5 max-w-lg text-sm text-paper-dim md:text-base">{blurb}</p>
+      <span aria-hidden="true" className="exec-chapter-line mt-8 block h-px" />
+    </div>
+  );
+}
+
+/* ---- 01 · Executives: featured lead + tilt cards ----------------------- */
 
 function Lead({ exec }: { exec: Executive }) {
   const ref = useReveal<HTMLElement>();
@@ -147,7 +306,7 @@ function Lead({ exec }: { exec: Executive }) {
           <span className="exec-rule" />
           {exec.title}
         </p>
-        <h2 className="mt-5 font-display text-[3.5rem] font-extrabold uppercase leading-[0.9] text-paper md:text-[6.5rem]">
+        <h3 className="mt-5 font-display text-[3.5rem] font-extrabold uppercase leading-[0.9] text-paper md:text-[6.5rem]">
           {words.map((w, i) => (
             <span key={i} className="mr-[0.2em] inline-block overflow-hidden align-bottom last:mr-0">
               <span className="exec-word" style={{ "--i": i } as CSSProperties}>
@@ -155,7 +314,7 @@ function Lead({ exec }: { exec: Executive }) {
               </span>
             </span>
           ))}
-        </h2>
+        </h3>
         <p className="mt-6 text-sm text-mist">Noisers FC · Executive committee</p>
       </div>
     </article>
@@ -221,48 +380,246 @@ function Card({ exec, index }: { exec: Executive; index: number }) {
   );
 }
 
+function ExecutivesBody({ members }: { members: Executive[] }) {
+  const [lead, ...rest] = members;
+  if (!lead) return null;
+  return (
+    <>
+      <Lead exec={lead} />
+      {rest.length > 0 && (
+        <ul className="mt-20 grid gap-6 sm:grid-cols-2 md:mt-28 lg:grid-cols-3 lg:gap-8">
+          {rest.map((exec, i) => (
+            <Card key={exec.id} exec={exec} index={i + 2} />
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+/* ---- 02 · Staff: swinging lanyard passes on a swipe rail --------------- */
+
+function StaffBody({ members }: { members: Executive[] }) {
+  const ref = useReveal<HTMLUListElement>(0.15);
+  const [current, setCurrent] = useState(0);
+
+  // Which pass is centred on the phone rail — drives the dots.
+  function onScroll() {
+    const rail = ref.current;
+    if (!rail) return;
+    const mid = rail.scrollLeft + rail.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    Array.from(rail.children).forEach((child, i) => {
+      const el = child as HTMLElement;
+      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    });
+    setCurrent(best);
+  }
+
+  function goTo(i: number) {
+    const el = ref.current?.children[i] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }
+
+  return (
+    <>
+      <ul
+        ref={ref}
+        onScroll={onScroll}
+        className="exec-rail -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-[12vw] pb-6 pt-14 md:mx-0 md:grid md:snap-none md:grid-cols-3 md:gap-8 md:overflow-visible md:px-0 lg:grid-cols-4"
+      >
+        {members.map((exec, i) => (
+          <li
+            key={exec.id}
+            className="exec-pass-slot w-[76vw] max-w-[19rem] shrink-0 snap-center md:w-auto md:max-w-none"
+            style={{ "--d": `${Math.min(i, 5) * 110}ms` } as CSSProperties}
+          >
+            <article className="exec-pass relative flex h-full flex-col items-center rounded-[22px] px-6 pb-5 pt-10 text-center">
+              <span aria-hidden="true" className="exec-strap" />
+              <span aria-hidden="true" className="exec-pass-slot-hole" />
+
+              <div className="exec-pass-avatar relative h-32 w-32 rounded-full p-[3px]">
+                <div className="h-full w-full overflow-hidden rounded-full bg-ink">
+                  <Portrait exec={exec} size="text-5xl" />
+                </div>
+              </div>
+
+              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.25em] text-mist">{exec.title}</p>
+              <h3 className="mt-2 font-display text-[2rem] font-extrabold uppercase leading-none text-paper">{exec.name}</h3>
+
+              <div className="mt-auto w-full pt-7">
+                <div aria-hidden="true" className="exec-barcode h-7 w-full" />
+                <div className="mt-2 flex justify-between font-display text-xs uppercase tracking-[0.2em] text-mist">
+                  <span>Staff</span>
+                  <span>NFC · {pad(i + 1)}</span>
+                </div>
+              </div>
+            </article>
+          </li>
+        ))}
+      </ul>
+
+      {members.length > 1 && (
+        <div className="mt-2 flex justify-center gap-2 md:hidden">
+          {members.map((exec, i) => (
+            <button
+              key={exec.id}
+              type="button"
+              aria-label={`Show ${exec.name}`}
+              aria-current={current === i ? "true" : undefined}
+              onClick={() => goTo(i)}
+              className={`exec-dot h-1.5 rounded-full ${current === i ? "w-6 bg-paper" : "w-1.5 bg-paper/25"}`}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ---- 03 · Disciplinary: case files with referee cards ------------------ */
+
+function RefereeFan() {
+  const ref = useReveal<HTMLDivElement>(0.5);
+  return (
+    <div ref={ref} aria-hidden="true" className="exec-fan relative mb-2 h-20 w-16 shrink-0 md:h-28 md:w-24">
+      <span className="exec-fan-card exec-fan-yellow" />
+      <span className="exec-fan-card exec-fan-red" />
+    </div>
+  );
+}
+
+function PanelRow({ exec, index }: { exec: Executive; index: number }) {
+  const ref = useReveal<HTMLLIElement>(0.3);
+  const red = index === 0;
+  return (
+    <li ref={ref} className="exec-case" style={{ "--d": `${(index % 2) * 120}ms` } as CSSProperties}>
+      <article className="exec-case-inner relative flex items-center gap-4 overflow-hidden rounded-[18px] p-3 pr-5 md:gap-5 md:p-4 md:pr-6">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[14px] bg-ink md:h-24 md:w-24">
+          <Portrait exec={exec} size="text-3xl" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-ref-yellow">{exec.title}</p>
+          <h3 className="mt-1.5 font-display text-[1.75rem] font-extrabold uppercase leading-[0.95] text-paper md:text-3xl">
+            {exec.name}
+          </h3>
+          <p className="mt-1.5 font-display text-xs uppercase tracking-[0.2em] text-mist">Case panel · {pad(index + 1)}</p>
+        </div>
+        <span aria-hidden="true" className={`exec-refcard shrink-0 ${red ? "is-red" : ""}`} />
+      </article>
+    </li>
+  );
+}
+
+function PanelBody({ members }: { members: Executive[] }) {
+  return (
+    <ul className="grid gap-4 md:grid-cols-2 md:gap-5">
+      {members.map((exec, i) => (
+        <PanelRow key={exec.id} exec={exec} index={i} />
+      ))}
+    </ul>
+  );
+}
+
+/* ---- Page -------------------------------------------------------------- */
+
 export default function Executives() {
   const { executives, loading } = useExecutives();
-  const [lead, ...rest] = executives;
+  const [active, setActive] = useState<ExecutiveGroup>("executive");
+  const sectionRefs = useRef<Partial<Record<ExecutiveGroup, HTMLElement | null>>>({});
+
+  const filled = sections
+    .map((s) => ({ ...s, members: executives.filter((e) => e.group === s.id) }))
+    .filter((s) => s.members.length > 0);
+  const filledKey = filled.map((s) => s.id).join();
+
+  // Scroll-spy: whichever section crosses the middle band of the screen is active.
+  useEffect(() => {
+    const els = Object.values(sectionRefs.current).filter(Boolean) as HTMLElement[];
+    if (els.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActive((entry.target as HTMLElement).dataset.group as ExecutiveGroup);
+        }
+      },
+      { rootMargin: "-40% 0px -55% 0px" },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [filledKey, loading]);
+
+  function pick(id: ExecutiveGroup) {
+    setActive(id);
+    sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <Layout>
       <Hero titles={executives.map((e) => e.title)} />
 
-      <section className="overflow-hidden bg-ink">
-        <div className="mx-auto max-w-7xl px-5 py-16 md:px-10 md:py-28">
-          {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="aspect-[3/4] animate-pulse rounded-[22px] bg-ink-raised" />
-              ))}
-            </div>
-          ) : !lead ? (
+      <div className="relative overflow-x-clip bg-ink">
+        {loading ? (
+          <div className="mx-auto grid max-w-7xl gap-6 px-5 py-16 sm:grid-cols-2 md:px-10 md:py-28 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="aspect-[3/4] animate-pulse rounded-[22px] bg-ink-raised" />
+            ))}
+          </div>
+        ) : filled.length === 0 ? (
+          <div className="mx-auto max-w-7xl px-5 py-16 md:px-10 md:py-28">
             <div className="rounded-[22px] border border-dashed border-ink-line px-6 py-20 text-center">
               <p className="font-display text-3xl text-paper">The committee line-up is coming soon</p>
               <p className="mt-3 text-sm text-paper-dim">Check back shortly to meet the people behind the club.</p>
             </div>
-          ) : (
-            <>
-              <Lead exec={lead} />
+          </div>
+        ) : (
+          <>
+            {filled.length > 1 && (
+              <SectionSwitcher
+                items={filled.map((s) => ({ id: s.id, short: s.short, count: s.members.length, accent: s.accent }))}
+                active={active}
+                onPick={pick}
+              />
+            )}
 
-              {rest.length > 0 && (
-                <>
-                  <div className="mt-24 flex items-end justify-between gap-4 border-b border-ink-line pb-5 md:mt-36">
-                    <h2 className="font-display text-4xl font-extrabold uppercase text-paper md:text-5xl">The committee</h2>
-                    <p className="font-display text-xl text-mist">{pad(executives.length)} members</p>
+            {filled.map((s, i) => (
+              <section
+                key={s.id}
+                id={s.anchor}
+                data-group={s.id}
+                ref={(el) => {
+                  sectionRefs.current[s.id] = el;
+                }}
+                aria-labelledby={`${s.anchor}-heading`}
+                className={`exec-section exec-section-${s.id} relative scroll-mt-[calc(env(safe-area-inset-top)+7.5rem)] md:scroll-mt-40`}
+              >
+                <div className="relative mx-auto max-w-7xl px-5 py-16 md:px-10 md:py-28">
+                  <div className="mb-12 md:mb-20">
+                    <Chapter
+                      id={`${s.anchor}-heading`}
+                      number={i + 1}
+                      heading={s.heading}
+                      label={s.label}
+                      blurb={s.blurb}
+                      accent={s.accent}
+                      art={s.id === "disciplinary" ? <RefereeFan /> : undefined}
+                    />
                   </div>
-                  <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-                    {rest.map((exec, i) => (
-                      <Card key={exec.id} exec={exec} index={i + 2} />
-                    ))}
-                  </ul>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </section>
+
+                  {s.id === "executive" && <ExecutivesBody members={s.members} />}
+                  {s.id === "staff" && <StaffBody members={s.members} />}
+                  {s.id === "disciplinary" && <PanelBody members={s.members} />}
+                </div>
+              </section>
+            ))}
+          </>
+        )}
+      </div>
     </Layout>
   );
 }

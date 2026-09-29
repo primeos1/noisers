@@ -16,6 +16,7 @@ class ExecutiveResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'title' => $this->title,
+            'group' => $this->group ?? 'executive',
             'photo' => $this->photo_url,
             'sortOrder' => $this->sort_order,
         ];

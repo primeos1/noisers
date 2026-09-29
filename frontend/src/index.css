@@ -14,6 +14,10 @@
   --color-win: #2f9e8a;
   --color-draw: #a8841f;
   --color-loss: #c23b6b;
+
+  /* Referee cards — Executives page, disciplinary committee. */
+  --color-ref-yellow: #f4c430;
+  --color-ref-red: #e0383e;
 }
 
 @layer base {
@@ -1564,6 +1568,383 @@
     }
     .exec-photo {
       transform: none;
+    }
+  }
+}
+
+/* ---- Executives: sections (switcher, chapters, staff passes, panel) ----- */
+@layer components {
+  /* Sticky glass switcher; the pill springs to the section in view. */
+  .exec-switch-wrap {
+    animation: hero-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+  }
+  .exec-switch {
+    background: rgb(10 14 26 / 0.72);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    box-shadow:
+      inset 0 0 0 1px rgb(246 246 243 / 0.1),
+      0 18px 40px -18px rgb(0 0 0 / 0.9);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .exec-switch::-webkit-scrollbar {
+    display: none;
+  }
+  .exec-switch-pill {
+    transition:
+      transform 0.55s cubic-bezier(0.34, 1.4, 0.64, 1),
+      width 0.55s cubic-bezier(0.34, 1.4, 0.64, 1),
+      background-color 0.4s ease;
+    box-shadow: 0 6px 20px -8px rgb(0 0 0 / 0.8);
+  }
+
+  /* Each section carries a faint glow in its own accent. */
+  .exec-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .exec-section-executive::before {
+    background: radial-gradient(60% 40% at 85% 10%, rgb(47 158 138 / 0.1), transparent 70%);
+  }
+  .exec-section-staff,
+  .exec-section-disciplinary {
+    border-top: 1px solid var(--color-ink-line);
+  }
+  .exec-section-staff::before {
+    background:
+      radial-gradient(55% 35% at 10% 20%, rgb(246 246 243 / 0.06), transparent 70%),
+      repeating-linear-gradient(90deg, rgb(246 246 243 / 0.025) 0 1px, transparent 1px 72px);
+  }
+  .exec-section-disciplinary::before {
+    background:
+      radial-gradient(50% 40% at 90% 15%, rgb(244 196 48 / 0.09), transparent 70%),
+      radial-gradient(40% 35% at 5% 90%, rgb(224 56 62 / 0.08), transparent 70%);
+  }
+
+  /* Chapter headings: title rises, tick and rule draw in. */
+  .exec-chapter-title {
+    transform: translateY(105%);
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+  }
+  .exec-chapter-tick {
+    display: inline-block;
+    height: 1px;
+    width: 0;
+    background: currentColor;
+    transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1) 0.2s;
+  }
+  .exec-chapter-num,
+  .exec-chapter-blurb {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 0.7s ease 0.35s,
+      transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.35s;
+  }
+  .exec-chapter-line {
+    background: linear-gradient(90deg, var(--accent), var(--color-ink-line) 40%, transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.3s;
+  }
+  .exec-chapter[data-in] .exec-chapter-title,
+  .exec-chapter[data-in] .exec-chapter-num,
+  .exec-chapter[data-in] .exec-chapter-blurb,
+  .exec-chapter[data-in] .exec-chapter-line {
+    opacity: 1;
+    transform: none;
+  }
+  .exec-chapter[data-in] .exec-chapter-tick {
+    width: 2rem;
+  }
+
+  /* ---- Staff: lanyard passes that drop in and swing --------------------- */
+  .exec-rail {
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .exec-rail::-webkit-scrollbar {
+    display: none;
+  }
+  .exec-pass {
+    background:
+      linear-gradient(160deg, rgb(246 246 243 / 0.07), transparent 40%),
+      var(--color-ink-raised);
+    box-shadow:
+      inset 0 0 0 1px rgb(246 246 243 / 0.08),
+      0 30px 60px -28px rgb(0 0 0 / 0.9);
+    transform-origin: 50% -3.5rem;
+    opacity: 0;
+    transform: translateY(-40px) rotate(-8deg);
+  }
+  .exec-rail[data-in] .exec-pass {
+    animation: exec-swing 1.6s cubic-bezier(0.25, 0.8, 0.3, 1) both;
+    animation-delay: var(--d, 0ms);
+  }
+  @keyframes exec-swing {
+    0% {
+      opacity: 0;
+      transform: translateY(-40px) rotate(-10deg);
+    }
+    25% {
+      opacity: 1;
+      transform: translateY(0) rotate(7deg);
+    }
+    45% {
+      transform: rotate(-4deg);
+    }
+    62% {
+      transform: rotate(2.2deg);
+    }
+    78% {
+      transform: rotate(-1deg);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes exec-sway {
+    0% {
+      opacity: 1;
+      transform: none;
+    }
+    30% {
+      transform: rotate(3deg);
+    }
+    65% {
+      transform: rotate(-2deg);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (hover: hover) {
+    .exec-rail[data-in] .exec-pass:hover {
+      animation: exec-sway 1.2s ease-in-out both;
+    }
+  }
+  /* The lanyard strap running up out of the card. */
+  .exec-strap {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 1.2rem);
+    width: 1.4rem;
+    height: 3.6rem;
+    translate: -50% 0;
+    background:
+      repeating-linear-gradient(0deg, rgb(10 14 26 / 0.25) 0 2px, transparent 2px 6px),
+      linear-gradient(90deg, var(--color-win), #3fc0a8, var(--color-win));
+    clip-path: polygon(0 0, 100% 0, 78% 100%, 22% 100%);
+    z-index: -1;
+  }
+  .exec-pass-slot-hole {
+    position: absolute;
+    top: 0.9rem;
+    left: 50%;
+    width: 2.6rem;
+    height: 0.45rem;
+    translate: -50% 0;
+    border-radius: 999px;
+    background: var(--color-ink);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.8);
+  }
+  .exec-pass-avatar {
+    background: conic-gradient(
+      from var(--exec-angle),
+      var(--color-win),
+      var(--color-paper),
+      var(--color-win) 60%,
+      var(--color-ink-line) 80%,
+      var(--color-win)
+    );
+    animation: exec-spin 7s linear infinite;
+  }
+  .exec-barcode {
+    background: repeating-linear-gradient(
+      90deg,
+      rgb(246 246 243 / 0.55) 0 2px,
+      transparent 2px 4px,
+      rgb(246 246 243 / 0.55) 4px 5px,
+      transparent 5px 9px,
+      rgb(246 246 243 / 0.55) 9px 12px,
+      transparent 12px 14px
+    );
+    border-radius: 2px;
+    opacity: 0.6;
+  }
+  .exec-rail[data-in] .exec-photo {
+    filter: none;
+    transform: none;
+    transition-delay: calc(var(--d, 0ms) + 0.5s);
+  }
+  .exec-dot {
+    transition:
+      width 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+      background-color 0.3s ease;
+  }
+  /* Phones: passes grow as they reach the centre of the rail. */
+  @supports (animation-timeline: view()) {
+    @media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+      .exec-pass-slot {
+        animation: exec-focus linear both;
+        animation-timeline: view(inline);
+      }
+    }
+  }
+  @keyframes exec-focus {
+    0%,
+    100% {
+      scale: 0.86;
+      opacity: 0.55;
+    }
+    50% {
+      scale: 1;
+      opacity: 1;
+    }
+  }
+
+  /* ---- Disciplinary: case files that flip down, referee cards pop ------- */
+  .exec-case {
+    perspective: 900px;
+  }
+  .exec-case-inner {
+    background:
+      linear-gradient(100deg, rgb(244 196 48 / 0.07), transparent 45%),
+      var(--color-ink-raised);
+    box-shadow: inset 0 0 0 1px rgb(246 246 243 / 0.07);
+    transform-origin: top center;
+    opacity: 0;
+    transform: rotateX(-75deg) translateY(-10px);
+    transition:
+      opacity 0.6s ease,
+      transform 0.9s cubic-bezier(0.2, 1.3, 0.4, 1);
+    transition-delay: var(--d, 0ms);
+  }
+  .exec-case-inner::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(var(--color-ref-yellow), var(--color-ref-red));
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+    transition-delay: calc(var(--d, 0ms) + 0.35s);
+  }
+  .exec-case[data-in] .exec-case-inner {
+    opacity: 1;
+    transform: none;
+  }
+  .exec-case[data-in] .exec-case-inner::before {
+    transform: none;
+  }
+  .exec-case[data-in] .exec-photo {
+    filter: none;
+    transform: none;
+    transition-delay: calc(var(--d, 0ms) + 0.5s);
+  }
+
+  .exec-refcard {
+    width: 1.35rem;
+    height: 1.85rem;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #ffe07a, var(--color-ref-yellow) 45%, #d9a514);
+    box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.7);
+    transform: scale(0) rotate(-40deg);
+    transition: transform 0.6s cubic-bezier(0.34, 1.8, 0.64, 1);
+    transition-delay: calc(var(--d, 0ms) + 0.6s);
+  }
+  .exec-refcard.is-red {
+    background: linear-gradient(135deg, #ff7a7e, var(--color-ref-red) 45%, #a8161c);
+  }
+  .exec-case[data-in] .exec-refcard {
+    transform: rotate(10deg);
+  }
+  @media (hover: hover) {
+    .exec-case[data-in] .exec-case-inner:hover .exec-refcard {
+      transform: rotate(-6deg) translateY(-4px) scale(1.1);
+      transition-delay: 0s;
+    }
+  }
+
+  /* Heading art: a yellow and a red card fanned out like a referee holding both. */
+  .exec-fan-card {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 62%;
+    height: 82%;
+    border-radius: 5px;
+    transform-origin: 50% 100%;
+    box-shadow: 0 16px 30px -10px rgb(0 0 0 / 0.8);
+    transition: transform 0.9s cubic-bezier(0.34, 1.6, 0.64, 1) 0.3s;
+  }
+  .exec-fan-yellow {
+    background: linear-gradient(135deg, #ffe07a, var(--color-ref-yellow) 50%, #d9a514);
+  }
+  .exec-fan-red {
+    background: linear-gradient(135deg, #ff7a7e, var(--color-ref-red) 50%, #a8161c);
+  }
+  .exec-fan[data-in] .exec-fan-yellow {
+    transform: rotate(-16deg) translateX(-18%);
+  }
+  .exec-fan[data-in] .exec-fan-red {
+    transform: rotate(12deg) translateX(14%);
+    animation: exec-flash 3.5s ease-in-out 1.4s infinite;
+  }
+  @keyframes exec-flash {
+    0%,
+    82%,
+    100% {
+      transform: rotate(12deg) translateX(14%);
+    }
+    88% {
+      transform: rotate(18deg) translateX(22%) translateY(-10%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .exec-switch-wrap,
+    .exec-pass-avatar,
+    .exec-rail[data-in] .exec-pass,
+    .exec-fan[data-in] .exec-fan-red {
+      animation: none;
+    }
+    .exec-switch-pill,
+    .exec-chapter-title,
+    .exec-chapter-tick,
+    .exec-chapter-num,
+    .exec-chapter-blurb,
+    .exec-chapter-line,
+    .exec-case-inner,
+    .exec-case-inner::before,
+    .exec-refcard,
+    .exec-fan-card {
+      transition: none;
+    }
+    .exec-pass,
+    .exec-chapter-title,
+    .exec-chapter-num,
+    .exec-chapter-blurb,
+    .exec-chapter-line,
+    .exec-case-inner,
+    .exec-case-inner::before {
+      opacity: 1;
+      transform: none;
+    }
+    .exec-chapter-tick {
+      width: 2rem;
+    }
+    .exec-refcard {
+      transform: rotate(10deg);
     }
   }
 }
