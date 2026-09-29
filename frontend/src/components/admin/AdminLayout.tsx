@@ -43,6 +43,16 @@ const tabLinks = primary.map((to) => {
 });
 const moreLinks = links.filter((l) => !primary.includes(l.to));
 
+// Pages that edit public-site content sit together under one "CMS" dropdown.
+const cmsPaths = ["/admin/home-content", "/admin/vale", "/admin/highlights", "/admin/executives"];
+const isCms = (to: string) => cmsPaths.includes(to);
+const cmsLinks = links.filter((l) => isCms(l.to));
+const cmsIndex = links.findIndex((l) => isCms(l.to));
+const sidebarBefore = links.slice(0, cmsIndex).filter((l) => !isCms(l.to));
+const sidebarAfter = links.slice(cmsIndex).filter((l) => !isCms(l.to));
+const moreBefore = sidebarBefore.filter((l) => !primary.includes(l.to));
+const moreAfter = sidebarAfter.filter((l) => !primary.includes(l.to));
+
 const rowClass = "flex w-full items-center gap-3.5 px-4 py-3.5 text-left text-[0.95rem]";
 const rowIconClass = "flex h-8 w-8 items-center justify-center rounded-lg";
 
@@ -54,8 +64,13 @@ export default function AdminLayout() {
 
   const current = links.find((l) => matchPath({ path: l.to, end: l.end }, pathname));
   const onMorePage = moreLinks.some((l) => l.to === current?.to);
+  const onCmsPage = !!current && isCms(current.to);
+  const [cmsOpen, setCmsOpen] = useState(onCmsPage);
 
   useEffect(() => setMoreOpen(false), [pathname]);
+  useEffect(() => {
+    if (onCmsPage) setCmsOpen(true);
+  }, [onCmsPage]);
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -86,22 +101,34 @@ export default function AdminLayout() {
 
         <nav className="flex-1 px-3 py-6">
           <ul className="space-y-1">
-            {links.map((link) => (
-              <li key={link.to}>
-                <NavLink
-                  to={link.to}
-                  end={link.end}
-                  className={({ isActive }) =>
-                    `block px-3 py-2.5 text-sm transition-colors ${
-                      isActive
-                        ? "bg-paper text-ink"
-                        : "text-paper-dim hover:bg-ink hover:text-paper"
-                    }`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              </li>
+            {sidebarBefore.map((link) => (
+              <SidebarLink key={link.to} link={link} />
+            ))}
+            <li>
+              <button
+                type="button"
+                onClick={() => setCmsOpen((o) => !o)}
+                aria-expanded={cmsOpen}
+                aria-controls="admin-cms-links"
+                className={`flex w-full items-center justify-between px-3 py-2.5 text-sm transition-colors hover:bg-ink hover:text-paper ${
+                  onCmsPage && !cmsOpen ? "text-paper" : "text-paper-dim"
+                }`}
+              >
+                CMS
+                <ChevronRightIcon
+                  className={`h-4 w-4 text-mist transition-transform ${cmsOpen ? "rotate-90" : ""}`}
+                />
+              </button>
+              {cmsOpen && (
+                <ul id="admin-cms-links" className="ml-3 mt-1 space-y-1 border-l border-ink-line pl-2">
+                  {cmsLinks.map((link) => (
+                    <SidebarLink key={link.to} link={link} />
+                  ))}
+                </ul>
+              )}
+            </li>
+            {sidebarAfter.map((link) => (
+              <SidebarLink key={link.to} link={link} />
             ))}
           </ul>
         </nav>
@@ -176,17 +203,34 @@ export default function AdminLayout() {
               Signed in as <span className="text-paper-dim">{user?.name}</span>
             </p>
             <ul className="mt-3 divide-y divide-ink-line overflow-hidden rounded-2xl bg-ink">
-              {moreLinks.map((link) => (
-                <li key={link.to}>
-                  <NavLink
-                    to={link.to}
-                    className={({ isActive }) => `${rowClass} ${isActive ? "text-paper" : "text-paper-dim"}`}
-                  >
-                    <span className={`${rowIconClass} bg-ink-raised text-paper`}>{link.icon}</span>
-                    <span className="flex-1">{link.label}</span>
-                    <ChevronRightIcon className="h-4 w-4 text-mist" />
-                  </NavLink>
-                </li>
+              {moreBefore.map((link) => (
+                <SheetLink key={link.to} link={link} />
+              ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setCmsOpen((o) => !o)}
+                  aria-expanded={cmsOpen}
+                  className={`${rowClass} ${onCmsPage ? "text-paper" : "text-paper-dim"}`}
+                >
+                  <span className={`${rowIconClass} bg-ink-raised text-paper`}>
+                    <GlobeIcon />
+                  </span>
+                  <span className="flex-1">CMS</span>
+                  <ChevronRightIcon
+                    className={`h-4 w-4 text-mist transition-transform ${cmsOpen ? "rotate-90" : ""}`}
+                  />
+                </button>
+                {cmsOpen && (
+                  <ul className="divide-y divide-ink-line border-t border-ink-line pl-6">
+                    {cmsLinks.map((link) => (
+                      <SheetLink key={link.to} link={link} />
+                    ))}
+                  </ul>
+                )}
+              </li>
+              {moreAfter.map((link) => (
+                <SheetLink key={link.to} link={link} />
               ))}
             </ul>
             <ul className="mt-4 divide-y divide-ink-line overflow-hidden rounded-2xl bg-ink">
@@ -212,5 +256,40 @@ export default function AdminLayout() {
         </div>
       )}
     </div>
+  );
+}
+
+type AdminLink = (typeof links)[number];
+
+function SidebarLink({ link }: { link: AdminLink }) {
+  return (
+    <li>
+      <NavLink
+        to={link.to}
+        end={link.end}
+        className={({ isActive }) =>
+          `block px-3 py-2.5 text-sm transition-colors ${
+            isActive ? "bg-paper text-ink" : "text-paper-dim hover:bg-ink hover:text-paper"
+          }`
+        }
+      >
+        {link.label}
+      </NavLink>
+    </li>
+  );
+}
+
+function SheetLink({ link }: { link: AdminLink }) {
+  return (
+    <li>
+      <NavLink
+        to={link.to}
+        className={({ isActive }) => `${rowClass} ${isActive ? "text-paper" : "text-paper-dim"}`}
+      >
+        <span className={`${rowIconClass} bg-ink-raised text-paper`}>{link.icon}</span>
+        <span className="flex-1">{link.label}</span>
+        <ChevronRightIcon className="h-4 w-4 text-mist" />
+      </NavLink>
+    </li>
   );
 }
