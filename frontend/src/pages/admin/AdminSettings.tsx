@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Modal from "../../components/admin/Modal";
 import MatchRecordEditor from "../../components/admin/MatchRecordEditor";
 import { useAuth } from "../../lib/AuthContext";
@@ -22,6 +22,7 @@ const sections = [
   { id: "vale", label: "The Vale" },
   { id: "portal", label: "Player portal" },
   { id: "records", label: "Match records" },
+  { id: "account", label: "Your account" },
   { id: "danger", label: "Danger zone" },
 ];
 
@@ -522,6 +523,16 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
           <MatchRecords />
         </Section>
 
+        {user?.email && (
+          <Section
+            id="account"
+            title="Your account"
+            description={`Change the password for ${user.email}. You'll need your current password. Other devices signed in to this account are signed out.`}
+          >
+            <ChangePassword />
+          </Section>
+        )}
+
         {canEdit && (
           <Section
             id="danger"
@@ -624,6 +635,103 @@ function MatchRecords() {
 
       {editing && <MatchRecordEditor key={editing.id} event={editing} onClose={() => setEditingId(null)} />}
     </div>
+  );
+}
+
+// Saved on its own button, not the settings save bar — a password isn't a
+// club setting, and every signed-in account can change its own.
+function ChangePassword() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setDone(false);
+    if (next.length < 8) {
+      setError("The new password needs at least 8 characters.");
+      return;
+    }
+    if (next !== confirm) {
+      setError("The new passwords don't match.");
+      return;
+    }
+    setError("");
+    setSaving(true);
+    try {
+      await apiFetch("/user/password", {
+        method: "PUT",
+        body: JSON.stringify({ current_password: current, password: next, password_confirmation: confirm }),
+      });
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't change your password.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-md space-y-4">
+      <label className={labelClass}>
+        Current password
+        <input
+          type="password"
+          autoComplete="current-password"
+          required
+          className={inputClass}
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
+      </label>
+      <label className={labelClass}>
+        New password
+        <input
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          className={inputClass}
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+        />
+        <span className="mt-1 block text-xs text-mist">At least 8 characters.</span>
+      </label>
+      <label className={labelClass}>
+        Confirm new password
+        <input
+          type="password"
+          autoComplete="new-password"
+          required
+          className={inputClass}
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+      </label>
+      {error && (
+        <p role="alert" className="text-sm text-loss">
+          {error}
+        </p>
+      )}
+      {done && (
+        <p role="status" className="text-sm text-win">
+          Password changed.
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving || !current || !next || !confirm}
+        className="rounded-full bg-paper px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60"
+      >
+        {saving ? "Changing…" : "Change password"}
+      </button>
+    </form>
   );
 }
 

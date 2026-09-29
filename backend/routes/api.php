@@ -67,6 +67,7 @@ Route::post('/players/{player}/profile', [PlayerController::class, 'updateProfil
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword'])->middleware('throttle:5,1');
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
 

@@ -54,6 +54,28 @@ class AuthController extends Controller
     }
 
     /**
+     * Change the signed-in account's own password. The current password is
+     * required, so a device left signed in can't be used to lock the owner
+     * out. Other sessions are signed out; this one stays.
+     */
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string', 'current_password:sanctum'],
+            'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed', 'different:current_password'],
+        ], [
+            'current_password.current_password' => 'Your current password is incorrect.',
+            'password.different' => 'Choose a password different from your current one.',
+        ]);
+
+        $user = $request->user();
+        $user->update(['password' => $validated['password']]);
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+
+        return response()->noContent();
+    }
+
+    /**
      * Return the authenticated user.
      */
     public function user(Request $request)

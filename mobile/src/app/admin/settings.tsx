@@ -12,6 +12,7 @@ import {
   Choice,
   Col,
   FieldRow,
+  FormError,
   Hint,
   Label,
   NumberField,
@@ -23,7 +24,7 @@ import {
   matchDaySummary,
   Intro,
 } from "../../components/form";
-import { ErrorBanner, Group, LiveTag, Loading, Row, Screen, Txt, text } from "../../components/ui";
+import { Button, ErrorBanner, Group, LiveTag, Loading, Row, Screen, Txt, text } from "../../components/ui";
 import { colors, fonts, radius, space } from "../../theme";
 
 const teamModes: { value: TeamMode; label: string; hint: string }[] = [
@@ -247,6 +248,8 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
 
         <MatchRecords />
 
+        <ChangePassword />
+
         {canEdit ? <DangerZone /> : null}
       </Screen>
 
@@ -302,6 +305,68 @@ function MatchRecords() {
           })}
         </Group>
       )}
+    </Section>
+  );
+}
+
+// Saved on its own button, not the settings save bar — a password isn't a
+// club setting, and every signed-in account can change its own.
+function ChangePassword() {
+  const { user } = useAuth();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  if (!user) return null;
+
+  async function submit() {
+    setDone(false);
+    if (!current) {
+      setError("Enter your current password.");
+      return;
+    }
+    if (next.length < 8) {
+      setError("The new password needs at least 8 characters.");
+      return;
+    }
+    if (next !== confirm) {
+      setError("The new passwords don't match.");
+      return;
+    }
+    setError("");
+    setSaving(true);
+    try {
+      await apiFetch("/user/password", {
+        method: "PUT",
+        body: { current_password: current, password: next, password_confirmation: confirm },
+      });
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      setDone(true);
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't change your password."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const secure = { secureTextEntry: true, autoCapitalize: "none", autoCorrect: false } as const;
+
+  return (
+    <Section
+      title="Your account"
+      description={`Change the password for ${user.email}. You'll need your current password. Other devices signed in to this account are signed out.`}
+    >
+      <TextField label="Current password" value={current} onChangeText={setCurrent} autoComplete="current-password" textContentType="password" {...secure} />
+      <TextField label="New password" value={next} onChangeText={setNext} autoComplete="new-password" textContentType="newPassword" hint="At least 8 characters." {...secure} />
+      <TextField label="Confirm new password" value={confirm} onChangeText={setConfirm} autoComplete="new-password" textContentType="newPassword" {...secure} />
+      <FormError message={error} />
+      {done ? <Hint tone={colors.win}>Password changed.</Hint> : null}
+      <Button label="Change password" onPress={submit} busy={saving} />
     </Section>
   );
 }
