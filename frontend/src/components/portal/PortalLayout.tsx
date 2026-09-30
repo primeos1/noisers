@@ -1,8 +1,10 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import logoWhite from "../../assets/brand/logo-white.png";
 import { useAuth } from "../../lib/AuthContext";
 import TabBar from "../TabBar";
+import { publicLinks } from "../Navbar";
+import { ChevronRightIcon, LogoutIcon, MoreIcon } from "../icons";
 
 interface Tab {
   label: string;
@@ -54,15 +56,30 @@ const matchIcon = icon(
   </>,
 );
 
+const rowClass = "flex w-full items-center gap-3.5 px-4 py-3.5 text-left text-[0.95rem]";
+const rowIconClass = "flex h-8 w-8 items-center justify-center rounded-lg";
+
 /**
  * Shell for the signed-in player side. Phones get a floating thumb dock at
  * the bottom; from md up the same tabs sit in the top bar. A "Match" tab
- * appears only while a match sheet is open, as on fsm.
+ * appears only while a match sheet is open, as on fsm. "More" opens the
+ * public site's sections, so the rest of the club is a tap away.
  */
 export default function PortalLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => setMoreOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   const onMatch = matchPath("/portal/matches/:id", location.pathname);
   const tabs: Tab[] = onMatch
@@ -100,6 +117,13 @@ export default function PortalLayout() {
             ))}
           </nav>
 
+          <div className="flex items-center gap-2">
+          <Link
+            to="/"
+            className="hidden rounded-full px-3.5 py-2 text-sm text-paper-dim transition-colors hover:text-paper md:block"
+          >
+            Club site
+          </Link>
           <button
             type="button"
             onClick={handleLogout}
@@ -112,6 +136,7 @@ export default function PortalLayout() {
             </svg>
             Log out
           </button>
+          </div>
         </div>
       </header>
 
@@ -119,7 +144,40 @@ export default function PortalLayout() {
         <Outlet />
       </main>
 
-      <TabBar tabs={tabs} label="Player portal" />
+      <TabBar
+        tabs={tabs}
+        label="Player portal"
+        extra={{ label: "More", icon: <MoreIcon />, active: moreOpen, onClick: () => setMoreOpen(true) }}
+      />
+
+      {moreOpen && (
+        <div className="sheet-backdrop md:hidden" onClick={() => setMoreOpen(false)}>
+          <div className="sheet" role="dialog" aria-label="Club site" onClick={(e) => e.stopPropagation()}>
+            <p className="px-1 text-xs text-mist">Noisers FC</p>
+            <ul className="mt-3 divide-y divide-ink-line overflow-hidden rounded-2xl bg-ink">
+              {publicLinks.map((link) => (
+                <li key={link.to}>
+                  <Link to={link.to} className={`${rowClass} text-paper-dim`}>
+                    <span className={`${rowIconClass} bg-ink-raised text-paper`}>{link.icon}</span>
+                    <span className="flex-1">{link.label}</span>
+                    <ChevronRightIcon className="h-4 w-4 text-mist" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <ul className="mt-4 overflow-hidden rounded-2xl bg-ink">
+              <li>
+                <button type="button" onClick={handleLogout} className={`${rowClass} text-loss`}>
+                  <span className={`${rowIconClass} bg-loss/15`}>
+                    <LogoutIcon />
+                  </span>
+                  Log out
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,7 +27,9 @@ export default function PlayerLogin() {
   const { loginAsPlayer } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/portal";
+  // Players land back on the club site; "Player area" in the header takes
+  // them in. A bounce from a portal link still returns them there.
+  const from = (location.state as { from?: string } | null)?.from ?? "/";
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [passcode, setPasscode] = useState("");

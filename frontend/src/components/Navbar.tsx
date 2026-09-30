@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
+import { useAuth } from "../lib/AuthContext";
 import TabBar from "./TabBar";
-import { HomeIcon, MegaphoneIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
+import { GridIcon, HomeIcon, MegaphoneIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
 
-const links = [
+/** The public site's sections, also listed under "More" in the player area. */
+export const publicLinks = [
   { label: "Home", to: "/", end: true, icon: <HomeIcon /> },
   { label: "Squad", to: "/squad", icon: <ShirtIcon /> },
   { label: "The Vale", to: "/the-vale", icon: <TrophyIcon /> },
@@ -14,13 +16,14 @@ const links = [
 ];
 
 // Six tabs share a phone's width, so the longest label is shortened there.
-const tabLinks = links.map((l) => (l.to === "/executives" ? { ...l, label: "Execs" } : l));
+const tabLinks = publicLinks.map((l) => (l.to === "/executives" ? { ...l, label: "Execs" } : l));
 
 /**
  * Public site chrome. Desktop keeps the classic top nav; phones get a slim
  * translucent title bar plus a floating tab bar, like a native app.
  */
 export default function Navbar() {
+  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function Navbar() {
           </Link>
 
           <ul className="hidden items-center gap-8 md:flex">
-            {links.map((link) => (
+            {publicLinks.map((link) => (
               <li key={link.to}>
                 <NavLink
                   to={link.to}
@@ -63,20 +66,34 @@ export default function Navbar() {
             ))}
           </ul>
 
-          <Link
-            to="/login"
-            className="hidden rounded-none border border-paper/40 px-4 py-2 text-sm text-paper transition-colors hover:border-paper hover:bg-paper hover:text-ink md:block"
-          >
-            Club login
-          </Link>
+          {user ? (
+            // Signed-in members get a way into their own area; the public
+            // site stays open to them either way.
+            <Link
+              to={user.role === "admin" ? "/admin" : "/portal"}
+              className="flex items-center gap-1.5 rounded-full bg-paper py-1.5 pl-2.5 pr-3.5 text-sm font-semibold text-ink transition-colors hover:bg-paper-dim md:rounded-none md:px-4 md:py-2"
+            >
+              <GridIcon className="h-4 w-4 md:hidden" />
+              {user.role === "admin" ? "Admin" : "Player area"}
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="hidden rounded-none border border-paper/40 px-4 py-2 text-sm text-paper transition-colors hover:border-paper hover:bg-paper hover:text-ink md:block"
+              >
+                Club login
+              </Link>
 
-          <Link
-            to="/login"
-            className="flex items-center gap-1.5 rounded-full bg-paper/10 py-1.5 pl-2.5 pr-3.5 text-sm font-semibold text-paper ring-1 ring-white/10 md:hidden"
-          >
-            <UserIcon className="h-4 w-4" />
-            Log in
-          </Link>
+              <Link
+                to="/login"
+                className="flex items-center gap-1.5 rounded-full bg-paper/10 py-1.5 pl-2.5 pr-3.5 text-sm font-semibold text-paper ring-1 ring-white/10 md:hidden"
+              >
+                <UserIcon className="h-4 w-4" />
+                Log in
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
