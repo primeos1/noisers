@@ -214,7 +214,7 @@ export default function SquadScreen() {
                         <Txt style={text.small}>
                           {plural(p.appearances, "game")}, {plural(p.goals, "goal")}
                         </Txt>
-                        <CardPips yellow={c.yellow} red={c.red} />
+                        <CardPips yellow={c.unpaidYellow} red={c.unpaidRed} />
                       </View>
                     </View>
                     <Txt style={[text.display, styles.rowRating]}>{p.rating.toFixed(2)}</Txt>

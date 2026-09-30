@@ -101,8 +101,13 @@ export function cardCounts(cards: CardRecord[], playerId: number) {
   const mine = cards.filter((c) => c.playerId === playerId);
   const total = mine.reduce((s, c) => s + c.fine, 0);
   const paid = mine.filter((c) => c.paid).reduce((s, c) => s + c.fine, 0);
+  const unpaid = mine.filter((c) => !c.paid);
   return {
     cards: mine,
+    // Cards still hanging over the player — paid ones drop off their profile.
+    unpaid,
+    unpaidYellow: unpaid.filter((c) => c.type === "yellow").length,
+    unpaidRed: unpaid.filter((c) => c.type === "red").length,
     yellow: mine.filter((c) => c.type === "yellow").length,
     red: mine.filter((c) => c.type === "red").length,
     total,

@@ -50,7 +50,8 @@ export default function PlayerProfile() {
 
   const absence = absenceFor(playerId);
   const playerCards = cards.filter((c) => c.playerId === playerId);
-  const owed = playerCards.filter((c) => !c.paid).reduce((sum, c) => sum + c.fine, 0);
+  const unpaidCards = playerCards.filter((c) => !c.paid);
+  const owed = unpaidCards.reduce((sum, c) => sum + c.fine, 0);
 
   const games = allGames(events)
     .filter(({ game }) => playedFor(game, playerId) !== null)
@@ -114,8 +115,10 @@ export default function PlayerProfile() {
           <h2 className="mt-2 font-display text-2xl text-paper md:text-3xl">
             Cards & fines
           </h2>
-          {playerCards.length === 0 ? (
-            <p className="mt-4 text-sm text-paper-dim">No cards logged this season.</p>
+          {unpaidCards.length === 0 ? (
+            <p className="mt-4 text-sm text-paper-dim">
+              {playerCards.length ? <span className="text-win">All fines paid</span> : "No cards logged this season."}
+            </p>
           ) : (
             <>
               <p className="mt-4 text-sm text-paper-dim">
@@ -137,7 +140,7 @@ export default function PlayerProfile() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...playerCards].reverse().map((card) => (
+                    {[...unpaidCards].reverse().map((card) => (
                       <tr key={card.id} className="border-b border-ink-line last:border-b-0">
                         <td className="px-4 py-3">
                           <span className={card.type === "red" ? "text-loss" : "text-draw"}>

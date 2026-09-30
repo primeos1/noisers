@@ -172,7 +172,7 @@ export default function PortalPlayer() {
           <Group title="Discipline" className="md:col-span-2">
             <Row>
               <span className="flex-1 text-sm text-paper-dim">Cards</span>
-              {fines.cards.length ? <CardPips yellow={fines.yellow} red={fines.red} /> : <span className="font-semibold text-paper">None</span>}
+              {fines.unpaid.length ? <CardPips yellow={fines.unpaidYellow} red={fines.unpaidRed} /> : <span className="font-semibold text-paper">None</span>}
             </Row>
             <Line label="Fines owed" value={formatNaira(fines.outstanding)} tone={fines.outstanding ? "text-loss" : "text-win"} />
           </Group>
@@ -251,11 +251,11 @@ export default function PortalPlayer() {
               { label: "Paid", value: formatNaira(fines.paid), tone: "text-win" },
             ]}
           />
-          {fines.cards.length === 0 ? (
-            <Empty>No cards, no fines. Keep it that way.</Empty>
+          {fines.unpaid.length === 0 ? (
+            <Empty>{fines.cards.length ? "All fines paid. Slate's clean." : "No cards, no fines. Keep it that way."}</Empty>
           ) : (
             <Group title="Cards">
-              {[...fines.cards].reverse().map((c) => (
+              {[...fines.unpaid].reverse().map((c) => (
                 <Row key={c.id}>
                   <span className={`h-5 w-3.5 shrink-0 rounded-[3px] ${c.type === "red" ? "bg-loss" : "bg-draw"}`} aria-label={`${c.type} card`} />
                   <span className="min-w-0 flex-1">

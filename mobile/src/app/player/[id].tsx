@@ -157,7 +157,7 @@ export default function PlayerScreen() {
           <Group title="Discipline">
             <Row>
               <Txt style={[text.dim, styles.flex]}>Cards</Txt>
-              {fines.cards.length ? <CardPips yellow={fines.yellow} red={fines.red} /> : <Txt style={text.semi}>None</Txt>}
+              {fines.unpaid.length ? <CardPips yellow={fines.unpaidYellow} red={fines.unpaidRed} /> : <Txt style={text.semi}>None</Txt>}
             </Row>
             <Line label="Fines owed" value={formatNaira(fines.outstanding)} tone={fines.outstanding ? colors.loss : colors.win} />
           </Group>
@@ -237,11 +237,11 @@ export default function PlayerScreen() {
               { label: "Paid", value: formatNaira(fines.paid), tone: colors.win },
             ]}
           />
-          {fines.cards.length === 0 ? (
-            <Empty>No cards, no fines. Keep it that way.</Empty>
+          {fines.unpaid.length === 0 ? (
+            <Empty>{fines.cards.length ? "All fines paid. Slate's clean." : "No cards, no fines. Keep it that way."}</Empty>
           ) : (
             <Group title="Cards">
-              {fines.cards.map((c) => (
+              {fines.unpaid.map((c) => (
                 <Row key={c.id}>
                   <RefCard type={c.type} size="md" />
                   <View style={styles.flex}>

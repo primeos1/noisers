@@ -188,7 +188,7 @@ export default function PortalSquad() {
                         <span className="mt-0.5 flex items-center gap-2 text-xs text-mist">
                           {p.secondaryPosition && <span>Also {p.secondaryPosition},</span>}
                           {p.appearances} game{p.appearances === 1 ? "" : "s"}, {p.goals} goal{p.goals === 1 ? "" : "s"}
-                          <CardPips yellow={c.yellow} red={c.red} />
+                          <CardPips yellow={c.unpaidYellow} red={c.unpaidRed} />
                         </span>
                       </span>
                       <span className="shrink-0 font-display text-2xl font-bold tabular-nums text-draw">{p.rating.toFixed(2)}</span>
