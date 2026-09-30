@@ -246,7 +246,9 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
               chevron={false}
               accessibilityLabel={`${p.name}, ${present ? "present" : "not here"}`}
             >
-              <Ionicons name={present ? "checkmark-circle" : "ellipse-outline"} size={24} color={present ? colors.win : colors.inkLine} />
+              <View style={[styles.tick, present ? styles.tickOn : null]}>
+                {present ? <Ionicons name="checkmark" size={18} color="#000" /> : null}
+              </View>
               <Avatar player={p} size={34} />
               <View style={styles.flex}>
                 <Txt style={[text.semi, present ? null : { color: colors.paperDim }]} numberOfLines={1}>
@@ -806,6 +808,16 @@ export default function MatchDayScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
+  tick: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.paperDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tickOn: { backgroundColor: colors.paper, borderColor: colors.paper },
   gap: { height: space.md },
   inline: { flexDirection: "row", alignItems: "center", gap: space.md },
   inlineButtons: { flexDirection: "row", gap: space.md, marginBottom: space.lg },
