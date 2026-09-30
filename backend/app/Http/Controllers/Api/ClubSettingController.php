@@ -7,6 +7,7 @@ use App\Http\Resources\ClubSettingResource;
 use App\Models\ClubSetting;
 use App\Support\PlayerRatings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ClubSettingController extends Controller
@@ -32,7 +33,16 @@ class ClubSettingController extends Controller
 
         $this->authorize('update', $setting);
 
+        $weightRules = ['rating_positions' => ['sometimes', 'array:'.implode(',', PlayerRatings::POSITIONS)]];
+        foreach (PlayerRatings::defaultPositionWeights() as $position => $keys) {
+            $weightRules["rating_positions.$position"] = ['array'];
+            foreach (array_keys($keys) as $key) {
+                $weightRules["rating_positions.$position.".Str::camel($key)] = ['sometimes', 'numeric', 'min:0', 'max:1'];
+            }
+        }
+
         $validated = $request->validate([
+            ...$weightRules,
             'yellow_card_fine' => ['sometimes', 'integer', 'min:0'],
             'red_card_fine' => ['sometimes', 'integer', 'min:0'],
             'fines_from_match_day' => ['sometimes', 'boolean'],
@@ -43,20 +53,22 @@ class ClubSettingController extends Controller
             'match_default_venue' => ['sometimes', 'nullable', 'string', 'max:255'],
             'ratings_enabled' => ['sometimes', 'boolean'],
             'rating_new_player' => ['sometimes', 'numeric', 'min:'.PlayerRatings::MIN, 'max:'.PlayerRatings::MAX],
-            'rating_win' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_loss' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_goal' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_assist' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_own_goal' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_clean_sheet_gk' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_clean_sheet_def' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_clean_sheet_mid' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_clean_sheet_fwd' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_yellow_card' => ['sometimes', 'numeric', 'min:0', 'max:1'],
-            'rating_red_card' => ['sometimes', 'numeric', 'min:0', 'max:1'],
             'rating_max_swing' => ['sometimes', 'numeric', 'min:0.05', 'max:2'],
             'vale_auto_awards' => ['sometimes', 'boolean'],
         ]);
+
+        // Weights arrive as { GK: { ownGoal, ... } }; merge them over the
+        // current ones so a partial update keeps the rest.
+        if (isset($validated['rating_positions'])) {
+            $weights = $setting->positionWeights();
+            foreach ($validated['rating_positions'] as $position => $keys) {
+                foreach ($keys as $key => $value) {
+                    $weights[$position][Str::snake($key)] = (float) $value;
+                }
+            }
+            unset($validated['rating_positions']);
+            $validated['rating_position_weights'] = $weights;
+        }
 
         $setting->update($validated);
 

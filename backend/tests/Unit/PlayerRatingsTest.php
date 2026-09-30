@@ -11,11 +11,11 @@ class PlayerRatingsTest extends TestCase
 {
     private const POSITIONS = [1 => 'GK', 4 => 'DEF', 7 => 'MID', 9 => 'FWD', 2 => 'GK', 5 => 'DEF', 8 => 'MID', 10 => 'FWD'];
 
-    private function points(array $games): array
+    private function points(array $games, ?array $weights = null): array
     {
         $event = new MatchDayEvent(['games' => $games]);
 
-        return PlayerRatings::points($event, fn (int $n) => self::POSITIONS[$n] ?? null);
+        return PlayerRatings::points($event, fn (int $n) => self::POSITIONS[$n] ?? null, $weights);
     }
 
     private function game(array $goals, string $status = 'finished'): array
@@ -74,6 +74,29 @@ class PlayerRatingsTest extends TestCase
         $this->assertEqualsWithDelta(0.12 - 0.05, $p[4], 1e-9); // draw, DEF clean sheet, yellow
         $this->assertEqualsWithDelta(0.05 - 0.15, $p[8], 1e-9); // draw, MID clean sheet, red
         $this->assertArrayNotHasKey('guest-1', $p);
+    }
+
+    public function test_each_position_uses_its_own_weights(): void
+    {
+        $weights = PlayerRatings::defaultPositionWeights();
+        $weights['FWD']['goal'] = 0.05;         // strikers are expected to score
+        $weights['DEF']['goal'] = 0.30;         // a defender scoring is special
+        $weights['GK']['goal_conceded'] = 0.04; // keepers pay for each goal let in
+        $weights['DEF']['goal_conceded'] = 0.02;
+        $weights['MID']['win'] = 0.2;
+
+        $p = $this->points([$this->game([
+            ['teamIndex' => 0, 'playerId' => 9],
+            ['teamIndex' => 0, 'playerId' => 4],
+            ['teamIndex' => 1, 'playerId' => 10],
+        ])], PlayerRatings::weights($weights));
+
+        $this->assertEqualsWithDelta(0.10 + 0.05, $p[9], 1e-9);  // win + FWD goal
+        $this->assertEqualsWithDelta(0.10 + 0.30 - 0.02, $p[4], 1e-9); // win + DEF goal − 1 conceded
+        $this->assertEqualsWithDelta(0.10 - 0.04, $p[1], 1e-9);  // win − 1 conceded
+        $this->assertEqualsWithDelta(0.20, $p[7], 1e-9);         // MID win
+        $this->assertEqualsWithDelta(-0.10 - 0.04 * 2, $p[2], 1e-9);  // loss − 2 conceded
+        $this->assertEqualsWithDelta(-0.10 + 0.05, $p[10], 1e-9); // loss + FWD goal
     }
 
     public function test_roughest_player_has_most_cards_with_reds_breaking_ties(): void

@@ -9,12 +9,13 @@ use App\Models\PlayerRatingChange;
 
 /**
  * Moves each squad player's rating after a match day, based on how they and
- * their team performed in its finished games:
+ * their team performed in its finished games. Every weight is set per
+ * position (GK/DEF/MID/FWD), using the player's main position:
  *
  *  - every game: a win nudges the whole side up, a loss nudges it down;
  *  - goals and assists reward whoever made them (own goals cost a little);
- *  - a clean sheet rewards the back line most — keepers, then defenders,
- *    then midfielders;
+ *  - a clean sheet rewards the side — by default the back line most;
+ *  - each goal the side concedes can cost a little (off by default);
  *  - each card costs the player a little, a red more than a yellow.
  *
  * The day's points are scaled so gains shrink as a rating nears the ceiling
@@ -33,21 +34,25 @@ class PlayerRatings
 
     public const DEFAULT = 6.0;
 
-    private const WIN = 0.10;
+    public const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 
-    private const LOSS = -0.10;
+    /** Weight keys, each entered as a positive amount; these are penalties. */
+    public const PENALTIES = ['loss', 'own_goal', 'goal_conceded', 'yellow_card', 'red_card'];
 
-    private const GOAL = 0.12;
-
-    private const ASSIST = 0.08;
-
-    private const OWN_GOAL = -0.08;
+    /** The default weights every position shares, before clean sheets. */
+    private const BASE = [
+        'win' => 0.10,
+        'loss' => 0.10,
+        'goal' => 0.12,
+        'assist' => 0.08,
+        'own_goal' => 0.08,
+        'clean_sheet' => 0.0,
+        'goal_conceded' => 0.0,
+        'yellow_card' => 0.05,
+        'red_card' => 0.15,
+    ];
 
     private const CLEAN_SHEET = ['GK' => 0.15, 'DEF' => 0.12, 'MID' => 0.05, 'FWD' => 0.0];
-
-    private const YELLOW_CARD = -0.05;
-
-    private const RED_CARD = -0.15;
 
     /** Most a rating can move in a single match day, either way. */
     private const MAX_SWING = 0.5;
@@ -56,7 +61,7 @@ class PlayerRatings
     {
         $weights = ClubSetting::current()->ratingWeights();
         $players = Player::all()->keyBy('id');
-        // The main position decides the clean-sheet reward; a second position doesn't.
+        // The main position decides which weights apply; a second position doesn't.
         $points = self::points($event, fn (int $id) => $players[$id]->position ?? null, $weights);
 
         foreach ($points as $id => $raw) {
@@ -83,21 +88,39 @@ class PlayerRatings
     }
 
     /**
-     * @return array{win: float, loss: float, goal: float, assist: float, own_goal: float, clean_sheet: array<string, float>, yellow_card: float, red_card: float, max_swing: float}
+     * Default weights per position, all as positive amounts — the shape
+     * stored in club_settings.rating_position_weights.
+     *
+     * @return array<string, array<string, float>>
      */
-    public static function defaultWeights(): array
+    public static function defaultPositionWeights(): array
     {
-        return [
-            'win' => self::WIN,
-            'loss' => self::LOSS,
-            'goal' => self::GOAL,
-            'assist' => self::ASSIST,
-            'own_goal' => self::OWN_GOAL,
-            'clean_sheet' => self::CLEAN_SHEET,
-            'yellow_card' => self::YELLOW_CARD,
-            'red_card' => self::RED_CARD,
-            'max_swing' => self::MAX_SWING,
-        ];
+        $weights = [];
+        foreach (self::POSITIONS as $position) {
+            $weights[$position] = ['clean_sheet' => self::CLEAN_SHEET[$position]] + self::BASE;
+        }
+
+        return $weights;
+    }
+
+    /**
+     * Weights in the shape points() expects: per position, penalties negated.
+     *
+     * @param  array<string, array<string, float>>  $positionWeights  as defaultPositionWeights()
+     * @return array{positions: array<string, array<string, float>>, max_swing: float}
+     */
+    public static function weights(array $positionWeights, float $maxSwing = self::MAX_SWING): array
+    {
+        $defaults = self::defaultPositionWeights();
+        $positions = [];
+        foreach (self::POSITIONS as $position) {
+            foreach ($defaults[$position] as $key => $default) {
+                $amount = abs((float) ($positionWeights[$position][$key] ?? $default));
+                $positions[$position][$key] = in_array($key, self::PENALTIES, true) ? -$amount : $amount;
+            }
+        }
+
+        return ['positions' => $positions, 'max_swing' => $maxSwing];
     }
 
     /**
@@ -105,17 +128,22 @@ class PlayerRatings
      * games. Guests (non-int participant ids) are skipped.
      *
      * @param  callable(int): ?string  $positionOf
-     * @param  array<string, mixed>|null  $weights  as ClubSetting::ratingWeights(); null uses the defaults
+     * @param  array<string, mixed>|null  $weights  as weights(); null uses the defaults
      * @return array<int, float>
      */
     public static function points(MatchDayEvent $event, callable $positionOf, ?array $weights = null): array
     {
-        $weights ??= self::defaultWeights();
+        $weights ??= self::weights(self::defaultPositionWeights());
         $points = [];
-        $add = function ($playerId, float $amount) use (&$points, $positionOf) {
-            if (is_int($playerId) && $positionOf($playerId) !== null) {
-                $points[$playerId] = ($points[$playerId] ?? 0.0) + $amount;
+        // Adds $times lots of the weight $key for the player's position; a null
+        // key still counts them as having played (a draw).
+        $add = function ($playerId, ?string $key, int $times = 1) use (&$points, $positionOf, $weights) {
+            $position = is_int($playerId) ? $positionOf($playerId) : null;
+            if ($position === null || ! isset($weights['positions'][$position])) {
+                return;
             }
+            $amount = $key === null ? 0.0 : ($weights['positions'][$position][$key] ?? 0.0);
+            $points[$playerId] = ($points[$playerId] ?? 0.0) + $amount * $times;
         };
 
         foreach (($event->games ?? []) as $game) {
@@ -135,25 +163,23 @@ class PlayerRatings
                 }
                 $for = $score[$i];
                 $against = $score[1 - $i];
-                $result = $for > $against ? $weights['win'] : ($for < $against ? $weights['loss'] : 0.0);
+                $result = $for > $against ? 'win' : ($for < $against ? 'loss' : null);
 
                 foreach (($team['players'] ?? []) as $playerId) {
                     $add($playerId, $result);
-                    if ($against === 0 && is_int($playerId)) {
-                        $add($playerId, $weights['clean_sheet'][$positionOf($playerId)] ?? 0.0);
-                    }
+                    $add($playerId, $against === 0 ? 'clean_sheet' : 'goal_conceded', max(1, $against));
                 }
             }
 
             foreach (($game['goals'] ?? []) as $goal) {
                 $ownGoal = (bool) ($goal['ownGoal'] ?? false);
-                $add($goal['playerId'] ?? null, $ownGoal ? $weights['own_goal'] : $weights['goal']);
-                $add($goal['assistPlayerId'] ?? null, $weights['assist']);
+                $add($goal['playerId'] ?? null, $ownGoal ? 'own_goal' : 'goal');
+                $add($goal['assistPlayerId'] ?? null, 'assist');
             }
 
             foreach (($game['cards'] ?? []) as $card) {
                 $red = ($card['type'] ?? 'yellow') === 'red';
-                $add($card['playerId'] ?? null, $red ? $weights['red_card'] : $weights['yellow_card']);
+                $add($card['playerId'] ?? null, $red ? 'red_card' : 'yellow_card');
             }
         }
 

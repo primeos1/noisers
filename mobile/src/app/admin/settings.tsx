@@ -7,7 +7,7 @@ import { DEFAULT_RATING_WEIGHTS, useClub } from "../../lib/club";
 import { apiFetch, errorMessage } from "../../lib/api";
 import { SITE_URL } from "../../lib/config";
 import { formatNaira, plural, sortEvents } from "../../lib/derive";
-import type { ClubSettings, TeamMode } from "../../lib/types";
+import type { ClubSettings, Position, RatingWeightKey, TeamMode } from "../../lib/types";
 import {
   Choice,
   Col,
@@ -33,6 +33,45 @@ const teamModes: { value: TeamMode; label: string; hint: string }[] = [
   { value: "position", label: "By position", hint: "Even out positions" },
 ];
 
+const ratingPositions: { value: Position; label: string }[] = [
+  { value: "GK", label: "GK" },
+  { value: "DEF", label: "DEF" },
+  { value: "MID", label: "MID" },
+  { value: "FWD", label: "FWD" },
+];
+
+const positionNames: Record<Position, string> = { GK: "goalkeepers", DEF: "defenders", MID: "midfielders", FWD: "forwards" };
+
+// Each weight in rows of three; the − ones are taken away.
+const ratingWeightRows: { key: RatingWeightKey; label: string; suffix: "+" | "−" }[][] = [
+  [
+    { key: "win", label: "Win", suffix: "+" },
+    { key: "loss", label: "Loss", suffix: "−" },
+    { key: "goal", label: "Goal", suffix: "+" },
+  ],
+  [
+    { key: "assist", label: "Assist", suffix: "+" },
+    { key: "cleanSheet", label: "Clean sheet", suffix: "+" },
+    { key: "goalConceded", label: "Conceded", suffix: "−" },
+  ],
+  [
+    { key: "ownGoal", label: "Own goal", suffix: "−" },
+    { key: "yellowCard", label: "Yellow", suffix: "−" },
+    { key: "redCard", label: "Red card", suffix: "−" },
+  ],
+];
+
+// Compared by content, so an edited-then-reverted weight doesn't count as a change.
+function same(a: unknown, b: unknown) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
+function hasBlank(value: unknown): boolean {
+  if (typeof value === "number") return Number.isNaN(value);
+  if (value && typeof value === "object") return Object.values(value).some(hasBlank);
+  return false;
+}
+
 function signed(n: number) {
   const v = Number.isNaN(n) ? 0 : n;
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}`;
@@ -47,7 +86,9 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const changed = (Object.keys(draft) as (keyof ClubSettings)[]).filter((k) => draft[k] !== settings[k]);
+  const [ratingPosition, setRatingPosition] = useState<Position>("GK");
+
+  const changed = (Object.keys(draft) as (keyof ClubSettings)[]).filter((k) => !same(draft[k], settings[k]));
   const passcodeChanged = passcodeDraft.trim() !== "" && passcodeDraft.trim() !== passcode;
   const count = changed.length + (passcodeChanged ? 1 : 0);
   const off = !canEdit;
@@ -57,8 +98,12 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
     setSaved(false);
   }
 
+  function setWeight(key: RatingWeightKey, value: number) {
+    set("ratingPositions", { ...draft.ratingPositions, [ratingPosition]: { ...draft.ratingPositions[ratingPosition], [key]: value } });
+  }
+
   async function save() {
-    if (changed.some((k) => typeof draft[k] === "number" && Number.isNaN(draft[k]))) {
+    if (changed.some((k) => hasBlank(draft[k]))) {
       setError("Fill in every number before saving.");
       return;
     }
@@ -157,45 +202,47 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
             <Col>{n("ratingMaxSwing", "Max move per day", "±")}</Col>
           </FieldRow>
 
-          <Label>Points per game</Label>
-          <FieldRow>
-            <Col>{n("ratingWin", "Win", "+")}</Col>
-            <Col>{n("ratingLoss", "Loss", "−")}</Col>
-            <Col>{n("ratingGoal", "Goal", "+")}</Col>
-          </FieldRow>
-          <FieldRow>
-            <Col>{n("ratingAssist", "Assist", "+")}</Col>
-            <Col>{n("ratingOwnGoal", "Own goal", "−")}</Col>
-            <Col>{n("ratingYellowCard", "Yellow", "−")}</Col>
-          </FieldRow>
-          <FieldRow>
-            <Col>{n("ratingRedCard", "Red card", "−")}</Col>
-            <Col>
-              <View />
-            </Col>
-            <Col>
-              <View />
-            </Col>
-          </FieldRow>
-
-          <Label>Clean sheet bonus by position</Label>
-          <FieldRow>
-            <Col>{n("ratingCleanSheetGk", "GK", "+")}</Col>
-            <Col>{n("ratingCleanSheetDef", "DEF", "+")}</Col>
-          </FieldRow>
-          <FieldRow>
-            <Col>{n("ratingCleanSheetMid", "MID", "+")}</Col>
-            <Col>{n("ratingCleanSheetFwd", "FWD", "+")}</Col>
-          </FieldRow>
+          <Label>Points per game, by position</Label>
+          <Choice<Position> options={ratingPositions} value={ratingPosition} onChange={setRatingPosition} />
+          <Hint>
+            How {positionNames[ratingPosition]} are rated, using each player's main position. Enter every amount as a positive number; the − ones are
+            taken away.
+          </Hint>
+          <View style={styles.gap} />
+          {ratingWeightRows.map((row) => (
+            <FieldRow key={row[0].key}>
+              {row.map((w) => (
+                <Col key={`${ratingPosition}-${w.key}`}>
+                  <NumberField
+                    label={w.label}
+                    value={draft.ratingPositions[ratingPosition][w.key]}
+                    onChange={(v) => setWeight(w.key, v)}
+                    decimal
+                    suffix={w.suffix}
+                    disabled={off || !draft.ratingsEnabled}
+                  />
+                </Col>
+              ))}
+            </FieldRow>
+          ))}
 
           <View style={styles.example}>
             <Txt style={text.semi}>Example, before scaling</Txt>
             <Txt style={[text.small, styles.exampleLine]}>
               A defender who wins 2–0 and assists once:{" "}
-              <Txt style={{ color: colors.win }}>{signed(draft.ratingWin + draft.ratingCleanSheetDef + draft.ratingAssist)}</Txt>
+              <Txt style={{ color: colors.win }}>
+                {signed(draft.ratingPositions.DEF.win + draft.ratingPositions.DEF.cleanSheet + draft.ratingPositions.DEF.assist)}
+              </Txt>
             </Txt>
             <Txt style={[text.small, styles.exampleLine]}>
-              A forward who scores twice but loses 2–3: <Txt style={{ color: colors.paper }}>{signed(draft.ratingGoal * 2 - draft.ratingLoss)}</Txt>
+              A forward who scores twice but loses 2–3:{" "}
+              <Txt style={{ color: colors.paper }}>
+                {signed(draft.ratingPositions.FWD.goal * 2 - draft.ratingPositions.FWD.loss - draft.ratingPositions.FWD.goalConceded * 3)}
+              </Txt>
+            </Txt>
+            <Txt style={[text.small, styles.exampleLine]}>
+              A goalkeeper who loses 2–3:{" "}
+              <Txt style={{ color: colors.loss }}>{signed(-draft.ratingPositions.GK.loss - draft.ratingPositions.GK.goalConceded * 3)}</Txt>
             </Txt>
             <Txt style={[text.small, styles.exampleLine]}>
               Gains shrink near 9.5 and losses shrink near 4.0, so ratings drift back to the middle unless a player keeps performing.

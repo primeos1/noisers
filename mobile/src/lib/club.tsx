@@ -7,19 +7,17 @@ import type { Card, CardType, ClubSettings, MatchDayEvent, Player, Position, Mem
 // Everything the app shows comes from four public endpoints, loaded together
 // and refreshed on pull-to-refresh (and every 30s while a match day is live).
 
+// Mirrors PlayerRatings::defaultPositionWeights() on the backend.
+const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
+
 /** The rating-weight fields, restorable as a group from Settings. */
 export const DEFAULT_RATING_WEIGHTS = {
-  ratingWin: 0.1,
-  ratingLoss: 0.1,
-  ratingGoal: 0.12,
-  ratingAssist: 0.08,
-  ratingOwnGoal: 0.08,
-  ratingCleanSheetGk: 0.15,
-  ratingCleanSheetDef: 0.12,
-  ratingCleanSheetMid: 0.05,
-  ratingCleanSheetFwd: 0,
-  ratingYellowCard: 0.05,
-  ratingRedCard: 0.15,
+  ratingPositions: {
+    GK: { ...baseWeights, cleanSheet: 0.15 },
+    DEF: { ...baseWeights, cleanSheet: 0.12 },
+    MID: { ...baseWeights, cleanSheet: 0.05 },
+    FWD: { ...baseWeights, cleanSheet: 0 },
+  },
   ratingMaxSwing: 0.5,
 } satisfies Partial<ClubSettings>;
 

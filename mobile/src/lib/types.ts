@@ -44,6 +44,20 @@ export interface Card {
 
 export type TeamMode = "random" | "rating" | "position";
 
+/** What a player's rating responds to; each set per position. */
+export type RatingWeightKey =
+  | "win"
+  | "loss"
+  | "goal"
+  | "assist"
+  | "cleanSheet"
+  | "goalConceded"
+  | "ownGoal"
+  | "yellowCard"
+  | "redCard";
+
+export type PositionWeights = Record<RatingWeightKey, number>;
+
 /** Mirrors ClubSettingResource — see frontend/src/lib/SettingsContext.tsx. */
 export interface ClubSettings {
   yellowCardFine: number;
@@ -56,17 +70,7 @@ export interface ClubSettings {
   matchDefaultVenue: string;
   ratingsEnabled: boolean;
   ratingNewPlayer: number;
-  ratingWin: number;
-  ratingLoss: number;
-  ratingGoal: number;
-  ratingAssist: number;
-  ratingOwnGoal: number;
-  ratingCleanSheetGk: number;
-  ratingCleanSheetDef: number;
-  ratingCleanSheetMid: number;
-  ratingCleanSheetFwd: number;
-  ratingYellowCard: number;
-  ratingRedCard: number;
+  ratingPositions: Record<Position, PositionWeights>;
   ratingMaxSwing: number;
   valeAutoAwards: boolean;
 }

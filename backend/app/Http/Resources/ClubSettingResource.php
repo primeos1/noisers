@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 class ClubSettingResource extends JsonResource
 {
@@ -25,20 +26,24 @@ class ClubSettingResource extends JsonResource
             'matchDefaultVenue' => $this->match_default_venue ?? '',
             'ratingsEnabled' => $this->ratings_enabled,
             'ratingNewPlayer' => $this->rating_new_player,
-            'ratingWin' => $this->rating_win,
-            'ratingLoss' => $this->rating_loss,
-            'ratingGoal' => $this->rating_goal,
-            'ratingAssist' => $this->rating_assist,
-            'ratingOwnGoal' => $this->rating_own_goal,
-            'ratingCleanSheetGk' => $this->rating_clean_sheet_gk,
-            'ratingCleanSheetDef' => $this->rating_clean_sheet_def,
-            'ratingCleanSheetMid' => $this->rating_clean_sheet_mid,
-            'ratingCleanSheetFwd' => $this->rating_clean_sheet_fwd,
-            'ratingYellowCard' => $this->rating_yellow_card,
-            'ratingRedCard' => $this->rating_red_card,
+            'ratingPositions' => $this->ratingPositions(),
             'ratingMaxSwing' => $this->rating_max_swing,
             'valeAutoAwards' => $this->vale_auto_awards,
             'updatedAt' => $this->updated_at,
         ];
+    }
+
+    /**
+     * Per-position rating weights with camelCase keys, e.g.
+     * { GK: { win, loss, goal, assist, ownGoal, cleanSheet, goalConceded, yellowCard, redCard } }.
+     *
+     * @return array<string, array<string, float>>
+     */
+    private function ratingPositions(): array
+    {
+        return array_map(
+            fn (array $weights) => collect($weights)->mapWithKeys(fn ($v, $k) => [Str::camel($k) => $v])->all(),
+            $this->resource->positionWeights(),
+        );
     }
 }

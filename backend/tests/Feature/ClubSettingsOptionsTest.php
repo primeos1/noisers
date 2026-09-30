@@ -47,22 +47,26 @@ class ClubSettingsOptionsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.matchGameMinutes', 10)
             ->assertJsonPath('data.ratingsEnabled', true)
-            ->assertJsonPath('data.ratingGoal', 0.12);
+            ->assertJsonPath('data.ratingPositions.FWD.goal', 0.12)
+            ->assertJsonPath('data.ratingPositions.GK.cleanSheet', 0.15)
+            ->assertJsonPath('data.ratingPositions.GK.goalConceded', 0);
 
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
         $this->putJson('/api/settings', [
             'match_game_minutes' => 12,
             'match_default_team_mode' => 'rating',
             'match_default_venue' => 'Zenith Astro',
-            'rating_goal' => 0.3,
+            'rating_positions' => ['MID' => ['goal' => 0.3]],
         ])
             ->assertOk()
             ->assertJsonPath('data.matchGameMinutes', 12)
             ->assertJsonPath('data.matchDefaultTeamMode', 'rating')
             ->assertJsonPath('data.matchDefaultVenue', 'Zenith Astro')
-            ->assertJsonPath('data.ratingGoal', 0.3);
+            ->assertJsonPath('data.ratingPositions.MID.goal', 0.3);
 
         $this->putJson('/api/settings', ['match_default_team_mode' => 'chaos'])->assertUnprocessable();
+        $this->putJson('/api/settings', ['rating_positions' => ['GK' => ['win' => 3]]])->assertUnprocessable();
+        $this->putJson('/api/settings', ['rating_positions' => ['SWEEPER' => ['win' => 0.1]]])->assertUnprocessable();
     }
 
     public function test_switches_turn_off_fines_ratings_and_vale_awards(): void
@@ -87,7 +91,15 @@ class ClubSettingsOptionsTest extends TestCase
     public function test_rating_weights_come_from_settings(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
-        $this->putJson('/api/settings', ['rating_win' => 0, 'rating_goal' => 0.4, 'rating_max_swing' => 1])->assertOk();
+        $this->putJson('/api/settings', [
+            'rating_positions' => ['FWD' => ['win' => 0, 'goal' => 0.4], 'DEF' => ['loss' => 0.3]],
+            'rating_max_swing' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.ratingPositions.FWD.goal', 0.4)
+            ->assertJsonPath('data.ratingPositions.MID.goal', 0.12) // other positions untouched
+            ->assertJsonPath('data.ratingPositions.DEF.loss', 0.3)
+            ->assertJsonPath('data.ratingPositions.DEF.ownGoal', 0.08);
 
         $scorer = Player::factory()->create(['position' => 'FWD', 'rating' => 6.0]);
         $other = Player::factory()->create(['position' => 'DEF', 'rating' => 6.0]);

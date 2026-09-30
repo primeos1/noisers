@@ -1,6 +1,24 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { apiFetch } from "./api";
 import type { TeamMode } from "./matchDay";
+import type { Position } from "./clubData";
+
+/** What a player's rating responds to; each set per position. */
+export type RatingWeightKey =
+  | "win"
+  | "loss"
+  | "goal"
+  | "assist"
+  | "cleanSheet"
+  | "goalConceded"
+  | "ownGoal"
+  | "yellowCard"
+  | "redCard";
+
+/** Every weight is entered as a positive amount; these ones are taken away. */
+export const RATING_PENALTIES: RatingWeightKey[] = ["loss", "goalConceded", "ownGoal", "yellowCard", "redCard"];
+
+export type PositionWeights = Record<RatingWeightKey, number>;
 
 export interface ClubSettings {
   yellowCardFine: number;
@@ -13,34 +31,22 @@ export interface ClubSettings {
   matchDefaultVenue: string;
   ratingsEnabled: boolean;
   ratingNewPlayer: number;
-  ratingWin: number;
-  ratingLoss: number;
-  ratingGoal: number;
-  ratingAssist: number;
-  ratingOwnGoal: number;
-  ratingCleanSheetGk: number;
-  ratingCleanSheetDef: number;
-  ratingCleanSheetMid: number;
-  ratingCleanSheetFwd: number;
-  ratingYellowCard: number;
-  ratingRedCard: number;
+  ratingPositions: Record<Position, PositionWeights>;
   ratingMaxSwing: number;
   valeAutoAwards: boolean;
 }
 
+// Mirrors PlayerRatings::defaultPositionWeights() on the backend.
+const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
+
 /** The rating-weight fields, restorable as a group from Settings. */
 export const DEFAULT_RATING_WEIGHTS = {
-  ratingWin: 0.1,
-  ratingLoss: 0.1,
-  ratingGoal: 0.12,
-  ratingAssist: 0.08,
-  ratingOwnGoal: 0.08,
-  ratingCleanSheetGk: 0.15,
-  ratingCleanSheetDef: 0.12,
-  ratingCleanSheetMid: 0.05,
-  ratingCleanSheetFwd: 0,
-  ratingYellowCard: 0.05,
-  ratingRedCard: 0.15,
+  ratingPositions: {
+    GK: { ...baseWeights, cleanSheet: 0.15 },
+    DEF: { ...baseWeights, cleanSheet: 0.12 },
+    MID: { ...baseWeights, cleanSheet: 0.05 },
+    FWD: { ...baseWeights, cleanSheet: 0 },
+  },
   ratingMaxSwing: 0.5,
 } satisfies Partial<ClubSettings>;
 
@@ -61,7 +67,7 @@ export const DEFAULT_SETTINGS: ClubSettings = {
   valeAutoAwards: true,
 };
 
-// camelCase field → the API's snake_case column (e.g. ratingCleanSheetGk → rating_clean_sheet_gk).
+// camelCase field → the API's snake_case field (e.g. ratingMaxSwing → rating_max_swing).
 function toSnake(key: string) {
   return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 }

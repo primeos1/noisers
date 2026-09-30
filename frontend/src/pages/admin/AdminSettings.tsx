@@ -3,13 +3,20 @@ import Modal from "../../components/admin/Modal";
 import MatchRecordEditor from "../../components/admin/MatchRecordEditor";
 import { useAuth } from "../../lib/AuthContext";
 import { apiFetch } from "../../lib/api";
-import { DEFAULT_RATING_WEIGHTS, useSettings, type ClubSettings } from "../../lib/SettingsContext";
+import {
+  DEFAULT_RATING_WEIGHTS,
+  RATING_PENALTIES,
+  useSettings,
+  type ClubSettings,
+  type RatingWeightKey,
+} from "../../lib/SettingsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useValeContent } from "../../lib/ValeContentContext";
 import { formatNaira } from "../../lib/cards";
 import type { MatchDayEvent, TeamMode } from "../../lib/matchDay";
+import { positionLabels, type Position } from "../../lib/clubData";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper disabled:opacity-50";
@@ -192,6 +199,96 @@ function NumberField({
   );
 }
 
+const ratingPositions: Position[] = ["GK", "DEF", "MID", "FWD"];
+
+const ratingWeightRows: { key: RatingWeightKey; label: string; hint: string }[] = [
+  { key: "win", label: "Win", hint: "Each game won" },
+  { key: "loss", label: "Loss", hint: "Each game lost" },
+  { key: "goal", label: "Goal", hint: "Each goal scored" },
+  { key: "assist", label: "Assist", hint: "Each assist" },
+  { key: "cleanSheet", label: "Clean sheet", hint: "Game with nothing conceded" },
+  { key: "goalConceded", label: "Goal conceded", hint: "Each goal the team lets in" },
+  { key: "ownGoal", label: "Own goal", hint: "Each own goal" },
+  { key: "yellowCard", label: "Yellow card", hint: "Each yellow" },
+  { key: "redCard", label: "Red card", hint: "Each red" },
+];
+
+// Settings values are compared by content, so an edited-then-reverted
+// weight table doesn't count as a change.
+function same(a: unknown, b: unknown) {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
+function hasBlank(value: unknown): boolean {
+  if (typeof value === "number") return Number.isNaN(value);
+  if (value && typeof value === "object") return Object.values(value).some(hasBlank);
+  return false;
+}
+
+// The weights table: one row per event, one column per position.
+function RatingWeightsTable({
+  weights,
+  onChange,
+  disabled,
+}: {
+  weights: ClubSettings["ratingPositions"];
+  onChange: (position: Position, key: RatingWeightKey, value: number) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+      <table className="w-full min-w-[34rem] border-separate border-spacing-y-1.5 text-sm">
+        <thead>
+          <tr>
+            <th scope="col" className="pr-3 text-left font-normal text-paper-dim">
+              <span className="sr-only">Event</span>
+            </th>
+            {ratingPositions.map((pos) => (
+              <th key={pos} scope="col" className="px-1 text-center font-medium text-paper">
+                {pos}
+                <span className="block text-xs font-normal text-mist">{positionLabels[pos]}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ratingWeightRows.map((row) => {
+            const penalty = RATING_PENALTIES.includes(row.key);
+            return (
+              <tr key={row.key}>
+                <th scope="row" className="pr-3 text-left font-normal">
+                  <span className="text-paper">{row.label}</span>
+                  <span className={`ml-1.5 text-xs ${penalty ? "text-loss" : "text-win"}`}>{penalty ? "−" : "+"}</span>
+                  <span className="block text-xs text-mist">{row.hint}</span>
+                </th>
+                {ratingPositions.map((pos) => {
+                  const value = weights[pos][row.key];
+                  return (
+                    <td key={pos} className="px-1">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        disabled={disabled}
+                        aria-label={`${row.label}, ${positionLabels[pos]}`}
+                        className={`${inputClass} mt-0 px-2 text-center tabular-nums`}
+                        value={Number.isNaN(value) ? "" : value}
+                        onChange={(e) => onChange(pos, row.key, e.target.valueAsNumber)}
+                      />
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function signed(n: number) {
   const v = Number.isNaN(n) ? 0 : n;
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}`;
@@ -211,7 +308,7 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const changed = (Object.keys(draft) as (keyof ClubSettings)[]).filter((k) => draft[k] !== settings[k]);
+  const changed = (Object.keys(draft) as (keyof ClubSettings)[]).filter((k) => !same(draft[k], settings[k]));
   const passcodeChanged = passcodeDraft.trim() !== "" && passcodeDraft.trim() !== playerPasscode;
   const dirty = changed.length > 0 || passcodeChanged;
 
@@ -219,8 +316,15 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
     setDraft((d) => ({ ...d, [key]: value }));
   }
 
+  function setWeight(position: Position, key: RatingWeightKey, value: number) {
+    setDraft((d) => ({
+      ...d,
+      ratingPositions: { ...d.ratingPositions, [position]: { ...d.ratingPositions[position], [key]: value } },
+    }));
+  }
+
   async function handleSave() {
-    const invalid = changed.find((k) => typeof draft[k] === "number" && Number.isNaN(draft[k]));
+    const invalid = changed.find((k) => hasBlank(draft[k]));
     if (invalid) {
       setError("Fill in every number before saving.");
       return;
@@ -255,8 +359,10 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
   }
 
   const off = !canEdit;
-  const exampleDefender = draft.ratingWin + draft.ratingCleanSheetDef + draft.ratingAssist;
-  const exampleStriker = draft.ratingGoal * 2 - draft.ratingLoss;
+  const { GK: gk, DEF: def, FWD: fwd } = draft.ratingPositions;
+  const exampleDefender = def.win + def.cleanSheet + def.assist;
+  const exampleStriker = fwd.goal * 2 - fwd.loss - fwd.goalConceded * 3;
+  const exampleKeeper = gk.loss - gk.goalConceded * 3;
 
   return (
     <div className="lg:grid lg:grid-cols-[12rem_1fr] lg:gap-10">
@@ -437,24 +543,11 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
           </div>
 
           <fieldset disabled={off || !draft.ratingsEnabled} className="mt-6 disabled:opacity-50">
-            <legend className="text-sm text-paper">Points per game</legend>
-            <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <NumberField label="Win" value={draft.ratingWin} onChange={(v) => set("ratingWin", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-              <NumberField label="Loss" value={draft.ratingLoss} onChange={(v) => set("ratingLoss", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
-              <NumberField label="Goal" value={draft.ratingGoal} onChange={(v) => set("ratingGoal", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-              <NumberField label="Assist" value={draft.ratingAssist} onChange={(v) => set("ratingAssist", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-              <NumberField label="Own goal" value={draft.ratingOwnGoal} onChange={(v) => set("ratingOwnGoal", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
-              <NumberField label="Yellow card" value={draft.ratingYellowCard} onChange={(v) => set("ratingYellowCard", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
-              <NumberField label="Red card" value={draft.ratingRedCard} onChange={(v) => set("ratingRedCard", v)} disabled={off} min={0} max={1} step={0.01} suffix="−" />
-            </div>
-
-            <p className="mt-6 text-sm text-paper">Clean sheet bonus by position</p>
-            <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <NumberField label="Goalkeeper" value={draft.ratingCleanSheetGk} onChange={(v) => set("ratingCleanSheetGk", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-              <NumberField label="Defender" value={draft.ratingCleanSheetDef} onChange={(v) => set("ratingCleanSheetDef", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-              <NumberField label="Midfielder" value={draft.ratingCleanSheetMid} onChange={(v) => set("ratingCleanSheetMid", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-              <NumberField label="Forward" value={draft.ratingCleanSheetFwd} onChange={(v) => set("ratingCleanSheetFwd", v)} disabled={off} min={0} max={1} step={0.01} suffix="+" />
-            </div>
+            <legend className="text-sm text-paper">Points per game, by position</legend>
+            <p className="mt-1 mb-3 text-xs text-mist">
+              Each player is rated with their main position's column. Enter every amount as a positive number — the − rows are taken away.
+            </p>
+            <RatingWeightsTable weights={draft.ratingPositions} onChange={setWeight} disabled={off} />
 
             <div className="mt-5 rounded-xl bg-ink px-4 py-3 text-xs text-paper-dim">
               <p className="text-paper">Example, before scaling</p>
@@ -464,6 +557,9 @@ function SettingsForm({ canEdit, passcode }: { canEdit: boolean; passcode: strin
                 </li>
                 <li>
                   A forward who scores twice but loses 2–3: <span className="tabular-nums text-paper">{signed(exampleStriker)}</span>
+                </li>
+                <li>
+                  A goalkeeper who loses 2–3: <span className="tabular-nums text-loss">{signed(-exampleKeeper)}</span>
                 </li>
               </ul>
               <p className="mt-1.5 text-mist">
