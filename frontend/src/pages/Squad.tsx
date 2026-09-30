@@ -6,6 +6,8 @@ import { formatCards, getSquadHonours, positionNames, roughestPlayer, squadLeade
 import { useSquad } from "../lib/SquadContext";
 import MembershipBadge from "../components/MembershipBadge";
 import SquadLeaderboards from "../components/SquadLeaderboards";
+import AbsenceBadge from "../components/AbsenceBadge";
+import { useAbsences } from "../lib/AbsencesContext";
 
 const filters: { label: string; value: Position | "ALL" }[] = [
   { label: "All", value: "ALL" },
@@ -17,6 +19,7 @@ const filters: { label: string; value: Position | "ALL" }[] = [
 
 export default function Squad() {
   const { players } = useSquad();
+  const { absenceFor } = useAbsences();
   const [filter, setFilter] = useState<Position | "ALL">("ALL");
 
   const visible = useMemo(
@@ -169,6 +172,9 @@ export default function Squad() {
                     {player.name}
                   </h3>
                   <MembershipBadge membership={player.membership} className="mt-2 self-start" />
+                  {absenceFor(player.id) && (
+                    <AbsenceBadge absence={absenceFor(player.id)!} compact className="mt-1.5 self-start" />
+                  )}
 
                   <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm text-paper-dim">
                     <div>

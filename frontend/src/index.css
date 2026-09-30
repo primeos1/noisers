@@ -18,6 +18,9 @@
   /* Brass gold — Executives page, disciplinary committee. */
   --color-justice: #d8b56a;
   --color-justice-deep: #8c6a2c;
+
+  /* Sky blue — a player away travelling. */
+  --color-travel: #5b9bd5;
 }
 
 @layer base {
@@ -513,7 +516,9 @@
 
   /* Screens slide in lightly on navigation. */
   .screen-in {
-    animation: screen-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    /* backwards, not both: a transform left applied after the slide-in would
+       trap fixed sheets and dialogs under the tab bar. */
+    animation: screen-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   }
 
   @keyframes screen-in {
@@ -2071,6 +2076,1637 @@
     }
     .exec-chapter-tick {
       width: 2rem;
+    }
+  }
+}
+
+/* ---- Noisers: the club blog (/noisers) --------------------------------- */
+/* Animatable angle for the sick-bay countdown rings. */
+@property --deg {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@layer utilities {
+  /* Availability pills pulse gently while the player is out. */
+  .absence-blip {
+    animation: absence-blip 1.8s ease-in-out infinite;
+  }
+  @keyframes absence-blip {
+    50% {
+      opacity: 0.25;
+    }
+  }
+  .absence-bar {
+    transform-origin: left;
+    animation: absence-bar 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes absence-bar {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  .nz-page,
+  .nz-reader-backdrop {
+    --nz-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --nz-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Masthead: the name pulses like a level meter over a live equaliser. */
+  .nz-masthead {
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--color-ink-line);
+    padding: calc(env(safe-area-inset-top) + 5.5rem) 0 2.5rem;
+    background:
+      radial-gradient(120% 80% at 15% 0%, rgb(194 59 107 / 0.18), transparent 60%),
+      radial-gradient(90% 70% at 100% 100%, rgb(47 158 138 / 0.14), transparent 60%),
+      var(--color-ink);
+  }
+  @media (min-width: 768px) {
+    .nz-masthead {
+      padding: 10rem 0 4rem;
+    }
+  }
+  .nz-eq-bg {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 70%;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    padding: 0 3px;
+    opacity: 0.16;
+    pointer-events: none;
+    mask-image: linear-gradient(to top, black, transparent);
+  }
+  .nz-eq-bg span {
+    flex: 1;
+    height: 100%;
+    background: linear-gradient(to top, var(--color-loss), var(--color-paper));
+    transform-origin: bottom;
+    animation: nz-eq calc(0.9s + var(--i) * 23ms) ease-in-out calc(var(--i) * -123ms) infinite alternate;
+  }
+  @keyframes nz-eq {
+    0% {
+      transform: scaleY(0.12);
+    }
+    40% {
+      transform: scaleY(0.7);
+    }
+    100% {
+      transform: scaleY(0.3);
+    }
+  }
+  .nz-onair {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-paper);
+    animation: hero-in 0.6s var(--nz-ease) both;
+  }
+  .nz-onair-dot {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #ff3b3b;
+    box-shadow: 0 0 0 0 rgb(255 59 59 / 0.7);
+    animation: nz-onair 1.6s ease-out infinite;
+  }
+  @keyframes nz-onair {
+    0% {
+      box-shadow: 0 0 0 0 rgb(255 59 59 / 0.7);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 10px rgb(255 59 59 / 0);
+    }
+  }
+  .nz-title {
+    display: flex;
+    margin-top: 0.75rem;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(4.4rem, 22vw, 13rem);
+    line-height: 0.8;
+    letter-spacing: -0.02em;
+    color: var(--color-paper);
+  }
+  .nz-title-letter {
+    display: inline-block;
+    transform-origin: bottom;
+    animation:
+      nz-letter-in 0.9s var(--nz-spring) calc(var(--i) * 70ms) both,
+      nz-letter-pump 2.4s ease-in-out calc(1.2s + var(--i) * 140ms) infinite;
+  }
+  .nz-title-letter:nth-child(odd) {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--color-paper);
+  }
+  @keyframes nz-letter-in {
+    from {
+      opacity: 0;
+      transform: translateY(60%) scaleY(0.2);
+    }
+  }
+  @keyframes nz-letter-pump {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    10% {
+      transform: scaleY(1.08);
+    }
+    22% {
+      transform: scaleY(0.96);
+    }
+  }
+  .nz-masthead-rule {
+    height: 3px;
+    margin-top: 1.25rem;
+    background: linear-gradient(90deg, #ff3b3b, var(--color-justice), var(--color-win));
+    transform-origin: left;
+    animation: absence-bar 1.2s var(--nz-ease) 0.5s both;
+  }
+  .nz-masthead-sub {
+    margin-top: 1rem;
+    max-width: 34rem;
+    font-size: 0.95rem;
+    color: var(--color-paper-dim);
+    animation: hero-in 0.8s var(--nz-ease) 0.7s both;
+  }
+
+  /* Breaking ticker */
+  .nz-ticker {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--color-ink-line);
+    background: var(--color-ink-raised);
+    overflow: hidden;
+  }
+  .nz-ticker-label {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.5rem 0.7rem 1rem;
+    background: #ff3b3b;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  }
+  .nz-ticker-label .nz-onair-dot {
+    background: #fff;
+  }
+  .nz-ticker-window {
+    flex: 1;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, black 4%, black 94%, transparent);
+  }
+  .nz-ticker-track {
+    display: flex;
+    width: max-content;
+    animation: nz-ticker var(--dur, 40s) linear infinite;
+  }
+  .nz-ticker:hover .nz-ticker-track,
+  .nz-ticker:focus-within .nz-ticker-track {
+    animation-play-state: paused;
+  }
+  @keyframes nz-ticker {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .nz-ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.5rem;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    color: var(--color-paper);
+  }
+  .nz-ticker-item:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* Sick bay: countdown rings for everyone who's out */
+  .nz-bay {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1.25rem -1.25rem 0;
+    padding: 0.25rem 1.25rem 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  @media (min-width: 768px) {
+    .nz-bay {
+      margin: 1.5rem 0 0;
+      padding: 0.25rem 0 0.5rem;
+    }
+  }
+  .nz-bay-card {
+    flex: 0 0 8.25rem;
+    scroll-snap-align: start;
+    padding: 1rem 0.75rem;
+    border: 1px solid var(--color-ink-line);
+    border-radius: 1.25rem;
+    background: var(--color-ink-raised);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+    transition:
+      transform 0.6s var(--nz-spring) calc(var(--i) * 70ms),
+      opacity 0.4s ease calc(var(--i) * 70ms),
+      border-color 0.2s;
+  }
+  .nz-bay[data-in] .nz-bay-card {
+    opacity: 1;
+    transform: none;
+  }
+  .nz-bay-card:hover {
+    border-color: var(--ring);
+  }
+  .nz-ring {
+    --deg: 0deg;
+    position: relative;
+    display: block;
+    width: 5rem;
+    height: 5rem;
+    margin: 0 auto;
+    padding: 4px;
+    border-radius: 999px;
+    background: conic-gradient(var(--ring) var(--deg), var(--color-ink-line) 0);
+    transition: --deg 1.4s var(--nz-ease) 0.3s;
+  }
+  .nz-bay[data-in] .nz-ring {
+    --deg: calc(var(--pct) * 360deg);
+  }
+  .nz-ring[data-open] {
+    background: conic-gradient(from 0deg, var(--ring), transparent 70%, var(--ring));
+    animation: nz-spin 3s linear infinite;
+  }
+  .nz-ring[data-open] img {
+    animation: nz-spin 3s linear infinite reverse;
+  }
+  @keyframes nz-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .nz-ring img {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    border: 3px solid var(--color-ink-raised);
+    object-fit: cover;
+    filter: grayscale(0.6);
+  }
+
+  /* Desk switcher: sticky pills with a sliding highlight */
+  .nz-desks {
+    position: sticky;
+    top: calc(env(safe-area-inset-top) + 3.5rem);
+    z-index: 30;
+    border-block: 1px solid var(--color-ink-line);
+  }
+  @media (min-width: 768px) {
+    .nz-desks {
+      top: 5rem;
+    }
+  }
+  .nz-desks-track {
+    position: relative;
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    padding: 0.6rem 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .nz-desks-track {
+      padding: 0.75rem 2.5rem;
+    }
+  }
+  .nz-desk-pill {
+    position: absolute;
+    top: 0.6rem;
+    bottom: 0.6rem;
+    left: 0;
+    border-radius: 999px;
+    background: var(--color-paper);
+    transition:
+      transform 0.45s var(--nz-spring),
+      width 0.45s var(--nz-spring);
+  }
+  @media (min-width: 768px) {
+    .nz-desk-pill {
+      top: 0.75rem;
+      bottom: 0.75rem;
+    }
+  }
+  .nz-desk {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: color 0.3s;
+  }
+  .nz-desk-count {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Feed grid: one column on phones, a newspaper grid from md up */
+  .nz-feed {
+    display: grid;
+    gap: 1.25rem;
+    animation: hero-in 0.5s var(--nz-ease) both;
+  }
+  @media (min-width: 768px) {
+    .nz-feed {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .nz-feed {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* Story cards: dealt onto the table as they scroll in */
+  .nz-card {
+    --accent: var(--color-paper);
+    opacity: 0;
+    transform: translateY(48px) rotate(var(--tilt, 0deg)) scale(0.96);
+    transition:
+      transform 0.8s var(--nz-spring),
+      opacity 0.5s ease;
+  }
+  .nz-card[data-in] {
+    opacity: 1;
+    transform: none;
+  }
+  .nz-card-link {
+    position: relative;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-ink-line);
+    border-radius: 1.5rem;
+    background: var(--color-ink-raised);
+    transition:
+      transform 0.3s var(--nz-ease),
+      border-color 0.3s,
+      box-shadow 0.3s;
+  }
+  .nz-card-link::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 5;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.9s var(--nz-ease) 0.3s;
+  }
+  .nz-card[data-in] .nz-card-link::before {
+    transform: scaleX(1);
+  }
+  @media (hover: hover) {
+    .nz-card-link:hover {
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+      box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+    .nz-card-link:hover .nz-kenburns {
+      transform: scale(1.1);
+    }
+    .nz-card-link:hover .nz-read span {
+      transform: translateX(4px);
+    }
+  }
+  .nz-card-link:active {
+    transform: scale(0.98);
+  }
+  @media (min-width: 768px) {
+    .nz-card-lead {
+      grid-column: span 2;
+    }
+    .nz-card-lead .nz-card-link {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+    }
+    .nz-card-lead .nz-card-media {
+      aspect-ratio: auto;
+      min-height: 26rem;
+    }
+  }
+  .nz-card-media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+  .nz-card-lead .nz-card-media {
+    aspect-ratio: 1 / 1;
+  }
+  @media (min-width: 640px) {
+    .nz-card-lead .nz-card-media {
+      aspect-ratio: 16 / 10;
+    }
+  }
+  .nz-tag {
+    position: absolute;
+    top: 0.9rem;
+    left: 0.9rem;
+    z-index: 4;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--color-ink);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    box-shadow: 0 6px 20px -6px var(--accent);
+  }
+  .nz-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1.1rem 1.25rem 1.25rem;
+  }
+  .nz-card-lead .nz-card-body {
+    justify-content: flex-end;
+    padding: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .nz-card-lead .nz-card-body {
+      padding: 2.25rem;
+    }
+  }
+  .nz-card-meta {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+  }
+  .nz-card-headline {
+    margin-top: 0.4rem;
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.02;
+    color: var(--color-paper);
+    text-wrap: balance;
+  }
+  .nz-card-lead .nz-card-headline {
+    font-size: clamp(2.2rem, 9vw, 3.6rem);
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+  .nz-card-standfirst {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-paper-dim);
+  }
+  .nz-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 1rem;
+  }
+  .nz-read {
+    margin-left: auto;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .nz-read span {
+    display: inline-block;
+    transition: transform 0.3s var(--nz-spring);
+  }
+  .nz-word {
+    display: inline-block;
+    white-space: pre;
+    opacity: 0;
+    transform: translateY(0.6em) rotate(4deg);
+  }
+  [data-in] .nz-word,
+  .nz-reader-headline .nz-word {
+    animation: nz-word 0.7s var(--nz-spring) calc(0.25s + var(--i) * 55ms) forwards;
+  }
+  @keyframes nz-word {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .nz-face {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  [data-in] .nz-face,
+  .nz-byline .nz-face {
+    animation: nz-pop 0.5s var(--nz-spring) calc(0.4s + var(--i) * 70ms) forwards;
+  }
+  @keyframes nz-pop {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .nz-more {
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin-top: 1rem;
+    padding: 0.9rem 2rem;
+    border: 1px solid var(--color-ink-line);
+    border-radius: 999px;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    color: var(--color-paper);
+    transition: border-color 0.2s;
+  }
+  .nz-more:hover {
+    border-color: var(--color-paper);
+  }
+
+  /* Media: hero photo, slow Ken Burns drift, and the art for each kind */
+  .nz-media {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: var(--color-ink);
+  }
+  .nz-media-blank {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 60%),
+      var(--color-ink);
+  }
+  .nz-kenburns {
+    transition: transform 1.2s var(--nz-ease);
+    animation: nz-kenburns 18s ease-in-out infinite alternate;
+  }
+  @keyframes nz-kenburns {
+    from {
+      scale: 1.02;
+      translate: 0 0;
+    }
+    to {
+      scale: 1.14;
+      translate: -2% -3%;
+    }
+  }
+  .nz-media-shade {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to top, rgb(10 14 26 / 0.92), rgb(10 14 26 / 0.1) 55%, rgb(10 14 26 / 0.35)),
+      linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent 55%);
+  }
+  [data-kind="injury"] .nz-kenburns,
+  [data-kind="suspension"] .nz-kenburns,
+  [data-kind="unavailable"] .nz-kenburns {
+    filter: grayscale(1) contrast(1.1) brightness(0.8);
+  }
+
+  /* Match report: flip-digit scoreboard */
+  .nz-board {
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.9rem;
+    left: 0.9rem;
+    display: grid;
+    gap: 0.35rem;
+    font-family: var(--font-display);
+  }
+  .nz-board-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto 1fr;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.6rem;
+    background: rgb(10 14 26 / 0.72);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  [data-in] .nz-board-row {
+    animation: nz-slide-in 0.6s var(--nz-ease) calc(0.3s + var(--i) * 120ms) forwards;
+  }
+  @keyframes nz-slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .nz-board-team {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--color-paper-dim);
+  }
+  .nz-board-team:last-child {
+    text-align: right;
+  }
+  .nz-flip {
+    display: inline-flex;
+    width: 1.9rem;
+    height: 2.2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.35rem;
+    background: linear-gradient(to bottom, #1d2539 50%, #151c2d 50%);
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--color-paper);
+    box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.5);
+    transform-origin: center top;
+  }
+  .nz-flip[data-win] {
+    color: #ffd84d;
+  }
+  [data-in] .nz-flip {
+    animation: nz-flip 0.9s var(--nz-ease) calc(0.5s + var(--i) * 120ms) both;
+  }
+  @keyframes nz-flip {
+    0% {
+      transform: perspective(200px) rotateX(-90deg);
+    }
+    40% {
+      transform: perspective(200px) rotateX(20deg);
+    }
+    70% {
+      transform: perspective(200px) rotateX(-8deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  .nz-board-dash {
+    color: var(--color-mist);
+  }
+  .nz-board-more {
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    color: var(--color-paper-dim);
+    text-align: right;
+  }
+
+  /* Team of the week: the lineup fans out like trading cards */
+  .nz-media-totw {
+    background:
+      radial-gradient(90% 70% at 50% 110%, rgb(216 181 106 / 0.45), transparent 70%),
+      linear-gradient(160deg, #1b1a12, var(--color-ink));
+  }
+  .nz-totw-name {
+    position: absolute;
+    top: 12%;
+    left: 50%;
+    translate: -50% 0;
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 20vw, 7rem);
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgb(216 181 106 / 0.5);
+    animation: nz-breathe 4s ease-in-out infinite;
+  }
+  @keyframes nz-breathe {
+    50% {
+      letter-spacing: 0.06em;
+      -webkit-text-stroke-color: rgb(216 181 106 / 0.85);
+    }
+  }
+  .nz-fan {
+    position: absolute;
+    inset: 0;
+  }
+  .nz-fan-card {
+    position: absolute;
+    bottom: -6%;
+    left: 50%;
+    width: 30%;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 3px solid var(--color-justice);
+    border-radius: 0.75rem;
+    background: var(--color-ink-raised);
+    box-shadow: 0 18px 30px -10px rgb(0 0 0 / 0.8);
+    transform-origin: 50% 140%;
+    transform: translateX(-50%) translateY(40%) rotate(0deg);
+    opacity: 0;
+    transition:
+      transform 0.9s var(--nz-spring) calc(0.2s + var(--i) * 80ms),
+      opacity 0.4s ease calc(0.2s + var(--i) * 80ms);
+  }
+  [data-in] .nz-fan-card {
+    opacity: 1;
+    transform: translateX(-50%) rotate(calc((var(--i) - (var(--n) - 1) / 2) * 14deg));
+  }
+  .nz-crown {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+    font-size: 2rem;
+    color: var(--color-justice);
+    filter: drop-shadow(0 0 12px rgb(216 181 106 / 0.8));
+    animation: nz-float 3s ease-in-out infinite;
+  }
+  @keyframes nz-float {
+    50% {
+      transform: translateY(-6px) rotate(-6deg);
+    }
+  }
+
+  /* Discipline: the referee slams a card down */
+  .nz-cardstack {
+    position: absolute;
+    right: 12%;
+    bottom: 18%;
+    width: 22%;
+    max-width: 5.5rem;
+    aspect-ratio: 3 / 4.2;
+  }
+  .nz-refcard {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.4rem;
+    background: linear-gradient(145deg, #ffe066, #f4c430 60%, #d9a700);
+    box-shadow:
+      0 20px 40px -12px rgb(0 0 0 / 0.9),
+      inset 0 1px 0 rgb(255 255 255 / 0.5);
+    opacity: 0;
+    transform: translate(calc(var(--i) * -18%), calc(var(--i) * 6%)) rotate(calc(-8deg - var(--i) * 10deg));
+  }
+  .nz-refcard[data-type="red"] {
+    background: linear-gradient(145deg, #ff6b5e, #e0413a 60%, #a8231d);
+  }
+  [data-in] .nz-refcard {
+    animation: nz-slam 0.55s cubic-bezier(0.5, 0, 0.3, 1.4) calc(0.35s + var(--i) * 180ms) both;
+  }
+  @keyframes nz-slam {
+    0% {
+      opacity: 0;
+      transform: translate(40%, -60%) rotate(-40deg) scale(2.4);
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+      transform: translate(calc(var(--i) * -18%), calc(var(--i) * 6%)) rotate(calc(-8deg - var(--i) * 10deg));
+    }
+  }
+  .nz-refcard-flash {
+    position: absolute;
+    inset: -150%;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgb(224 65 58 / 0.55), transparent 60%);
+    opacity: 0;
+    z-index: -1;
+  }
+  [data-in] .nz-refcard-flash {
+    animation: nz-flash 2.4s ease-out 0.8s infinite;
+  }
+  @keyframes nz-flash {
+    0% {
+      opacity: 0.9;
+      transform: scale(0.4);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.2);
+    }
+  }
+
+  /* Injury: a heart monitor traces across a desaturated photo */
+  .nz-ecg {
+    position: absolute;
+    inset: auto 0 22% 0;
+    width: 100%;
+    height: 32%;
+    overflow: visible;
+  }
+  .nz-ecg polyline {
+    fill: none;
+    stroke: #ff5a7a;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 420;
+    stroke-dashoffset: 420;
+    filter: drop-shadow(0 0 6px #ff5a7a);
+  }
+  [data-in] .nz-ecg polyline {
+    animation: nz-ecg 2.6s linear infinite;
+  }
+  @keyframes nz-ecg {
+    to {
+      stroke-dashoffset: -420;
+    }
+  }
+  .nz-cross {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.6rem;
+    background: #fff;
+    animation: nz-heartbeat 1.3s ease-in-out infinite;
+  }
+  .nz-cross::before,
+  .nz-cross::after {
+    content: "";
+    position: absolute;
+    inset: 22% 40%;
+    border-radius: 2px;
+    background: #e0413a;
+  }
+  .nz-cross::after {
+    inset: 40% 22%;
+  }
+  @keyframes nz-heartbeat {
+    0%,
+    40%,
+    100% {
+      transform: scale(1);
+    }
+    15% {
+      transform: scale(1.15);
+    }
+    28% {
+      transform: scale(1.05);
+    }
+  }
+
+  /* Travel: a plane crosses a dotted flight path */
+  .nz-flightpath {
+    position: absolute;
+    right: 8%;
+    bottom: 26%;
+    left: 8%;
+    height: 3rem;
+    container-type: inline-size;
+  }
+  .nz-flight-line {
+    position: absolute;
+    inset: 50% 0 auto;
+    border-top: 2px dashed rgb(91 155 213 / 0.7);
+  }
+  .nz-plane-x {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: nz-plane-x 4.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  .nz-plane-y {
+    display: block;
+    font-size: 1.9rem;
+    line-height: 3rem;
+    color: #fff;
+    filter: drop-shadow(0 0 10px var(--color-travel));
+    animation: nz-plane-y 2.25s ease-in-out infinite alternate;
+  }
+  @keyframes nz-plane-x {
+    0% {
+      transform: translateX(-10%);
+      opacity: 0;
+    }
+    10%,
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(calc(100cqw - 2rem));
+      opacity: 0;
+    }
+  }
+  @keyframes nz-plane-y {
+    from {
+      transform: translateY(6px) rotate(4deg);
+    }
+    to {
+      transform: translateY(-8px) rotate(-6deg);
+    }
+  }
+
+  /* Suspension: hazard tape across the photo */
+  .nz-tapes {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .nz-tape {
+    position: absolute;
+    left: -20%;
+    width: 140%;
+    padding: 0.35rem 0;
+    background: repeating-linear-gradient(-45deg, #f4c430 0 14px, #111 14px 28px);
+    box-shadow: 0 10px 24px rgb(0 0 0 / 0.6);
+    opacity: 0;
+  }
+  .nz-tape-0 {
+    top: 38%;
+    rotate: -12deg;
+  }
+  .nz-tape-1 {
+    top: 58%;
+    rotate: 9deg;
+  }
+  [data-in] .nz-tape {
+    animation: nz-tape-in 0.6s var(--nz-ease) both;
+  }
+  [data-in] .nz-tape-1 {
+    animation-delay: 0.2s;
+  }
+  @keyframes nz-tape-in {
+    from {
+      opacity: 0;
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      opacity: 1;
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .nz-tape-track {
+    display: flex;
+    width: max-content;
+    gap: 1.5rem;
+    padding: 0.15rem 0.75rem;
+    background: #f4c430;
+    animation: nz-ticker 14s linear infinite;
+  }
+  .nz-tape-1 .nz-tape-track {
+    animation-direction: reverse;
+  }
+  .nz-tape-track span {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: #111;
+  }
+
+  /* Comeback / unavailable: a rubber stamp thumps down */
+  .nz-stamp {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    padding: 0.2rem 1.1rem;
+    border: 4px solid currentColor;
+    border-radius: 0.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1;
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-14deg);
+  }
+  .nz-stamp-back {
+    color: #3fd6a4;
+    text-shadow: 0 0 24px rgb(63 214 164 / 0.7);
+  }
+  .nz-stamp-out {
+    color: var(--color-paper-dim);
+  }
+  [data-in] .nz-stamp {
+    animation: nz-stamp 0.5s cubic-bezier(0.5, 0, 0.3, 1.5) 0.4s both;
+  }
+  @keyframes nz-stamp {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(-14deg) scale(3);
+    }
+    100% {
+      opacity: 0.95;
+      transform: translate(-50%, -50%) rotate(-14deg) scale(1);
+    }
+  }
+
+  /* Loading and empty states */
+  .nz-skeleton {
+    overflow: hidden;
+    border: 1px solid var(--color-ink-line);
+    border-radius: 1.5rem;
+    background: var(--color-ink-raised);
+    animation: hero-in 0.5s var(--nz-ease) calc(var(--i) * 80ms) both;
+  }
+  .nz-skeleton-media {
+    aspect-ratio: 4 / 3;
+  }
+  .nz-skeleton-media,
+  .nz-skeleton-line {
+    background: linear-gradient(90deg, var(--color-ink-line) 25%, #323c56 50%, var(--color-ink-line) 75%);
+    background-size: 200% 100%;
+    animation: nz-shimmer 1.4s linear infinite;
+  }
+  .nz-skeleton-line {
+    height: 0.85rem;
+    border-radius: 999px;
+  }
+  @keyframes nz-shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+  .nz-flatline {
+    width: min(100%, 300px);
+    height: 60px;
+  }
+  .nz-flatline polyline {
+    fill: none;
+    stroke: var(--color-loss);
+    stroke-width: 2.5;
+    stroke-dasharray: 360;
+    animation: nz-ecg-flat 3s linear infinite;
+  }
+  @keyframes nz-ecg-flat {
+    from {
+      stroke-dashoffset: 360;
+    }
+    to {
+      stroke-dashoffset: -360;
+    }
+  }
+
+  /* Reader: full-screen sheet on phones, a centred paper from md up */
+  .nz-reader-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgb(5 7 14 / 0.75);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    animation: fade-in 0.25s ease-out both;
+  }
+  .nz-reader {
+    --accent: var(--color-paper);
+    position: relative;
+    width: 100%;
+    height: calc(100dvh - env(safe-area-inset-top) - 0.75rem);
+    overflow: hidden;
+    border-radius: 1.75rem 1.75rem 0 0;
+    background: var(--color-ink);
+    box-shadow: 0 -20px 60px rgb(0 0 0 / 0.6);
+    animation: nz-reader-up 0.55s var(--nz-ease) both;
+  }
+  @media (min-width: 768px) {
+    .nz-reader-backdrop {
+      align-items: center;
+      padding: 2rem;
+    }
+    .nz-reader {
+      max-width: 52rem;
+      height: min(92vh, 60rem);
+      border: 1px solid var(--color-ink-line);
+      border-radius: 1.5rem;
+      animation: nz-reader-in 0.5s var(--nz-ease) both;
+    }
+  }
+  @keyframes nz-reader-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes nz-reader-in {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.97);
+    }
+  }
+  .nz-reader-scroll {
+    --progress: 0;
+    --scroll: 0;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nz-wave {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    height: 0.9rem;
+    margin-bottom: -0.9rem;
+  }
+  /* Backing so text scrolling under the top buttons stays out of the way. */
+  .nz-wave::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 -4.25rem;
+    background: linear-gradient(to bottom, rgb(10 14 26 / 0.92), rgb(10 14 26 / 0.6) 55%, transparent);
+    pointer-events: none;
+  }
+  .nz-wave-bars {
+    position: absolute;
+    inset: 0.25rem 1.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .nz-wave-bars span {
+    flex: 1;
+    border-radius: 2px;
+    background: rgb(255 255 255 / 0.18);
+  }
+  .nz-wave-lit {
+    clip-path: inset(0 calc((1 - var(--progress)) * 100%) 0 0);
+  }
+  .nz-wave-lit span {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .nz-reader-bar {
+    position: sticky;
+    top: 1.4rem;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 0;
+    padding: 0 1rem;
+    overflow: visible;
+  }
+  .nz-reader-bar > * {
+    translate: 0 1.25rem;
+  }
+  .nz-round-btn {
+    display: flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgb(10 14 26 / 0.65);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: var(--color-paper);
+    border: 1px solid rgb(255 255 255 / 0.12);
+  }
+  .nz-reader-tag {
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--color-ink);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .nz-toast {
+    position: sticky;
+    top: 4.5rem;
+    z-index: 7;
+    width: max-content;
+    margin: 0 auto -2rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-size: 0.8rem;
+    font-weight: 600;
+    animation: hero-in 0.3s var(--nz-ease) both;
+  }
+  .nz-reader-hero {
+    position: relative;
+    height: 58vh;
+    max-height: 30rem;
+    overflow: hidden;
+  }
+  /* The article overlaps the hero by 3.5rem — keep the artwork clear of it. */
+  .nz-reader-hero .nz-board {
+    bottom: 4.75rem;
+  }
+  .nz-reader-hero .nz-fan {
+    inset: 0 0 6rem;
+  }
+  .nz-reader-hero .nz-media {
+    transform: translateY(calc(var(--scroll) * 0.35px)) scale(calc(1 + var(--scroll) * 0.0004));
+    transform-origin: top;
+  }
+  .nz-reader-body {
+    position: relative;
+    max-width: 40rem;
+    margin: -3.5rem auto 0;
+    padding: 0 1.25rem calc(env(safe-area-inset-bottom) + 3rem);
+  }
+  .nz-kicker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .nz-kicker .nz-onair-dot {
+    background: var(--accent);
+  }
+  .nz-reader-headline {
+    margin-top: 0.6rem;
+    font-family: var(--font-display);
+    font-size: clamp(2.3rem, 10vw, 4rem);
+    font-weight: 900;
+    line-height: 0.95;
+    text-transform: uppercase;
+    color: var(--color-paper);
+    text-wrap: balance;
+  }
+  .nz-reader-standfirst {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    color: var(--color-paper);
+    animation: hero-in 0.7s ease 0.5s both;
+  }
+  .nz-byline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--color-ink-line);
+    font-size: 0.78rem;
+    color: var(--color-mist);
+  }
+  .nz-prose {
+    margin-top: 1.5rem;
+  }
+  .nz-prose p {
+    margin-top: 1.1rem;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--color-paper-dim);
+    animation: hero-in 0.7s ease calc(0.55s + var(--i) * 90ms) both;
+  }
+  .nz-prose p + p {
+    clear: left;
+  }
+  .nz-prose p:first-child::first-letter {
+    float: left;
+    margin: 0.3rem 0.6rem 0 0;
+    font-family: var(--font-display);
+    font-size: 4.2rem;
+    font-weight: 900;
+    line-height: 0.8;
+    color: var(--accent);
+  }
+  .nz-module-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--color-paper);
+  }
+  .nz-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin-top: 2.5rem;
+    overflow: hidden;
+    border: 1px solid var(--color-ink-line);
+    border-radius: 1rem;
+    background: var(--color-ink-line);
+  }
+  @media (min-width: 640px) {
+    .nz-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .nz-stat {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background: var(--color-ink-raised);
+  }
+  .nz-stat-value {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .nz-stat-label {
+    margin-top: 0.3rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+  }
+  .nz-results {
+    margin-top: 1rem;
+    border-top: 1px solid var(--color-ink-line);
+  }
+  .nz-result {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--color-ink-line);
+    animation: nz-slide-in 0.5s var(--nz-ease) calc(0.2s + var(--i) * 80ms) both;
+  }
+  .nz-result-score {
+    min-width: 4.5rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.4rem;
+    background: var(--color-ink-raised);
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-align: center;
+    color: var(--color-paper);
+  }
+  .nz-lineup {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+  @media (min-width: 640px) {
+    .nz-lineup {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .nz-lineup-card {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 2px solid var(--color-justice);
+    border-radius: 0.8rem;
+    animation: nz-deal 0.7s var(--nz-spring) calc(0.3s + var(--i) * 90ms) both;
+  }
+  @keyframes nz-deal {
+    from {
+      opacity: 0;
+      transform: translateY(40px) rotate(-10deg) scale(0.8);
+    }
+  }
+  .nz-lineup-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .nz-lineup-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgb(10 14 26 / 0.95), transparent 55%);
+  }
+  .nz-lineup-num {
+    position: absolute;
+    top: 0.3rem;
+    left: 0.5rem;
+    z-index: 1;
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--color-justice);
+    text-shadow: 0 2px 8px rgb(0 0 0 / 0.8);
+  }
+  .nz-lineup-name {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.4rem;
+    left: 0.5rem;
+    z-index: 1;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-paper);
+  }
+  .nz-notebook {
+    margin-top: 1rem;
+    border-top: 1px solid var(--color-ink-line);
+  }
+  .nz-notebook li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-ink-line);
+    animation: nz-slide-in 0.5s ease calc(0.2s + var(--i) * 90ms) both;
+  }
+  .nz-mini-card {
+    width: 0.9rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    border-radius: 2px;
+    background: #f4c430;
+    rotate: -8deg;
+  }
+  .nz-mini-card[data-type="red"] {
+    background: #e0413a;
+  }
+  .nz-timeline-track {
+    position: relative;
+    height: 0.6rem;
+    margin-top: 0.6rem;
+    border-radius: 999px;
+    background: var(--color-ink-line);
+  }
+  .nz-timeline-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--pct);
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1.2s var(--nz-ease) 0.2s;
+  }
+  .nz-timeline[data-in] .nz-timeline-fill {
+    transform: scaleX(1);
+  }
+  .nz-timeline-open .nz-timeline-fill {
+    width: 100%;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 14px, transparent 14px 22px);
+    background-size: 44px 100%;
+    animation: nz-march 1s linear infinite;
+    box-shadow: none;
+    mask-image: linear-gradient(90deg, black 50%, transparent);
+  }
+  @keyframes nz-march {
+    to {
+      background-position: 44px 0;
+    }
+  }
+  .nz-timeline-today {
+    position: absolute;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    border: 3px solid var(--color-ink);
+    border-radius: 999px;
+    background: var(--color-paper);
+    translate: -50% -50%;
+    animation: nz-heartbeat 1.6s ease-in-out infinite;
+  }
+  .nz-timeline-today span {
+    position: absolute;
+    top: 1.1rem;
+    left: 50%;
+    translate: -50% 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-paper);
+  }
+  .nz-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-ink-line);
+    border-radius: 1rem;
+    color: var(--color-paper-dim);
+    transition: border-color 0.2s;
+  }
+  .nz-profile-link:hover {
+    border-color: var(--accent);
+  }
+  .nz-upnext {
+    position: relative;
+    display: block;
+    margin-top: 1.25rem;
+    padding: 1.5rem 3.5rem 1.5rem 1.25rem;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background:
+      radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--next) 30%, transparent), transparent 60%),
+      var(--color-ink-raised);
+    border: 1px solid color-mix(in srgb, var(--next) 40%, transparent);
+  }
+  .nz-upnext-arrow {
+    position: absolute;
+    top: 50%;
+    right: 1.25rem;
+    translate: 0 -50%;
+    font-size: 1.75rem;
+    color: var(--next);
+    animation: nz-nudge 1.4s ease-in-out infinite;
+  }
+  @keyframes nz-nudge {
+    50% {
+      transform: translateX(6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .absence-blip,
+    .absence-bar,
+    .nz-eq-bg span,
+    .nz-onair-dot,
+    .nz-title-letter,
+    .nz-masthead-rule,
+    .nz-ticker-track,
+    .nz-ring[data-open],
+    .nz-ring[data-open] img,
+    .nz-kenburns,
+    .nz-totw-name,
+    .nz-crown,
+    .nz-refcard-flash,
+    .nz-ecg polyline,
+    .nz-cross,
+    .nz-plane-x,
+    .nz-plane-y,
+    .nz-tape-track,
+    .nz-skeleton-media,
+    .nz-skeleton-line,
+    .nz-flatline polyline,
+    .nz-timeline-open .nz-timeline-fill,
+    .nz-timeline-today,
+    .nz-upnext-arrow {
+      animation: none !important;
+    }
+    .nz-card,
+    .nz-bay-card,
+    .nz-fan-card,
+    .nz-word,
+    .nz-face,
+    .nz-board-row,
+    .nz-flip,
+    .nz-refcard,
+    .nz-tape,
+    .nz-stamp,
+    .nz-reader,
+    .nz-reader-standfirst,
+    .nz-prose p,
+    .nz-lineup-card,
+    .nz-notebook li,
+    .nz-result,
+    .nz-ring,
+    .nz-timeline-fill {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+    }
+    .nz-card,
+    .nz-bay-card,
+    .nz-word,
+    .nz-face,
+    .nz-board-row,
+    .nz-timeline-fill {
+      transform: none !important;
+    }
+    .nz-ecg polyline {
+      stroke-dashoffset: 0;
+    }
+    .nz-reader-hero .nz-media {
+      transform: none;
     }
   }
 }

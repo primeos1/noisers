@@ -351,6 +351,27 @@ class MatchDayFinalizer
     }
 
     /**
+     * The standout player from one match day's stats — most goal
+     * involvements, then goals, then clean sheets. Null when nobody scored,
+     * assisted or kept a clean sheet.
+     *
+     * @param  array<int, array{goals: int, assists: int, cleanSheets: int}>  $stats  keyed by player id
+     * @return array{playerId: int, stats: array<string, int>}|null
+     */
+    public static function computePlayerOfTheDay(array $stats): ?array
+    {
+        $best = null;
+        foreach ($stats as $playerId => $s) {
+            $key = [$s['goals'] + $s['assists'], $s['goals'], $s['cleanSheets']];
+            if ($key[0] + $key[2] > 0 && ($best === null || $key > $best['key'])) {
+                $best = ['playerId' => $playerId, 'key' => $key, 'stats' => $s];
+            }
+        }
+
+        return $best ? ['playerId' => $best['playerId'], 'stats' => $best['stats']] : null;
+    }
+
+    /**
      * @param  array<int, int>  $squadIds
      */
     private static function updateWeeklyAwards(MatchDayEvent $event, array $squadIds): void
@@ -422,13 +443,7 @@ class MatchDayFinalizer
             'leader_roughest_red' => $roughest ? $stats[$roughest]['redCards'] : 0,
         ];
 
-        $potw = null;
-        foreach ($stats as $playerId => $s) {
-            $key = [$s['goals'] + $s['assists'], $s['goals'], $s['cleanSheets']];
-            if ($key[0] + $key[2] > 0 && ($potw === null || $key > $potw['key'])) {
-                $potw = ['playerId' => $playerId, 'key' => $key, 'stats' => $s];
-            }
-        }
+        $potw = self::computePlayerOfTheDay($stats);
         if ($potw) {
             $s = $potw['stats'];
             $changes += [

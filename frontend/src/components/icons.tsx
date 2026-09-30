@@ -138,3 +138,16 @@ export const GlobeIcon = (p: P) => (
     <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
   </Icon>
 );
+
+export const MegaphoneIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 10v4a1 1 0 0 0 1 1h3l6 4V5L7 9H4a1 1 0 0 0-1 1Z" />
+    <path d="M17 8.5a5 5 0 0 1 0 7M19.5 6a8.5 8.5 0 0 1 0 12" />
+  </Icon>
+);
+
+export const PulseIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 12h4l2-5 4 10 2-5h6" />
+  </Icon>
+);

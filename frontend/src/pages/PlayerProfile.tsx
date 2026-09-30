@@ -8,6 +8,9 @@ import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
 import { formatNaira } from "../lib/cards";
 import { positionNames } from "../lib/clubData";
 import MembershipBadge from "../components/MembershipBadge";
+import AbsenceBadge from "../components/AbsenceBadge";
+import { useAbsences } from "../lib/AbsencesContext";
+import { absenceLabel, absencePeriod } from "../lib/absences";
 
 function playedFor(game: MatchDayGame, playerId: number): 0 | 1 | null {
   if (game.teams[0].players.includes(playerId)) return 0;
@@ -20,6 +23,7 @@ export default function PlayerProfile() {
   const { players, loading } = useSquad();
   const { cards } = useCards();
   const { events } = useMatchDay();
+  const { absenceFor } = useAbsences();
 
   const playerId = Number(id);
   const player = players.find((p) => p.id === playerId);
@@ -44,6 +48,7 @@ export default function PlayerProfile() {
     );
   }
 
+  const absence = absenceFor(playerId);
   const playerCards = cards.filter((c) => c.playerId === playerId);
   const owed = playerCards.filter((c) => !c.paid).reduce((sum, c) => sum + c.fine, 0);
 
@@ -60,6 +65,7 @@ export default function PlayerProfile() {
           <span className="flex flex-wrap items-center gap-3">
             <span>#{player.number} — rated {player.rating.toFixed(2)}</span>
             <MembershipBadge membership={player.membership} />
+            {absence && <AbsenceBadge absence={absence} />}
           </span>
         }
       />
@@ -74,6 +80,15 @@ export default function PlayerProfile() {
                 className="duotone h-full w-full object-cover"
               />
               <div className="duotone-wash pointer-events-none absolute inset-0" />
+              {absence && (
+                <p className="absolute inset-x-0 bottom-0 bg-ink/85 px-4 py-3 text-sm text-paper backdrop-blur">
+                  <span className="block text-xs uppercase tracking-wide text-mist">
+                    {absenceLabel(absence.type).short}
+                  </span>
+                  {absence.reason ? `${absence.reason} · ` : ""}
+                  {absencePeriod(absence)}
+                </p>
+              )}
             </div>
 
             <div className="grid flex-1 grid-cols-2 gap-px self-start bg-ink-line sm:grid-cols-4">

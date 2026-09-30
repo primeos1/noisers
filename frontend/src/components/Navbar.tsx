@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
 import TabBar from "./TabBar";
-import { HomeIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
+import { HomeIcon, MegaphoneIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
 
 const links = [
   { label: "Home", to: "/", end: true, icon: <HomeIcon /> },
   { label: "Squad", to: "/squad", icon: <ShirtIcon /> },
   { label: "The Vale", to: "/the-vale", icon: <TrophyIcon /> },
+  { label: "Noisers", to: "/noisers", icon: <MegaphoneIcon /> },
   { label: "Highlights", to: "/highlights", icon: <PlayIcon /> },
   { label: "Executives", to: "/executives", icon: <UsersIcon /> },
 ];
+
+// Six tabs share a phone's width, so the longest label is shortened there.
+const tabLinks = links.map((l) => (l.to === "/executives" ? { ...l, label: "Execs" } : l));
 
 /**
  * Public site chrome. Desktop keeps the classic top nav; phones get a slim
@@ -76,7 +80,7 @@ export default function Navbar() {
         </nav>
       </header>
 
-      <TabBar tabs={links} label="Main" />
+      <TabBar tabs={tabLinks} label="Main" />
     </>
   );
 }

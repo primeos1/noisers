@@ -6,6 +6,9 @@ import { nextJerseyNumber, positionCodes, type Player } from "../../lib/clubData
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
+import AbsenceBadge from "../../components/AbsenceBadge";
+import { useAbsences } from "../../lib/AbsencesContext";
+import { absenceStatus } from "../../lib/absences";
 import {
   buildTeams,
   MAX_TEAMS,
@@ -41,6 +44,12 @@ function parseParticipant(v: string): ParticipantId {
 
 export default function MatchDay() {
   const { players, addPlayer, refresh: refreshSquad } = useSquad();
+  const { absenceFor } = useAbsences();
+  // Out today (injured, away, suspended) — left out of "Select all".
+  const isOut = (playerId: number) => {
+    const a = absenceFor(playerId);
+    return !!a && absenceStatus(a) === "active";
+  };
   const { refresh: refreshCards } = useCards();
   const { refresh: refreshVale } = useValeContent();
   const { events, addEvent, updateEvent, error: matchDayError } = useMatchDay();
@@ -463,8 +472,8 @@ export default function MatchDay() {
             <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-mist">{activeEvent.presentPlayers.length} squad selected</p>
               <div className="flex gap-3 text-sm text-paper-dim">
-                <button type="button" onClick={() => patch({ presentPlayers: players.map((p) => p.id) })} className="hover:text-paper">
-                  Select all
+                <button type="button" onClick={() => patch({ presentPlayers: players.filter((p) => !isOut(p.id)).map((p) => p.id) })} className="hover:text-paper">
+                  Select all available
                 </button>
                 <button type="button" onClick={() => patch({ presentPlayers: [] })} className="hover:text-paper">
                   Select none
@@ -491,6 +500,7 @@ export default function MatchDay() {
                       <span className="block truncate text-xs text-mist">
                         #{player.number} · {positionCodes(player)}
                       </span>
+                      {absenceFor(player.id) && <AbsenceBadge absence={absenceFor(player.id)!} className="mt-1" />}
                     </span>
                     <span className="shrink-0 tabular-nums text-paper">{player.rating.toFixed(2)}</span>
                   </label>

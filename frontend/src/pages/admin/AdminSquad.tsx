@@ -4,12 +4,17 @@ import { useSquad } from "../../lib/SquadContext";
 import { exportPlayersCsv, nextJerseyNumber, positionNames, type Player } from "../../lib/clubData";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 import MembershipBadge from "../../components/MembershipBadge";
+import AbsenceBadge from "../../components/AbsenceBadge";
+import AbsenceFormModal from "../../components/admin/AbsenceFormModal";
+import { useAbsences } from "../../lib/AbsencesContext";
 
 export default function AdminSquad() {
   const { players, error, addPlayer, updatePlayer, removePlayer } = useSquad();
   const [editing, setEditing] = useState<Player | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Player | null>(null);
+  const [taggingOut, setTaggingOut] = useState<Player | null>(null);
+  const { absenceFor, addAbsence } = useAbsences();
 
   const sorted = [...players].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
 
@@ -55,6 +60,7 @@ export default function AdminSquad() {
                   <span className="truncate">{player.name}</span>
                   <MembershipBadge membership={player.membership} className="shrink-0" />
                 </p>
+                {absenceFor(player.id) && <AbsenceBadge absence={absenceFor(player.id)!} className="mt-1" />}
                 <p className="truncate text-xs text-mist">
                   #{player.number} · {positionNames(player)} · {player.rating.toFixed(2)}
                 </p>
@@ -70,6 +76,13 @@ export default function AdminSquad() {
                 className="rounded-full bg-paper/10 px-3 py-1.5 text-xs font-semibold text-paper"
               >
                 Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaggingOut(player)}
+                className="rounded-full px-3 py-1 text-xs text-paper-dim"
+              >
+                Tag out
               </button>
               <button
                 type="button"
@@ -111,6 +124,7 @@ export default function AdminSquad() {
                     />
                     <span className="text-paper">{player.name}</span>
                     <MembershipBadge membership={player.membership} />
+                    {absenceFor(player.id) && <AbsenceBadge absence={absenceFor(player.id)!} />}
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-paper-dim">
@@ -129,6 +143,13 @@ export default function AdminSquad() {
                       className="text-paper-dim hover:text-paper"
                     >
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTaggingOut(player)}
+                      className="text-paper-dim hover:text-paper"
+                    >
+                      Tag out
                     </button>
                     <button
                       type="button"
@@ -165,6 +186,19 @@ export default function AdminSquad() {
           onSubmit={(player) => {
             updatePlayer(editing.id, player);
             setEditing(null);
+          }}
+        />
+      )}
+
+      {taggingOut && (
+        <AbsenceFormModal
+          players={players}
+          initial={null}
+          presetPlayerId={taggingOut.id}
+          onClose={() => setTaggingOut(null)}
+          onSubmit={async (input) => {
+            await addAbsence(input);
+            setTaggingOut(null);
           }}
         />
       )}

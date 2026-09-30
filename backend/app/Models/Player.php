@@ -54,6 +54,11 @@ class Player extends Model
         return $this->hasMany(Card::class);
     }
 
+    public function absences(): HasMany
+    {
+        return $this->hasMany(PlayerAbsence::class);
+    }
+
     public function ratingChanges(): HasMany
     {
         return $this->hasMany(PlayerRatingChange::class);

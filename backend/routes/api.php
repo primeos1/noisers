@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\HomeStatController;
 use App\Http\Controllers\Api\MatchDayEventController;
 use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\Api\NoisersController;
+use App\Http\Controllers\Api\PlayerAbsenceController;
 use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\RandomizedTeamController;
 use App\Http\Controllers\Api\SeasonController;
@@ -53,6 +55,12 @@ Route::get('/home-content', [HomeContentController::class, 'show']);
 Route::get('/vale-content', [ValeContentController::class, 'show']);
 Route::get('/highlights', [HighlightController::class, 'index']);
 Route::get('/executives', [ExecutiveController::class, 'index']);
+
+// Who's injured, travelling or suspended — public read, committee write below.
+Route::get('/player-absences', [PlayerAbsenceController::class, 'index']);
+
+// Noisers — the club blog, written on read from match days, cards and absences.
+Route::get('/noisers', [NoisersController::class, 'index']);
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
@@ -126,6 +134,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/executives/order', [ExecutiveController::class, 'reorder']);
     Route::put('/executives/{executive}', [ExecutiveController::class, 'update']);
     Route::delete('/executives/{executive}', [ExecutiveController::class, 'destroy']);
+
+    Route::post('/player-absences', [PlayerAbsenceController::class, 'store']);
+    Route::put('/player-absences/{playerAbsence}', [PlayerAbsenceController::class, 'update']);
+    Route::delete('/player-absences/{playerAbsence}', [PlayerAbsenceController::class, 'destroy']);
 
     Route::apiResource('training-sessions', TrainingSessionController::class);
 

@@ -29,13 +29,19 @@ import AdminVale from "./pages/admin/AdminVale";
 import AdminHighlights from "./pages/admin/AdminHighlights";
 import AdminExecutives from "./pages/admin/AdminExecutives";
 import PlayerProfile from "./pages/PlayerProfile";
+import Noisers from "./pages/Noisers";
+import AdminAvailability from "./pages/admin/AdminAvailability";
+import { screenKey } from "./lib/screenKey";
 
 // New screens open at the top, as in a native app (hash links excepted).
+// Opening or closing a Noisers story isn't a new screen — the reader sits
+// over the feed — so that keeps its place (see screenKey).
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
+  const screen = screenKey(pathname);
   useLayoutEffect(() => {
     if (!hash) window.scrollTo({ top: 0, behavior: "instant" });
-  }, [pathname, hash]);
+  }, [screen, hash]);
   return null;
 }
 
@@ -50,6 +56,7 @@ export default function App() {
       <Route path="/the-vale" element={<TheVale />} />
       <Route path="/highlights" element={<Highlights />} />
       <Route path="/executives" element={<Executives />} />
+      <Route path="/noisers/:storyId?" element={<Noisers />} />
       <Route path="/performance" element={<Performance />} />
       <Route path="/login" element={<Login />} />
       <Route path="/player-login" element={<PlayerLogin />} />
@@ -83,6 +90,7 @@ export default function App() {
         <Route path="matches" element={<AdminMatches />} />
         <Route path="matchday" element={<MatchDay />} />
         <Route path="cards" element={<AdminCards />} />
+        <Route path="availability" element={<AdminAvailability />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="home-content" element={<AdminHomeContent />} />
         <Route path="vale" element={<AdminVale />} />
