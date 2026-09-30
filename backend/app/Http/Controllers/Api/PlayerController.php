@@ -225,7 +225,7 @@ class PlayerController extends Controller
         // Oldest first, so the portal can draw each player's rating journey.
         (new EloquentCollection($players->all()))->load(['ratingChanges' => fn ($q) => $q->orderBy('id')]);
 
-        $stats = PlayerStats::computeAll(MatchDayEvent::query()->get());
+        $stats = PlayerStats::computeAll(MatchDayEvent::query()->get(), PlayerStats::forwardIds());
 
         // Cards logged by hand (fixtures, not match days) count towards the
         // season's discipline too. Match-day cards are already in $stats, so

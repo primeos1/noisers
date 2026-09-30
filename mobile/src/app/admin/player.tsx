@@ -122,7 +122,7 @@ export default function PlayerFormScreen() {
                 { label: "Apps", value: initial.appearances },
                 { label: "Goals", value: initial.goals },
                 { label: "Assists", value: initial.assists },
-                { label: "Clean sheets", value: initial.cleanSheets },
+                ...(initial.position === "FWD" ? [] : [{ label: "Clean sheets", value: initial.cleanSheets }]),
               ]}
             />
           </View>

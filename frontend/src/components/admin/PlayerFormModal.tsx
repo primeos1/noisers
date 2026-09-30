@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import Modal from "./Modal";
-import { isStockPhoto, membershipLabels, positionLabels, type Membership, type Player, type Position } from "../../lib/clubData";
+import { isStockPhoto, keepsCleanSheets, membershipLabels, positionLabels, type Membership, type Player, type Position } from "../../lib/clubData";
 import ImageUploadField from "./ImageUploadField";
 import { useSquad } from "../../lib/SquadContext";
 import { useSettings } from "../../lib/SettingsContext";
@@ -188,12 +188,12 @@ export default function PlayerFormModal({
               Calculated automatically from finished Match Day games — not
               editable here.
             </p>
-            <div className="mt-2 grid grid-cols-4 gap-px bg-ink-line text-center text-sm">
+            <div className={`mt-2 grid gap-px bg-ink-line text-center text-sm ${keepsCleanSheets(form) ? "grid-cols-4" : "grid-cols-3"}`}>
               {[
                 { label: "Apps", value: form.appearances },
                 { label: "Goals", value: form.goals },
                 { label: "Assists", value: form.assists },
-                { label: "Clean sheets", value: form.cleanSheets },
+                ...(keepsCleanSheets(form) ? [{ label: "Clean sheets", value: form.cleanSheets }] : []),
               ].map((stat) => (
                 <div key={stat.label} className="bg-ink py-3">
                   <p className="text-paper">{stat.value}</p>

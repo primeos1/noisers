@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
-import { formatCards, getSquadHonours, positionNames, roughestPlayer, squadLeaderboards, type Position } from "../lib/clubData";
+import { formatCards, getSquadHonours, keepsCleanSheets, positionNames, roughestPlayer, squadLeaderboards, type Position } from "../lib/clubData";
 import { useSquad } from "../lib/SquadContext";
 import MembershipBadge from "../components/MembershipBadge";
 import SquadLeaderboards from "../components/SquadLeaderboards";
@@ -189,10 +189,12 @@ export default function Squad() {
                       <dt className="text-xs text-mist">Assists</dt>
                       <dd className="text-paper">{player.assists}</dd>
                     </div>
-                    <div>
-                      <dt className="text-xs text-mist">Clean sheets</dt>
-                      <dd className="text-paper">{player.cleanSheets}</dd>
-                    </div>
+                    {keepsCleanSheets(player) && (
+                      <div>
+                        <dt className="text-xs text-mist">Clean sheets</dt>
+                        <dd className="text-paper">{player.cleanSheets}</dd>
+                      </div>
+                    )}
                   </dl>
                 </div>
               </Link>

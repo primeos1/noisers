@@ -6,7 +6,7 @@ import { useCards } from "../lib/CardsContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
 import { formatNaira } from "../lib/cards";
-import { positionNames } from "../lib/clubData";
+import { keepsCleanSheets, positionNames } from "../lib/clubData";
 import MembershipBadge from "../components/MembershipBadge";
 import AbsenceBadge from "../components/AbsenceBadge";
 import { useAbsences } from "../lib/AbsencesContext";
@@ -92,12 +92,12 @@ export default function PlayerProfile() {
               )}
             </div>
 
-            <div className="grid flex-1 grid-cols-2 gap-px self-start bg-ink-line sm:grid-cols-4">
+            <div className={`grid flex-1 grid-cols-2 gap-px self-start bg-ink-line ${keepsCleanSheets(player) ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
               {[
                 { label: "Apps", value: player.appearances },
                 { label: "Goals", value: player.goals },
                 { label: "Assists", value: player.assists },
-                { label: "Clean sheets", value: player.cleanSheets },
+                ...(keepsCleanSheets(player) ? [{ label: "Clean sheets", value: player.cleanSheets }] : []),
               ].map((stat) => (
                 <div key={stat.label} className="bg-ink px-5 py-6">
                   <p className="text-xs uppercase tracking-wide text-mist">{stat.label}</p>

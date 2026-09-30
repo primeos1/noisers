@@ -208,7 +208,8 @@ export default function StatsScreen() {
                 {[
                   { l: "Goals", v: b.goals, t: colors.win },
                   { l: "Assists", v: b.assists, t: colors.paper },
-                  { l: "Clean sheets", v: b.cleanSheets, t: colors.paper },
+                  // Forwards don't keep clean sheets.
+                  ...(b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: colors.paper }]),
                   { l: "Avg rating", v: b.count ? b.avg.toFixed(2) : "–", t: colors.draw },
                 ].map((s) => (
                   <View key={s.l} style={styles.posStat}>

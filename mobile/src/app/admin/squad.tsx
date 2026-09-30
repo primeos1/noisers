@@ -20,7 +20,7 @@ function squadCsv(players: Player[]) {
   const header = ["Number", "Name", "Position", "Rating", "Appearances", "Goals", "Assists", "Clean sheets"];
   const rows = [...players]
     .sort((a, b) => a.number - b.number)
-    .map((p) => [p.number, p.name, p.secondaryPosition ? `${p.position} / ${p.secondaryPosition}` : p.position, p.rating, p.appearances, p.goals, p.assists, p.cleanSheets].map(csvCell).join(","));
+    .map((p) => [p.number, p.name, p.secondaryPosition ? `${p.position} / ${p.secondaryPosition}` : p.position, p.rating, p.appearances, p.goals, p.assists, p.position === "FWD" ? "" : p.cleanSheets].map(csvCell).join(","));
   return [header.join(","), ...rows].join("\n");
 }
 
@@ -95,7 +95,7 @@ export default function SquadAdminScreen() {
                   {p.secondaryPosition ? ` / ${positionLabel[p.secondaryPosition]}` : ""} · {p.rating.toFixed(2)}
                 </Txt>
                 <Txt style={[text.small, styles.stats]} numberOfLines={1}>
-                  {p.appearances} apps · {p.goals} G · {p.assists} A · {p.cleanSheets} CS
+                  {p.appearances} apps · {p.goals} G · {p.assists} A{p.position === "FWD" ? "" : ` · ${p.cleanSheets} CS`}
                 </Txt>
               </View>
             </Row>

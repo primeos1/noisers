@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSquad } from "../../lib/SquadContext";
-import { exportPlayersCsv, nextJerseyNumber, positionNames, type Player } from "../../lib/clubData";
+import { exportPlayersCsv, keepsCleanSheets, nextJerseyNumber, positionNames, type Player } from "../../lib/clubData";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 import MembershipBadge from "../../components/MembershipBadge";
 import AbsenceBadge from "../../components/AbsenceBadge";
@@ -65,7 +65,7 @@ export default function AdminSquad() {
                   #{player.number} · {positionNames(player)} · {player.rating.toFixed(2)}
                 </p>
                 <p className="mt-0.5 text-xs text-paper-dim">
-                  {player.appearances} apps · {player.goals} G · {player.assists} A · {player.cleanSheets} CS
+                  {player.appearances} apps · {player.goals} G · {player.assists} A{keepsCleanSheets(player) && ` · ${player.cleanSheets} CS`}
                 </p>
               </div>
             </Link>
@@ -134,7 +134,7 @@ export default function AdminSquad() {
                 <td className="px-4 py-3 text-paper-dim">{player.appearances}</td>
                 <td className="px-4 py-3 text-paper-dim">{player.goals}</td>
                 <td className="px-4 py-3 text-paper-dim">{player.assists}</td>
-                <td className="px-4 py-3 text-paper-dim">{player.cleanSheets}</td>
+                <td className="px-4 py-3 text-paper-dim">{keepsCleanSheets(player) ? player.cleanSheets : "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-3">
                     <button

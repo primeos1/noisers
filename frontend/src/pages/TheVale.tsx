@@ -6,7 +6,7 @@ import { useMatchDay } from "../lib/MatchDayContext";
 import { useValeContent } from "../lib/ValeContentContext";
 import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
-import { formatCards, positionCodes } from "../lib/clubData";
+import { formatCards, keepsCleanSheets, positionCodes } from "../lib/clubData";
 
 interface TeamOfWeekData {
   title: string;
@@ -63,9 +63,10 @@ export default function TheVale() {
   const topAssist = players.find((p) => p.id === weeklyLeaders.topAssist.playerId);
   const roughest = players.find((p) => p.id === weeklyLeaders.roughest.playerId);
   const cleanSheetTeam = weeklyLeaders.cleanSheetTeam;
+  // Forwards don't keep clean sheets, even on the side that did.
   const cleanSheetLeaders = weeklyLeaders.cleanSheets
     .map((n) => players.find((p) => p.id === n))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+    .filter((p): p is NonNullable<typeof p> => Boolean(p) && keepsCleanSheets(p!));
 
   return (
     <Layout>

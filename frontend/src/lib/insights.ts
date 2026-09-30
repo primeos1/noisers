@@ -2,7 +2,7 @@
 // every match day (rank, streaks, partnerships, milestones, badges), worked
 // out from the match days and squad the portal already has loaded.
 
-import type { Player } from "./clubData";
+import { keepsCleanSheets, type Player } from "./clubData";
 import type { MatchDayEvent } from "./matchDay";
 import { playerGameLog, type GameLogEntry } from "./portal";
 
@@ -198,13 +198,15 @@ export function playerInsights(player: Player, players: Player[], events: MatchD
     { id: "hat-trick", title: "Hat-trick hero", description: "Score 3 goals on one match day", earned: maxDayGoals >= 3 },
     { id: "playmaker", title: "Playmaker", description: "Set up 3 goals on one match day", earned: maxDayAssists >= 3 },
     { id: "on-fire", title: "On fire", description: "Win 3 games in a row", earned: longestWinRun >= 3 },
-    { id: "brick-wall", title: "Brick wall", description: "Keep 5 clean sheets", earned: player.cleanSheets >= 5 },
     { id: "regular", title: "Regular", description: "Play 10 games", earned: player.appearances >= 10 },
     { id: "centurion", title: "Centurion", description: "Play 100 games", earned: player.appearances >= 100 },
     { id: "angel", title: "Angel", description: "Go 10 games without a card", earned: longestBookingFree >= 10 },
     { id: "top-rated", title: "Top of the squad", description: "Hold the highest rating in the squad", earned: rank.rating === 1 && players.length > 1 },
     { id: "rising", title: "Rising star", description: "Reach a rating of 7.50", earned: peakRating >= 7.5 },
   ];
+  if (keepsCleanSheets(player)) {
+    badges.splice(4, 0, { id: "brick-wall", title: "Brick wall", description: "Keep 5 clean sheets", earned: player.cleanSheets >= 5 });
+  }
 
   return {
     squadSize: players.length,

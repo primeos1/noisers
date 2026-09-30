@@ -8,6 +8,7 @@ use App\Models\Player;
 use App\Models\PlayerRatingChange;
 use App\Models\User;
 use App\Models\ValeContent;
+use App\Support\PlayerStats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -130,7 +131,10 @@ class MatchDayEditTest extends TestCase
         $vale = ValeContent::current();
         $this->assertSame('Reds', $vale->leader_clean_sheet_team);
         $this->assertSame(2, $vale->leader_clean_sheet_value);
-        $this->assertSame([$this->scorer->id], $vale->leader_clean_sheet_player_ids);
+        // The Reds' only player is a forward, and forwards don't keep clean sheets.
+        $this->assertSame([], $vale->leader_clean_sheet_player_ids);
+        $this->assertSame(0, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::forwardIds())[$this->scorer->id]['cleanSheets']);
+        $this->assertSame(1, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::forwardIds())[$this->other->id]['cleanSheets']);
     }
 
     public function test_clean_sheet_tie_goes_to_the_team_of_the_week(): void

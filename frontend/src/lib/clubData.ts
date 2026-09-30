@@ -69,6 +69,11 @@ export const positionLabels: Record<Position, string> = {
   FWD: "Forward",
 };
 
+/** Forwards don't keep clean sheets; the main position decides, as for ratings. */
+export function keepsCleanSheets(player: Pick<Player, "position">): boolean {
+  return player.position !== "FWD";
+}
+
 /** "MID / FWD" — the main position, then the second if there is one. */
 export function positionCodes(player: Pick<Player, "position" | "secondaryPosition">): string {
   return player.secondaryPosition ? `${player.position} / ${player.secondaryPosition}` : player.position;
@@ -138,7 +143,8 @@ export function formatCards(yellow: number, red: number): string {
 }
 
 export function topByStat(players: Player[], key: "goals" | "assists" | "cleanSheets" | "rating", count = 5) {
-  return [...players].sort((a, b) => b[key] - a[key]).slice(0, count);
+  const pool = key === "cleanSheets" ? players.filter(keepsCleanSheets) : players;
+  return [...pool].sort((a, b) => b[key] - a[key]).slice(0, count);
 }
 
 export interface LeaderRow {
@@ -181,7 +187,7 @@ export function squadLeaderboards(players: Player[], count = 5): Leaderboard[] {
   return [
     board("goals", "Top scorers", "goals", (p) => p.goals, (p) => -p.appearances),
     board("assists", "Top assists", "assists", (p) => p.assists, (p) => -p.appearances),
-    board("clean-sheets", "Clean sheets", "clean sheets", (p) => p.cleanSheets, (p) => -p.appearances),
+    board("clean-sheets", "Clean sheets", "clean sheets", (p) => (keepsCleanSheets(p) ? p.cleanSheets : 0), (p) => -p.appearances),
     board("appearances", "Most appearances", "games", (p) => p.appearances),
     board(
       "cards",
@@ -204,7 +210,7 @@ const CSV_COLUMNS: { header: string; value: (p: Player) => string | number }[] =
   { header: "Appearances", value: (p) => p.appearances },
   { header: "Goals", value: (p) => p.goals },
   { header: "Assists", value: (p) => p.assists },
-  { header: "Clean sheets", value: (p) => p.cleanSheets },
+  { header: "Clean sheets", value: (p) => (keepsCleanSheets(p) ? p.cleanSheets : "") },
 ];
 
 function csvCell(value: string | number): string {

@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Player;
+
 /**
  * Computes per-player (keyed by player id) Match Day stats (appearances/goals/assists/
  * clean sheets/cards) by scanning finished games across all match day events.
@@ -12,10 +14,14 @@ namespace App\Support;
 class PlayerStats
 {
     /**
+     * Forwards never keep clean sheets — it's a stat for the back of the
+     * side — so players in $forwardIds (see forwardIds()) aren't credited.
+     *
      * @param  iterable<\App\Models\MatchDayEvent>  $events
+     * @param  array<int, int>  $forwardIds
      * @return array<int, array{appearances: int, goals: int, assists: int, cleanSheets: int, yellowCards: int, redCards: int}>
      */
-    public static function computeAll(iterable $events): array
+    public static function computeAll(iterable $events, array $forwardIds = []): array
     {
         $stats = [];
 
@@ -78,7 +84,7 @@ class PlayerStats
                         continue;
                     }
                     foreach (($team['players'] ?? []) as $participantId) {
-                        if (! is_int($participantId)) {
+                        if (! is_int($participantId) || in_array($participantId, $forwardIds, true)) {
                             continue;
                         }
                         $ensure($participantId);
@@ -89,6 +95,17 @@ class PlayerStats
         }
 
         return $stats;
+    }
+
+    /**
+     * Ids of players whose main position is forward, as ratings go by the
+     * main position too.
+     *
+     * @return array<int, int>
+     */
+    public static function forwardIds(): array
+    {
+        return Player::query()->where('position', 'FWD')->pluck('id')->all();
     }
 
     /**

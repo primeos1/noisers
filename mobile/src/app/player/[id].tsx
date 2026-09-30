@@ -127,7 +127,8 @@ export default function PlayerScreen() {
           { label: "Games", value: player.appearances },
           { label: "Goals", value: player.goals, tone: colors.win },
           { label: "Assists", value: player.assists },
-          { label: "Clean sheets", value: player.cleanSheets },
+          // Forwards don't keep clean sheets.
+          ...(player.position === "FWD" ? [] : [{ label: "Clean sheets", value: player.cleanSheets }]),
         ]}
       />
 
