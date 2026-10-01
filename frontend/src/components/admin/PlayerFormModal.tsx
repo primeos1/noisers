@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import Modal from "./Modal";
-import { isStockPhoto, keepsCleanSheets, membershipLabels, positionLabels, type Membership, type Player, type Position } from "../../lib/clubData";
+import { isKeeper, isStockPhoto, keepsCleanSheets, membershipLabels, positionLabels, type Membership, type Player, type Position } from "../../lib/clubData";
 import ImageUploadField from "./ImageUploadField";
 import { useSquad } from "../../lib/SquadContext";
 import { useSettings } from "../../lib/SettingsContext";
@@ -36,6 +36,7 @@ export default function PlayerFormModal({
       goals: 0,
       assists: 0,
       cleanSheets: 0,
+      saves: 0,
       yellowCards: 0,
       redCards: 0,
     },
@@ -188,14 +189,15 @@ export default function PlayerFormModal({
               Calculated automatically from finished Match Day games — not
               editable here.
             </p>
-            <div className={`mt-2 grid gap-px bg-ink-line text-center text-sm ${keepsCleanSheets(form) ? "grid-cols-4" : "grid-cols-3"}`}>
+            <div className="mt-2 flex gap-px bg-ink-line text-center text-sm">
               {[
                 { label: "Apps", value: form.appearances },
                 { label: "Goals", value: form.goals },
                 { label: "Assists", value: form.assists },
                 ...(keepsCleanSheets(form) ? [{ label: "Clean sheets", value: form.cleanSheets }] : []),
+                ...(isKeeper(form) ? [{ label: "Saves", value: form.saves }] : []),
               ].map((stat) => (
-                <div key={stat.label} className="bg-ink py-3">
+                <div key={stat.label} className="min-w-0 flex-1 bg-ink py-3">
                   <p className="text-paper">{stat.value}</p>
                   <p className="mt-1 text-xs text-mist">{stat.label}</p>
                 </div>

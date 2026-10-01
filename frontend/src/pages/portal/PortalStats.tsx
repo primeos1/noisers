@@ -69,6 +69,7 @@ export default function PortalStats() {
       goals: group.reduce((s, p) => s + p.goals, 0),
       assists: group.reduce((s, p) => s + p.assists, 0),
       cleanSheets: group.reduce((s, p) => s + p.cleanSheets, 0),
+      saves: group.reduce((s, p) => s + p.saves, 0),
       avg: group.length ? group.reduce((s, p) => s + p.rating, 0) / group.length : 0,
     };
   });
@@ -178,12 +179,13 @@ export default function PortalStats() {
         <div className="md:grid md:grid-cols-2 md:gap-x-5">
           {byPosition.map((b) => (
             <Group key={b.pos} title={positionLabel[b.pos]} aside={`${b.count} player${b.count === 1 ? "" : "s"}`}>
-              {/* Forwards don't keep clean sheets. */}
-              <div className={`grid px-2 py-4 ${b.pos === "FWD" ? "grid-cols-3" : "grid-cols-4"}`}>
+              {/* Forwards don't keep clean sheets; keepers' saves sit with GK. */}
+              <div className={`grid px-2 py-4 ${b.pos === "FWD" ? "grid-cols-3" : b.pos === "GK" ? "grid-cols-5" : "grid-cols-4"}`}>
                 {[
                   { l: "Goals", v: b.goals, t: "text-win" },
                   { l: "Assists", v: b.assists, t: "text-paper" },
                   ...(b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: "text-paper" }]),
+                  ...(b.pos === "GK" ? [{ l: "Saves", v: b.saves, t: "text-paper" }] : []),
                   { l: "Avg rating", v: b.count ? b.avg.toFixed(2) : "–", t: "text-draw" },
                 ].map((s) => (
                   <div key={s.l} className="px-1 text-center">

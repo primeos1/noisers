@@ -8,7 +8,7 @@ import type { Card, CardType, ClubSettings, MatchDayEvent, Player, Position, Mem
 // and refreshed on pull-to-refresh (and every 30s while a match day is live).
 
 // Mirrors PlayerRatings::defaultPositionWeights() on the backend.
-const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
+const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, save: 0.03, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
 
 /** The rating-weight fields, restorable as a group from Settings. */
 export const DEFAULT_RATING_WEIGHTS = {
@@ -281,7 +281,6 @@ function playerBody(p: PlayerInput) {
 
 function eventBody(patch: EventPatch) {
   const body: Record<string, unknown> = {};
-  if (patch.title !== undefined) body.title = patch.title;
   if (patch.venue !== undefined) body.venue = patch.venue;
   if (patch.date !== undefined) body.date = patch.date;
   if (patch.status !== undefined) body.status = patch.status;

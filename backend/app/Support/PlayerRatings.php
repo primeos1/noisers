@@ -16,6 +16,7 @@ use App\Models\PlayerRatingChange;
  *  - goals and assists reward whoever made them (own goals cost a little);
  *  - a clean sheet rewards the side — by default the back line most;
  *  - each goal the side concedes can cost a little (off by default);
+ *  - each save rewards the keeper who made it;
  *  - each card costs the player a little, a red more than a yellow.
  *
  * The day's points are scaled so gains shrink as a rating nears the ceiling
@@ -48,6 +49,7 @@ class PlayerRatings
         'own_goal' => 0.08,
         'clean_sheet' => 0.0,
         'goal_conceded' => 0.0,
+        'save' => 0.03,
         'yellow_card' => 0.05,
         'red_card' => 0.15,
     ];
@@ -180,6 +182,10 @@ class PlayerRatings
             foreach (($game['cards'] ?? []) as $card) {
                 $red = ($card['type'] ?? 'yellow') === 'red';
                 $add($card['playerId'] ?? null, $red ? 'red_card' : 'yellow_card');
+            }
+
+            foreach (($game['saves'] ?? []) as $save) {
+                $add($save['playerId'] ?? null, 'save');
             }
         }
 

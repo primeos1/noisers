@@ -35,6 +35,11 @@ export const RATING_MAX = 9.5;
 
 const nairaFormat = new Intl.NumberFormat("en-NG", { maximumFractionDigits: 0 });
 
+/** Keepers by main or second position — the only players saves are logged for. */
+export function isKeeper(player: Pick<Player, "position" | "secondaryPosition">): boolean {
+  return player.position === "GK" || player.secondaryPosition === "GK";
+}
+
 export function formatNaira(amount: number) {
   return `₦${nairaFormat.format(amount)}`;
 }
@@ -155,6 +160,7 @@ export interface Contribution {
   position: Position | null;
   goals: number;
   assists: number;
+  saves: number;
   yellows: number;
   reds: number;
 }
@@ -172,6 +178,7 @@ export function eventContributions(event: MatchDayEvent, players: Player[]): Con
         position: player?.position ?? null,
         goals: 0,
         assists: 0,
+        saves: 0,
         yellows: 0,
         reds: 0,
       };
@@ -190,6 +197,7 @@ export function eventContributions(event: MatchDayEvent, players: Player[]): Con
       if (card.type === "red") row(card.playerId).reds++;
       else row(card.playerId).yellows++;
     }
+    for (const save of game.saves ?? []) row(save.playerId).saves++;
   }
 
   return [...rows.values()].sort(

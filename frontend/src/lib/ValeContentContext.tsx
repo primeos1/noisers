@@ -22,6 +22,7 @@ export interface ValeContentData {
   weeklyLeaders: {
     topScorer: { playerId: number; value: number };
     topAssist: { playerId: number; value: number };
+    topSaves: { playerId: number; value: number };
     cleanSheets: number[];
     cleanSheetTeam: { name: string; value: number };
     roughest: { playerId: number; yellowCards: number; redCards: number };
@@ -49,6 +50,7 @@ interface ApiValeContent {
   weeklyLeaders: {
     topScorer: { playerId: number | null; value: number | null };
     topAssist: { playerId: number | null; value: number | null };
+    topSaves?: { playerId: number | null; value: number | null };
     cleanSheets: number[];
     cleanSheetTeam?: { name: string | null; value: number | null };
     roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
@@ -71,6 +73,7 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
   weeklyLeaders: {
     topScorer: { playerId: 0, value: 0 },
     topAssist: { playerId: 0, value: 0 },
+    topSaves: { playerId: 0, value: 0 },
     cleanSheets: [],
     cleanSheetTeam: { name: "", value: 0 },
     roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
@@ -108,6 +111,10 @@ function fromApi(data: ApiValeContent): ValeContentData {
       topAssist: {
         playerId: data.weeklyLeaders.topAssist.playerId ?? 0,
         value: data.weeklyLeaders.topAssist.value ?? 0,
+      },
+      topSaves: {
+        playerId: data.weeklyLeaders.topSaves?.playerId ?? 0,
+        value: data.weeklyLeaders.topSaves?.value ?? 0,
       },
       cleanSheets: data.weeklyLeaders.cleanSheets ?? [],
       cleanSheetTeam: {
@@ -162,6 +169,8 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (w.topScorer?.value !== undefined) body.leader_top_scorer_value = w.topScorer.value;
     if (w.topAssist?.playerId !== undefined) body.leader_top_assist_player_id = playerIdOrNull(w.topAssist.playerId);
     if (w.topAssist?.value !== undefined) body.leader_top_assist_value = w.topAssist.value;
+    if (w.topSaves?.playerId !== undefined) body.leader_top_saves_player_id = playerIdOrNull(w.topSaves.playerId);
+    if (w.topSaves?.value !== undefined) body.leader_top_saves_value = w.topSaves.value;
     if (w.cleanSheets !== undefined) body.leader_clean_sheet_player_ids = w.cleanSheets;
     if (w.cleanSheetTeam?.name !== undefined) body.leader_clean_sheet_team = w.cleanSheetTeam.name || null;
     if (w.cleanSheetTeam?.value !== undefined) body.leader_clean_sheet_value = w.cleanSheetTeam.value;

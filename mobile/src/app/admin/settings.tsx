@@ -42,7 +42,7 @@ const ratingPositions: { value: Position; label: string }[] = [
 
 const positionNames: Record<Position, string> = { GK: "goalkeepers", DEF: "defenders", MID: "midfielders", FWD: "forwards" };
 
-// Each weight in rows of three; the − ones are taken away.
+// Each weight in rows of up to three; the − ones are taken away.
 const ratingWeightRows: { key: RatingWeightKey; label: string; suffix: "+" | "−" }[][] = [
   [
     { key: "win", label: "Win", suffix: "+" },
@@ -52,10 +52,13 @@ const ratingWeightRows: { key: RatingWeightKey; label: string; suffix: "+" | "�
   [
     { key: "assist", label: "Assist", suffix: "+" },
     { key: "cleanSheet", label: "Clean sheet", suffix: "+" },
-    { key: "goalConceded", label: "Conceded", suffix: "−" },
+    { key: "save", label: "Save", suffix: "+" },
   ],
   [
+    { key: "goalConceded", label: "Conceded", suffix: "−" },
     { key: "ownGoal", label: "Own goal", suffix: "−" },
+  ],
+  [
     { key: "yellowCard", label: "Yellow", suffix: "−" },
     { key: "redCard", label: "Red card", suffix: "−" },
   ],

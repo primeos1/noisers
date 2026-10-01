@@ -49,11 +49,21 @@ export interface MatchDayCard {
   minute: number;
 }
 
+/** One per save — only keepers (GK as main or second position) make them. */
+export interface MatchDaySave {
+  id: string;
+  teamIndex: 0 | 1;
+  playerId: ParticipantId;
+  minute: number;
+}
+
 export interface MatchDayGame {
   id: string;
   teams: [MatchDayTeam, MatchDayTeam];
   goals: MatchDayGoal[];
   cards: MatchDayCard[];
+  /** Missing on games logged before saves were recorded. */
+  saves?: MatchDaySave[];
   status: GameStatus;
   /** Epoch ms when the clock was last started; null/undefined while paused. */
   clockStartedAt?: number | null;

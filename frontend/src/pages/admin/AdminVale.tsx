@@ -214,6 +214,21 @@ function ValeForm() {
               onChange={(e) => setLeaders({ ...leaders, topAssist: { ...leaders.topAssist, value: Number(e.target.value) } })}
             />
           </label>
+          <PlayerSelect
+            label="Top saves"
+            value={leaders.topSaves.playerId}
+            onChange={(n) => setLeaders({ ...leaders, topSaves: { ...leaders.topSaves, playerId: n } })}
+          />
+          <label className={labelClass}>
+            Saves
+            <input
+              type="number"
+              min={0}
+              className={inputClass}
+              value={leaders.topSaves.value}
+              onChange={(e) => setLeaders({ ...leaders, topSaves: { ...leaders.topSaves, value: Number(e.target.value) } })}
+            />
+          </label>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>

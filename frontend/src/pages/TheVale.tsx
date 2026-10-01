@@ -61,6 +61,7 @@ export default function TheVale() {
   const mip = players.find((p) => p.id === mostImprovedPlayer.playerId);
   const topScorer = players.find((p) => p.id === weeklyLeaders.topScorer.playerId);
   const topAssist = players.find((p) => p.id === weeklyLeaders.topAssist.playerId);
+  const topSaves = players.find((p) => p.id === weeklyLeaders.topSaves.playerId);
   const roughest = players.find((p) => p.id === weeklyLeaders.roughest.playerId);
   const cleanSheetTeam = weeklyLeaders.cleanSheetTeam;
   // Forwards don't keep clean sheets, even on the side that did.
@@ -215,7 +216,7 @@ export default function TheVale() {
             Stat leaders
           </h2>
 
-          <div className="mt-10 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-1 gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-5">
             <div className="bg-ink p-8">
               <p className="text-xs uppercase tracking-wide text-mist">
                 Top scorer
@@ -242,6 +243,18 @@ export default function TheVale() {
 
             <div className="bg-ink p-8">
               <p className="text-xs uppercase tracking-wide text-mist">
+                Top saves
+              </p>
+              <p className="mt-4 font-display text-4xl text-paper">
+                {weeklyLeaders.topSaves.value} save{weeklyLeaders.topSaves.value === 1 ? "" : "s"}
+              </p>
+              <p className="mt-2 text-sm text-paper-dim">
+                {topSaves ? `${topSaves.name} · #${topSaves.number}` : "—"}
+              </p>
+            </div>
+
+            <div className="bg-ink p-8">
+              <p className="text-xs uppercase tracking-wide text-mist">
                 Clean sheets
               </p>
               <p className="mt-4 font-display text-4xl text-paper">
@@ -257,7 +270,7 @@ export default function TheVale() {
               )}
             </div>
 
-            <div className="bg-ink p-8">
+            <div className="bg-ink p-8 sm:col-span-2 lg:col-span-1">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-xs uppercase tracking-wide text-mist">
                   Roughest player

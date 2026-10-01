@@ -28,6 +28,8 @@ class ValeContent extends Model
         'leader_top_scorer_value',
         'leader_top_assist_player_id',
         'leader_top_assist_value',
+        'leader_top_saves_player_id',
+        'leader_top_saves_value',
         'leader_clean_sheet_player_ids',
         'leader_clean_sheet_team',
         'leader_clean_sheet_value',

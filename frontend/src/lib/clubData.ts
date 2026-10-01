@@ -30,6 +30,8 @@ export interface Player {
   goals: number;
   assists: number;
   cleanSheets: number;
+  /** Only keepers make saves — see isKeeper(). */
+  saves: number;
   yellowCards: number;
   redCards: number;
   /** Rating before/after each match day, oldest first (from the API only). */
@@ -72,6 +74,11 @@ export const positionLabels: Record<Position, string> = {
 /** Forwards don't keep clean sheets; the main position decides, as for ratings. */
 export function keepsCleanSheets(player: Pick<Player, "position">): boolean {
   return player.position !== "FWD";
+}
+
+/** Keepers by main or second position — the only players saves are logged for. */
+export function isKeeper(player: Pick<Player, "position" | "secondaryPosition">): boolean {
+  return player.position === "GK" || player.secondaryPosition === "GK";
 }
 
 /** "MID / FWD" — the main position, then the second if there is one. */
@@ -188,6 +195,7 @@ export function squadLeaderboards(players: Player[], count = 5): Leaderboard[] {
     board("goals", "Top scorers", "goals", (p) => p.goals, (p) => -p.appearances),
     board("assists", "Top assists", "assists", (p) => p.assists, (p) => -p.appearances),
     board("clean-sheets", "Clean sheets", "clean sheets", (p) => (keepsCleanSheets(p) ? p.cleanSheets : 0), (p) => -p.appearances),
+    board("saves", "Most saves", "saves", (p) => (isKeeper(p) ? p.saves : 0), (p) => -p.appearances),
     board("appearances", "Most appearances", "games", (p) => p.appearances),
     board(
       "cards",
@@ -211,6 +219,7 @@ const CSV_COLUMNS: { header: string; value: (p: Player) => string | number }[] =
   { header: "Goals", value: (p) => p.goals },
   { header: "Assists", value: (p) => p.assists },
   { header: "Clean sheets", value: (p) => (keepsCleanSheets(p) ? p.cleanSheets : "") },
+  { header: "Saves", value: (p) => (isKeeper(p) ? p.saves : "") },
 ];
 
 function csvCell(value: string | number): string {

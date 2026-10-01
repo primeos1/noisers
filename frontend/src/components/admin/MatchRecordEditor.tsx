@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
+import SavesCounter from "./SavesCounter";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
@@ -41,8 +42,8 @@ function teamOf(game: MatchDayGame, id: ParticipantId): 0 | 1 {
 }
 
 /**
- * Edits an ended match day's record — its details, and each game's goals
- * and cards — or deletes games outright. Nothing is saved until "Save
+ * Edits an ended match day's record — its details, and each game's goals,
+ * cards and saves — or deletes games outright. Nothing is saved until "Save
  * changes"; the server then brings the stats, fines, ratings and The Vale
  * in line with the corrected record.
  */
@@ -340,19 +341,30 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
                   + Add card
                 </button>
               )}
+
+              {/* Saves */}
+              <p className="mt-4 text-sm text-paper">Saves</p>
+              <div className="mt-2">
+                <SavesCounter
+                  game={game}
+                  players={players}
+                  minute={0}
+                  onChange={(saves) => patchGame(game.id, (g) => ({ ...g, saves }))}
+                />
+              </div>
             </li>
           );
         })}
       </ol>
 
       <p className="mt-5 text-xs text-mist">
-        Saving updates everything this match day counted towards: appearances, goals, assists and clean sheets, cards
+        Saving updates everything this match day counted towards: appearances, goals, assists, clean sheets and saves, cards
         and fines (paid fines stay paid), player ratings, and The Vale if it's showing this match day.
         {deletedCount > 0 && (
           <span className="text-loss">
             {" "}
             {deletedCount} game{deletedCount === 1 ? "" : "s"} will be deleted, with {deletedCount === 1 ? "its" : "their"}{" "}
-            goals and cards.
+            goals, cards and saves.
           </span>
         )}
       </p>

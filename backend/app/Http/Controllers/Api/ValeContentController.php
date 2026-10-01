@@ -53,6 +53,8 @@ class ValeContentController extends Controller
             'leader_top_scorer_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'leader_top_assist_player_id' => ['sometimes', 'nullable', 'integer', 'exists:players,id'],
             'leader_top_assist_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'leader_top_saves_player_id' => ['sometimes', 'nullable', 'integer', 'exists:players,id'],
+            'leader_top_saves_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'leader_clean_sheet_player_ids' => ['sometimes', 'nullable', 'array'],
             'leader_clean_sheet_player_ids.*' => ['integer'],
             'leader_clean_sheet_team' => ['sometimes', 'nullable', 'string', 'max:255'],

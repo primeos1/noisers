@@ -150,6 +150,8 @@ class MatchDayFinalizer
             'leader_top_scorer_value' => null,
             'leader_top_assist_player_id' => null,
             'leader_top_assist_value' => null,
+            'leader_top_saves_player_id' => null,
+            'leader_top_saves_value' => null,
             'leader_clean_sheet_player_ids' => null,
             'leader_clean_sheet_team' => null,
             'leader_clean_sheet_value' => null,
@@ -423,11 +425,14 @@ class MatchDayFinalizer
 
         $scorer = $leader('goals');
         $assister = $leader('assists');
+        $keeper = $leader('saves');
         $changes += [
             'leader_top_scorer_player_id' => $scorer,
             'leader_top_scorer_value' => $scorer ? $stats[$scorer]['goals'] : 0,
             'leader_top_assist_player_id' => $assister,
             'leader_top_assist_value' => $assister ? $stats[$assister]['assists'] : 0,
+            'leader_top_saves_player_id' => $keeper,
+            'leader_top_saves_value' => $keeper ? $stats[$keeper]['saves'] : 0,
         ];
 
         $cleanSheetTeam = self::computeCleanSheetTeam($event, $squadIds, $forwardIds);

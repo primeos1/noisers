@@ -6,7 +6,7 @@ use App\Models\Player;
 
 /**
  * Computes per-player (keyed by player id) Match Day stats (appearances/goals/assists/
- * clean sheets/cards) by scanning finished games across all match day events.
+ * clean sheets/saves/cards) by scanning finished games across all match day events.
  * Computed on read rather than stored, since event volume for a grassroots
  * club is small enough that this stays cheap and avoids a recalculation
  * step every time a match day is edited.
@@ -19,14 +19,14 @@ class PlayerStats
      *
      * @param  iterable<\App\Models\MatchDayEvent>  $events
      * @param  array<int, int>  $forwardIds
-     * @return array<int, array{appearances: int, goals: int, assists: int, cleanSheets: int, yellowCards: int, redCards: int}>
+     * @return array<int, array{appearances: int, goals: int, assists: int, cleanSheets: int, saves: int, yellowCards: int, redCards: int}>
      */
     public static function computeAll(iterable $events, array $forwardIds = []): array
     {
         $stats = [];
 
         $ensure = function (int $playerId) use (&$stats) {
-            $stats[$playerId] ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'yellowCards' => 0, 'redCards' => 0];
+            $stats[$playerId] ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'saves' => 0, 'yellowCards' => 0, 'redCards' => 0];
         };
 
         foreach ($events as $event) {
@@ -76,6 +76,16 @@ class PlayerStats
                     }
                     $ensure($playerId);
                     $stats[$playerId][($card['type'] ?? 'yellow') === 'red' ? 'redCards' : 'yellowCards']++;
+                }
+
+                // One entry per save; only keepers can be credited (see the match day screen).
+                foreach (($game['saves'] ?? []) as $save) {
+                    $playerId = $save['playerId'] ?? null;
+                    if (! is_int($playerId)) {
+                        continue;
+                    }
+                    $ensure($playerId);
+                    $stats[$playerId]['saves']++;
                 }
 
                 foreach ($teams as $teamIndex => $team) {

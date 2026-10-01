@@ -5,7 +5,7 @@ import { useCards } from "../../lib/CardsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { formatNaira } from "../../lib/cards";
 import { cardCounts, playerGameLog, useMyShirt } from "../../lib/portal";
-import { keepsCleanSheets, positionNames } from "../../lib/clubData";
+import { isKeeper, keepsCleanSheets, positionNames } from "../../lib/clubData";
 import MembershipBadge from "../../components/MembershipBadge";
 import { playerInsights } from "../../lib/insights";
 import { InsightsPanel } from "../../components/portal/Insights";
@@ -138,6 +138,7 @@ export default function PortalPlayer() {
           { label: "Goals", value: player.goals, tone: "text-win" },
           { label: "Assists", value: player.assists },
           ...(keepsCleanSheets(player) ? [{ label: "Clean sheets", value: player.cleanSheets }] : []),
+          ...(isKeeper(player) ? [{ label: "Saves", value: player.saves }] : []),
         ]}
       />
 

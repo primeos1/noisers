@@ -241,7 +241,7 @@ class PlayerController extends Controller
         foreach ($players as $player) {
             $row = $stats[$player->id] ?? null;
             foreach ($manualCards[$player->id] ?? [] as $count) {
-                $row ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'yellowCards' => 0, 'redCards' => 0];
+                $row ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'saves' => 0, 'yellowCards' => 0, 'redCards' => 0];
                 $row[$count->type === 'red' ? 'redCards' : 'yellowCards'] += (int) $count->total;
             }
             $player->setAttribute('match_day_stats', $row);

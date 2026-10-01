@@ -117,6 +117,14 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
             allowNone
           />
           <NumberField label="Assists" value={leaders.topAssist.value} onChange={(value) => editLeader("topAssist", { ...leaders.topAssist, value })} />
+          <ShirtPicker
+            label="Top saves"
+            players={players}
+            value={leaders.topSaves.playerId}
+            onChange={(playerId) => editLeader("topSaves", { ...leaders.topSaves, playerId })}
+            allowNone
+          />
+          <NumberField label="Saves" value={leaders.topSaves.value} onChange={(value) => editLeader("topSaves", { ...leaders.topSaves, value })} />
           <FieldRow>
             <Col>
               <TextField label="Clean sheet team" value={leaders.cleanSheetTeam.name} onChangeText={(name) => editLeader("cleanSheetTeam", { ...leaders.cleanSheetTeam, name })} />

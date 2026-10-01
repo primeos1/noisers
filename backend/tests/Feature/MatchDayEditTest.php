@@ -137,6 +137,24 @@ class MatchDayEditTest extends TestCase
         $this->assertSame(1, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::forwardIds())[$this->other->id]['cleanSheets']);
     }
 
+    public function test_the_vale_names_the_keeper_with_the_most_saves(): void
+    {
+        $keeper = Player::factory()->create(['position' => 'DEF', 'secondary_position' => 'GK', 'rating' => 6.0]);
+        $game = $this->game('g1', []);
+        $game['teams'][1]['players'][] = $keeper->id;
+        $game['saves'] = [
+            ['id' => 's1', 'teamIndex' => 1, 'playerId' => $keeper->id, 'minute' => 2],
+            ['id' => 's2', 'teamIndex' => 1, 'playerId' => $keeper->id, 'minute' => 7],
+        ];
+        $this->endedMatchDay([$game]);
+
+        $vale = ValeContent::current();
+        $this->assertSame($keeper->id, $vale->leader_top_saves_player_id);
+        $this->assertSame(2, $vale->leader_top_saves_value);
+        $this->getJson('/api/players/'.$keeper->id)->assertJsonPath('data.saves', 2);
+        $this->getJson('/api/vale-content')->assertJsonPath('data.weeklyLeaders.topSaves.value', 2);
+    }
+
     public function test_clean_sheet_tie_goes_to_the_team_of_the_week(): void
     {
         $this->endedMatchDay([

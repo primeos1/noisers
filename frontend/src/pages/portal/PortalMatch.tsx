@@ -107,7 +107,7 @@ export default function PortalMatch() {
   const reds = allCards.filter((c) => c.type === "red").length;
   const fines = yellows * settings.yellowCardFine + reds * settings.redCardFine;
   const contributions = eventContributions(event, players);
-  const involved = contributions.filter((c) => c.goals || c.assists || c.yellows || c.reds);
+  const involved = contributions.filter((c) => c.goals || c.assists || c.saves || c.yellows || c.reds);
   const alsoPlayed = contributions.filter((c) => !involved.includes(c));
 
   const rosters: MatchDayTeam[] = event.groups.length
@@ -148,7 +148,7 @@ export default function PortalMatch() {
         )}
       </section>
 
-      <Group title="Goals, assists and cards" aside={involved.length ? undefined : "None yet"}>
+      <Group title="Goals, assists, saves and cards" aside={involved.length ? undefined : "None yet"}>
         {involved.length === 0 ? (
           <Row>
             <span className="text-sm text-mist">Nobody has scored, assisted or been booked yet.</span>
@@ -169,6 +169,7 @@ export default function PortalMatch() {
                 <span className="flex shrink-0 gap-3 font-display text-xl font-bold tabular-nums">
                   {c.goals > 0 && <span className="text-win">{c.goals}<span className="ml-0.5 text-xs font-medium text-mist">G</span></span>}
                   {c.assists > 0 && <span className="text-paper">{c.assists}<span className="ml-0.5 text-xs font-medium text-mist">A</span></span>}
+                  {c.saves > 0 && <span className="text-paper">{c.saves}<span className="ml-0.5 text-xs font-medium text-mist">SV</span></span>}
                 </span>
               </Row>
             );

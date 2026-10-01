@@ -7,6 +7,7 @@ import { participantName, plural, scoreOf } from "../../lib/derive";
 import type { MatchDayCard, MatchDayGame, MatchDayGoal, ParticipantId } from "../../lib/types";
 import { Choice, FormError, Hint, Intro, Label, Section, TextField, confirm } from "../../components/form";
 import { Button, Empty, RefCard, Screen, Segmented, Txt, text } from "../../components/ui";
+import SavesCounter from "../../components/SavesCounter";
 import { colors, fonts, radius, space } from "../../theme";
 
 let idCounter = 0;
@@ -21,7 +22,7 @@ function teamOf(game: MatchDayGame, id: ParticipantId): 0 | 1 {
 
 /**
  * Edits an ended match day's record (Settings → Match records): its details,
- * each game's goals and cards, or deleting games outright. Nothing is saved
+ * each game's goals, cards and saves, or deleting games outright. Nothing is saved
  * until "Save changes"; the server then brings stats, fines, ratings and
  * The Vale in line with the corrected record. Same as the web's
  * MatchRecordEditor.
@@ -145,7 +146,7 @@ function Editor({ eventId }: { eventId: string }) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={100}>
       <Screen>
-        <Intro>Fix goals and cards, or delete games that shouldn’t count. Stats, fines, ratings and The Vale update when you save.</Intro>
+        <Intro>Fix goals, cards and saves, or delete games that shouldn’t count. Stats, fines, ratings and The Vale update when you save.</Intro>
 
         <Section title="Details">
           <TextField label="Title" value={title} onChangeText={setTitle} />
@@ -292,15 +293,18 @@ function Editor({ eventId }: { eventId: string }) {
                   <Txt style={styles.link}>+ Add card</Txt>
                 </Pressable>
               ) : null}
+
+              <Label>Saves</Label>
+              <SavesCounter game={game} players={players} minute={0} onChange={(saves) => patchGame(game.id, (g) => ({ ...g, saves }))} />
             </Section>
           );
         })}
 
         <Hint>
-          Saving updates appearances, goals, assists and clean sheets, cards and fines (paid fines stay paid), player ratings, and The Vale if it’s
+          Saving updates appearances, goals, assists, clean sheets and saves, cards and fines (paid fines stay paid), player ratings, and The Vale if it’s
           showing this match day.
         </Hint>
-        {deleted > 0 ? <Hint tone={colors.loss}>{plural(deleted, "game")} will be deleted, with their goals and cards.</Hint> : null}
+        {deleted > 0 ? <Hint tone={colors.loss}>{plural(deleted, "game")} will be deleted, with their goals, cards and saves.</Hint> : null}
         <View style={styles.gap} />
         <FormError message={error} />
         <Button label="Save changes" onPress={save} busy={saving} />

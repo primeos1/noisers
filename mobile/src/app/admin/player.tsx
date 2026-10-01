@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
-import { positionLabel, positions, RATING_MAX, RATING_MIN } from "../../lib/derive";
+import { isKeeper, positionLabel, positions, RATING_MAX, RATING_MIN } from "../../lib/derive";
 import { nextJerseyNumber } from "../../lib/matchDay";
 import { membershipLabels, type Membership, type Position } from "../../lib/types";
 import { Choice, Col, FieldRow, FormError, Hint, ImageField, Label, NumberField, TextField } from "../../components/form";
@@ -123,6 +123,7 @@ export default function PlayerFormScreen() {
                 { label: "Goals", value: initial.goals },
                 { label: "Assists", value: initial.assists },
                 ...(initial.position === "FWD" ? [] : [{ label: "Clean sheets", value: initial.cleanSheets }]),
+                ...(isKeeper(initial) ? [{ label: "Saves", value: initial.saves ?? 0 }] : []),
               ]}
             />
           </View>

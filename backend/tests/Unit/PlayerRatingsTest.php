@@ -76,6 +76,27 @@ class PlayerRatingsTest extends TestCase
         $this->assertArrayNotHasKey('guest-1', $p);
     }
 
+    public function test_each_save_rewards_the_keeper_and_counts_as_a_stat(): void
+    {
+        $game = $this->game([]);
+        $game['saves'] = [
+            ['id' => 's1', 'teamIndex' => 0, 'playerId' => 1],
+            ['id' => 's2', 'teamIndex' => 0, 'playerId' => 1],
+            ['id' => 's3', 'teamIndex' => 1, 'playerId' => 2],
+            ['id' => 's4', 'teamIndex' => 0, 'playerId' => 'guest-1'],
+        ];
+        $p = $this->points([$game]);
+
+        $this->assertEqualsWithDelta(0.15 + 0.03 * 2, $p[1], 1e-9); // draw, GK clean sheet, 2 saves
+        $this->assertEqualsWithDelta(0.15 + 0.03, $p[2], 1e-9);
+        $this->assertArrayNotHasKey('guest-1', $p);
+
+        $stats = PlayerStats::computeAll([new MatchDayEvent(['games' => [$game]])]);
+        $this->assertSame(2, $stats[1]['saves']);
+        $this->assertSame(1, $stats[2]['saves']);
+        $this->assertSame(0, $stats[4]['saves']);
+    }
+
     public function test_each_position_uses_its_own_weights(): void
     {
         $weights = PlayerRatings::defaultPositionWeights();

@@ -6,6 +6,7 @@ import { nextJerseyNumber, positionCodes, type Player } from "../../lib/clubData
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
+import SavesCounter from "../../components/admin/SavesCounter";
 import AbsenceBadge from "../../components/AbsenceBadge";
 import { useAbsences } from "../../lib/AbsencesContext";
 import { absenceStatus } from "../../lib/absences";
@@ -215,6 +216,7 @@ export default function MatchDay() {
       ],
       goals: [],
       cards: [],
+      saves: [],
       status: "live",
       clockStartedAt: null,
       clockElapsed: 0,
@@ -886,6 +888,19 @@ export default function MatchDay() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+
+          <div className="bg-ink border border-ink-line p-4 md:p-6">
+            <h2 className="font-display text-xl text-paper">Saves</h2>
+            <p className="mt-1 text-sm text-mist">Tap + each time a keeper makes a save. Only players listed as GK show here.</p>
+            <div className="mt-4">
+              <SavesCounter
+                game={liveGame}
+                players={players}
+                minute={timer.minute}
+                onChange={(saves) => updateLiveGame((g) => ({ ...g, saves }))}
+              />
             </div>
           </div>
 

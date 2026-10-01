@@ -123,6 +123,7 @@ export interface Contribution {
   games: number;
   goals: number;
   assists: number;
+  saves: number;
   yellows: number;
   reds: number;
 }
@@ -141,6 +142,7 @@ export function eventContributions(event: MatchDayEvent, players: Player[]): Con
         games: 0,
         goals: 0,
         assists: 0,
+        saves: 0,
         yellows: 0,
         reds: 0,
       };
@@ -159,6 +161,7 @@ export function eventContributions(event: MatchDayEvent, players: Player[]): Con
       if (card.type === "red") row(card.playerId).reds++;
       else row(card.playerId).yellows++;
     }
+    for (const save of game.saves ?? []) row(save.playerId).saves++;
   }
 
   return [...rows.values()].sort(

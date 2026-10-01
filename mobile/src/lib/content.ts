@@ -175,6 +175,7 @@ export interface ValeContent {
   weeklyLeaders: {
     topScorer: { playerId: number; value: number };
     topAssist: { playerId: number; value: number };
+    topSaves: { playerId: number; value: number };
     cleanSheets: number[];
     cleanSheetTeam: { name: string; value: number };
     roughest: { playerId: number; yellowCards: number; redCards: number };
@@ -197,6 +198,7 @@ interface ApiVale {
   weeklyLeaders: {
     topScorer: { playerId: number | null; value: number | null };
     topAssist: { playerId: number | null; value: number | null };
+    topSaves?: { playerId: number | null; value: number | null };
     cleanSheets: number[] | null;
     cleanSheetTeam?: { name: string | null; value: number | null };
     roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
@@ -210,6 +212,7 @@ const EMPTY_VALE: ValeContent = {
   weeklyLeaders: {
     topScorer: { playerId: 0, value: 0 },
     topAssist: { playerId: 0, value: 0 },
+    topSaves: { playerId: 0, value: 0 },
     cleanSheets: [],
     cleanSheetTeam: { name: "", value: 0 },
     roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
@@ -244,6 +247,7 @@ function valeFromApi(d: ApiVale): ValeContent {
     weeklyLeaders: {
       topScorer: { playerId: w.topScorer.playerId ?? 0, value: w.topScorer.value ?? 0 },
       topAssist: { playerId: w.topAssist.playerId ?? 0, value: w.topAssist.value ?? 0 },
+      topSaves: { playerId: w.topSaves?.playerId ?? 0, value: w.topSaves?.value ?? 0 },
       cleanSheets: w.cleanSheets ?? [],
       cleanSheetTeam: { name: w.cleanSheetTeam?.name ?? "", value: w.cleanSheetTeam?.value ?? 0 },
       roughest: {
@@ -280,6 +284,8 @@ function valeBody(v: ValeContent) {
     leader_top_scorer_value: w.topScorer.value,
     leader_top_assist_player_id: orNull(w.topAssist.playerId),
     leader_top_assist_value: w.topAssist.value,
+    leader_top_saves_player_id: orNull(w.topSaves.playerId),
+    leader_top_saves_value: w.topSaves.value,
     leader_clean_sheet_player_ids: w.cleanSheets,
     leader_clean_sheet_team: w.cleanSheetTeam.name || null,
     leader_clean_sheet_value: w.cleanSheetTeam.value,

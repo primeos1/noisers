@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useClub } from "../../lib/club";
 import { useAuth } from "../../lib/auth";
-import { cardCounts, cardDate, formatNaira, playerGameLog, plural, positionLabel } from "../../lib/derive";
+import { cardCounts, cardDate, formatNaira, isKeeper, playerGameLog, plural, positionLabel } from "../../lib/derive";
 import {
   Avatar,
   CardPips,
@@ -129,6 +129,7 @@ export default function PlayerScreen() {
           { label: "Assists", value: player.assists },
           // Forwards don't keep clean sheets.
           ...(player.position === "FWD" ? [] : [{ label: "Clean sheets", value: player.cleanSheets }]),
+          ...(isKeeper(player) ? [{ label: "Saves", value: player.saves ?? 0 }] : []),
         ]}
       />
 

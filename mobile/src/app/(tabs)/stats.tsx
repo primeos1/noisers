@@ -95,6 +95,7 @@ export default function StatsScreen() {
       goals: group.reduce((s, p) => s + p.goals, 0),
       assists: group.reduce((s, p) => s + p.assists, 0),
       cleanSheets: group.reduce((s, p) => s + p.cleanSheets, 0),
+      saves: group.reduce((s, p) => s + (p.saves ?? 0), 0),
       avg: group.length ? group.reduce((s, p) => s + p.rating, 0) / group.length : 0,
     };
   });
@@ -210,6 +211,7 @@ export default function StatsScreen() {
                   { l: "Assists", v: b.assists, t: colors.paper },
                   // Forwards don't keep clean sheets.
                   ...(b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: colors.paper }]),
+                  ...(b.pos === "GK" ? [{ l: "Saves", v: b.saves, t: colors.paper }] : []),
                   { l: "Avg rating", v: b.count ? b.avg.toFixed(2) : "–", t: colors.draw },
                 ].map((s) => (
                   <View key={s.l} style={styles.posStat}>

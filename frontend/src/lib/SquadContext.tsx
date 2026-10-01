@@ -17,6 +17,7 @@ export interface ApiPlayer {
   goals: number;
   assists: number;
   cleanSheets: number;
+  saves?: number;
   yellowCards?: number;
   redCards?: number;
   ratingHistory?: RatingPoint[];
@@ -37,6 +38,7 @@ function fromApi(p: ApiPlayer): Player {
     goals: p.goals,
     assists: p.assists,
     cleanSheets: p.cleanSheets,
+    saves: p.saves ?? 0,
     yellowCards: p.yellowCards ?? 0,
     redCards: p.redCards ?? 0,
     ratingHistory: p.ratingHistory ?? [],

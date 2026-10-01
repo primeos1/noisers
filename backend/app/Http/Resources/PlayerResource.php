@@ -31,6 +31,7 @@ class PlayerResource extends JsonResource
             'goals' => $this->match_day_stats['goals'] ?? 0,
             'assists' => $this->match_day_stats['assists'] ?? 0,
             'cleanSheets' => $this->match_day_stats['cleanSheets'] ?? 0,
+            'saves' => $this->match_day_stats['saves'] ?? 0,
             'yellowCards' => $this->match_day_stats['yellowCards'] ?? 0,
             'redCards' => $this->match_day_stats['redCards'] ?? 0,
             'ratingHistory' => $this->whenLoaded('ratingChanges', fn () => $this->ratingChanges->map(fn ($c) => [

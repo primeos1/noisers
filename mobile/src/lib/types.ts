@@ -27,6 +27,8 @@ export interface Player {
   goals: number;
   assists: number;
   cleanSheets: number;
+  /** Only keepers (GK as main or second position) make saves. */
+  saves?: number;
 }
 
 export type CardType = "yellow" | "red";
@@ -52,6 +54,7 @@ export type RatingWeightKey =
   | "assist"
   | "cleanSheet"
   | "goalConceded"
+  | "save"
   | "ownGoal"
   | "yellowCard"
   | "redCard";
@@ -107,11 +110,21 @@ export interface MatchDayCard {
   minute: number;
 }
 
+/** One per save — only keepers make them. */
+export interface MatchDaySave {
+  id: string;
+  teamIndex: 0 | 1;
+  playerId: ParticipantId;
+  minute: number;
+}
+
 export interface MatchDayGame {
   id: string;
   teams: [MatchDayTeam, MatchDayTeam];
   goals: MatchDayGoal[];
   cards: MatchDayCard[];
+  /** Missing on games logged before saves were recorded. */
+  saves?: MatchDaySave[];
   status: "live" | "finished";
   /** Epoch ms when the clock was last started; null while paused. */
   clockStartedAt?: number | null;

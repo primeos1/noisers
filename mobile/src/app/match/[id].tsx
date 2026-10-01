@@ -147,7 +147,7 @@ export default function MatchScreen() {
   const reds = allCards.filter((c) => c.type === "red").length;
   const fines = yellows * settings.yellowCardFine + reds * settings.redCardFine;
   const contributions = eventContributions(event, players);
-  const involved = contributions.filter((c) => c.goals || c.assists || c.yellows || c.reds);
+  const involved = contributions.filter((c) => c.goals || c.assists || c.saves || c.yellows || c.reds);
   const alsoPlayed = contributions.filter((c) => !involved.includes(c));
 
   const rosters: MatchDayTeam[] = event.groups.length
@@ -187,7 +187,7 @@ export default function MatchScreen() {
         </View>
       )}
 
-      <Group title="Goals, assists and cards" aside={involved.length ? undefined : "None yet"}>
+      <Group title="Goals, assists, saves and cards" aside={involved.length ? undefined : "None yet"}>
         {involved.length === 0 ? (
           <Row>
             <Txt style={text.small}>Nobody has scored, assisted or been booked yet.</Txt>
@@ -219,6 +219,12 @@ export default function MatchScreen() {
                     <Txt style={styles.gaValue}>
                       {c.assists}
                       <Txt style={styles.gaUnit}>A</Txt>
+                    </Txt>
+                  ) : null}
+                  {c.saves > 0 ? (
+                    <Txt style={styles.gaValue}>
+                      {c.saves}
+                      <Txt style={styles.gaUnit}>SV</Txt>
                     </Txt>
                   ) : null}
                 </View>

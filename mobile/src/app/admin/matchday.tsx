@@ -19,6 +19,7 @@ import {
 import type { MatchDayEvent, MatchDayGame, MatchDayTeam, ParticipantId, TeamMode } from "../../lib/types";
 import { Choice, confirm, FormError, formStyles, Hint, Label, Section, SwitchRow, TextField, Intro } from "../../components/form";
 import { Avatar, Button, ErrorBanner, Group, LiveTag, Row, Screen, Txt, text } from "../../components/ui";
+import SavesCounter from "../../components/SavesCounter";
 import { colors, fonts, radius, space } from "../../theme";
 
 // The pitch-side Match Day tool — the phone version of
@@ -210,6 +211,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
       ],
       goals: [],
       cards: [],
+      saves: [],
       status: "live",
       clockStartedAt: null,
       clockElapsed: 0,
@@ -652,6 +654,10 @@ function LiveGame({
         ) : (
           <Hint>No cards yet.</Hint>
         )}
+      </Section>
+
+      <Section title="Saves" description="Tap + each time a keeper makes a save. Only players listed as GK show here.">
+        <SavesCounter game={game} players={players} minute={timer.minute} onChange={(saves) => updateGame((g) => ({ ...g, saves }))} />
       </Section>
 
       <Section title="Substitute" description="Swap a tired or injured player for someone on the bench.">
