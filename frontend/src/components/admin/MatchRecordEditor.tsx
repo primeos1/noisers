@@ -53,7 +53,6 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
   const { refresh: refreshCards } = useCards();
   const { refresh: refreshVale } = useValeContent();
 
-  const [title, setTitle] = useState(event.title);
   const [venue, setVenue] = useState(event.venue);
   const [date, setDate] = useState(event.date);
   // The record as it was when opened — saving patches `event` optimistically.
@@ -123,8 +122,8 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
   }
 
   async function handleSave() {
-    if (!title.trim() || !date.trim()) {
-      setFormError("A match day needs a title and a date.");
+    if (!date.trim()) {
+      setFormError("A match day needs a date.");
       return;
     }
     if (games.some((g) => g.goals.some((goal) => goal.playerId === undefined) || g.cards.some((c) => c.playerId === undefined))) {
@@ -134,7 +133,6 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
     setFormError("");
     setSaving(true);
     const ok = await updateEvent(event.id, {
-      title: title.trim(),
       venue: venue.trim(),
       date: date.trim(),
       games: games.map((g) => ({
@@ -156,7 +154,7 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
       <div className="grid gap-3 sm:grid-cols-3">
         <label className={labelClass}>
           Title
-          <input className={`${inputClass} mt-1`} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input className={`${inputClass} mt-1 opacity-60`} value={event.title} disabled title="Match days are numbered automatically" />
         </label>
         <label className={labelClass}>
           Venue

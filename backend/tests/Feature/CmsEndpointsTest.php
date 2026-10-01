@@ -184,12 +184,12 @@ class CmsEndpointsTest extends TestCase
 
         // Finalize should have rewritten The Vale from this match day.
         $vale = $this->getJson('/api/vale-content');
-        $this->assertSame('E2E Test Day', $vale->json('data.teamOfTheWeek.title'));
+        $this->assertSame('Matchday 1', $vale->json('data.teamOfTheWeek.title'));
         $this->assertSame($a->id, $vale->json('data.playerOfTheWeek.playerId'));
 
         // Public, per-event lookup should agree, independent of the singleton.
         $team = $this->getJson('/api/match-day-events/e2e-test-day/team-of-week')->assertOk();
-        $this->assertSame('E2E Test Day', $team->json('data.title'));
+        $this->assertSame('Matchday 1', $team->json('data.title'));
         $this->assertSame([$a->id], $team->json('data.lineupPlayerIds'));
         $this->assertSame('Team B', $team->json('data.rivalTeam'));
     }

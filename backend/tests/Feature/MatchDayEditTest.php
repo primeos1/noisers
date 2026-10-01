@@ -49,7 +49,6 @@ class MatchDayEditTest extends TestCase
     {
         $this->postJson('/api/match-day-events', [
             'id' => 'md',
-            'title' => 'Session md',
             'date' => 'Sun 28 Sept',
             'status' => 'live',
             'present_players' => [],
@@ -112,9 +111,9 @@ class MatchDayEditTest extends TestCase
         $this->assertNull(ValeContent::current()->leader_roughest_player_id);
 
         // A later edit of the record doesn't bring the fine back.
-        $this->putJson('/api/match-day-events/md', ['title' => 'Session md (renamed)'])->assertOk();
+        $this->putJson('/api/match-day-events/md', ['date' => 'Sun 5 Oct'])->assertOk();
         $this->assertSame(0, Card::count());
-        $this->assertSame('Session md (renamed)', ValeContent::current()->team_week_title);
+        $this->assertSame('Sun 5 Oct', ValeContent::current()->team_week_date_range);
     }
 
     public function test_clean_sheet_leader_is_the_team_with_the_most_clean_sheets(): void
@@ -171,7 +170,7 @@ class MatchDayEditTest extends TestCase
     public function test_deleting_every_game_clears_the_vale_it_fed(): void
     {
         $this->endedMatchDay([$this->game('g1', [['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $this->scorer->id]])]);
-        $this->assertSame('Session md', ValeContent::current()->team_week_title);
+        $this->assertSame('Matchday 1', ValeContent::current()->team_week_title);
 
         $this->putJson('/api/match-day-events/md', ['games' => []])->assertOk();
 

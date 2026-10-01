@@ -78,7 +78,6 @@ function PeoplePicker({
 
 function CreateMatchDay({ onCreated }: { onCreated: (id: string) => void }) {
   const { events, settings, addEvent } = useClub();
-  const [title, setTitle] = useState("");
   const [venue, setVenue] = useState(settings.matchDefaultVenue);
   const [dayOffset, setDayOffset] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -92,10 +91,12 @@ function CreateMatchDay({ onCreated }: { onCreated: (id: string) => void }) {
   });
 
   async function create() {
-    if (!title.trim() || !venue.trim()) {
-      setError("Enter a title and venue.");
+    if (!venue.trim()) {
+      setError("Enter a venue.");
       return;
     }
+    // The server numbers match days itself; it answers with the real title.
+    const title = `Matchday ${events.length + 1}`;
     const date = new Date();
     date.setDate(date.getDate() + dayOffset);
     const id = uniqueEventId(title, events);
@@ -104,7 +105,7 @@ function CreateMatchDay({ onCreated }: { onCreated: (id: string) => void }) {
     try {
       await addEvent({
         id,
-        title: title.trim(),
+        title,
         venue: venue.trim(),
         date: formatEventDate(date),
         createdAt: null,
@@ -142,8 +143,10 @@ function CreateMatchDay({ onCreated }: { onCreated: (id: string) => void }) {
         </Group>
       ) : null}
 
-      <Section title="Create match day" description="Give this session a title, venue and date. Save it, then pick who's playing.">
-        <TextField label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Sunday Session #12" autoCapitalize="words" />
+      <Section
+        title="Create match day"
+        description={`It'll be saved as Matchday ${events.length + 1}. Add the venue and date, save it, then pick who's playing.`}
+      >
         <TextField label="Venue" value={venue} onChangeText={setVenue} placeholder="e.g. Zenith Astro, Pitch 2" />
         <Label>Date</Label>
         <Choice<number> options={dayOptions} value={dayOffset} onChange={setDayOffset} />

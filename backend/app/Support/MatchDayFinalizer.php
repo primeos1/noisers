@@ -86,6 +86,44 @@ class MatchDayFinalizer
         }
     }
 
+    /**
+     * Titles aren't typed by the admin: every match day is "Matchday N",
+     * numbered by when it was created. Run after one is added or deleted so
+     * the numbers stay 1, 2, 3… with no gaps. The Vale keeps a copy of the
+     * title it shows (and quotes it in its notes), so that follows along.
+     */
+    public static function renumber(): void
+    {
+        $vale = null;
+        $valeChanges = [];
+
+        $events = MatchDayEvent::query()->orderBy('created_at')->orderBy('id')->get();
+        foreach ($events->values() as $i => $event) {
+            $title = 'Matchday '.($i + 1);
+            if ($event->title === $title) {
+                continue;
+            }
+            if ($valeChanges === [] && self::valeShows($event)) {
+                $vale = ValeContent::current();
+                $valeChanges = [
+                    'team_week_title' => $title,
+                    'potw_note' => self::retitle($vale->potw_note, $event->title, $title),
+                    'improved_note' => self::retitle($vale->improved_note, $event->title, $title),
+                ];
+            }
+            $event->update(['title' => $title]);
+        }
+
+        if ($vale) {
+            $vale->update($valeChanges);
+        }
+    }
+
+    private static function retitle(?string $note, string $from, string $to): ?string
+    {
+        return $note === null ? null : preg_replace('/'.preg_quote($from, '/').'\.$/', "{$to}.", $note);
+    }
+
     /** Whether The Vale's weekly awards currently come from this match day. */
     public static function valeShows(MatchDayEvent $event): bool
     {

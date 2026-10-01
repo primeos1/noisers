@@ -26,7 +26,8 @@ class MatchDayEventController extends Controller
     /**
      * Store a newly created event. The id is client-generated (a slug, see
      * matchDay.ts's uniqueEventId) so the app's existing id scheme carries
-     * over unchanged.
+     * over unchanged. The title isn't the admin's to choose — it's always
+     * "Matchday N" (see MatchDayFinalizer::renumber).
      */
     public function store(Request $request)
     {
@@ -34,7 +35,6 @@ class MatchDayEventController extends Controller
 
         $validated = $request->validate([
             'id' => ['required', 'string', 'max:255', 'unique:match_day_events,id'],
-            'title' => ['required', 'string', 'max:255'],
             'venue' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'string', 'max:255'],
             'status' => ['required', 'in:live,ended'],
@@ -44,7 +44,12 @@ class MatchDayEventController extends Controller
             'games' => ['array'],
         ]);
 
-        $event = MatchDayEvent::create($validated);
+        $event = DB::transaction(function () use ($validated) {
+            $event = MatchDayEvent::create($validated + ['title' => 'Matchday']);
+            MatchDayFinalizer::renumber();
+
+            return $event->refresh();
+        });
 
         return new MatchDayEventResource($event);
     }
@@ -58,7 +63,6 @@ class MatchDayEventController extends Controller
         $this->authorize('update', $matchDayEvent);
 
         $validated = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
             'venue' => ['nullable', 'string', 'max:255'],
             'date' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'in:live,ended'],
@@ -78,7 +82,7 @@ class MatchDayEventController extends Controller
 
             if ($wasLive && $matchDayEvent->status === 'ended') {
                 MatchDayFinalizer::finalize($matchDayEvent);
-            } elseif (! $wasLive && $matchDayEvent->status === 'ended' && $matchDayEvent->wasChanged(['games', 'title', 'date'])) {
+            } elseif (! $wasLive && $matchDayEvent->status === 'ended' && $matchDayEvent->wasChanged(['games', 'date'])) {
                 // Editing a finished match day's record (Settings â†’ Match records).
                 MatchDayFinalizer::reapply($matchDayEvent, $valeShowedIt);
             }
@@ -121,6 +125,7 @@ class MatchDayEventController extends Controller
         DB::transaction(function () use ($matchDayEvent) {
             MatchDayFinalizer::revert($matchDayEvent);
             $matchDayEvent->delete();
+            MatchDayFinalizer::renumber();
         });
 
         return response()->noContent();

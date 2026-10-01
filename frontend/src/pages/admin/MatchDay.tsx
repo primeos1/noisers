@@ -63,7 +63,6 @@ export default function MatchDay() {
   );
   const activeEvent = events.find((e) => e.id === activeEventId) ?? null;
 
-  const [titleDraft, setTitleDraft] = useState("");
   const [venueDraft, setVenueDraft] = useState(settings.matchDefaultVenue);
   const [dateDraft, setDateDraft] = useState("");
   const [createError, setCreateError] = useState("");
@@ -100,14 +99,17 @@ export default function MatchDay() {
   }
 
   function handleCreate() {
-    if (!titleDraft.trim() || !venueDraft.trim() || !dateDraft.trim()) {
-      setCreateError("Enter a title, venue and date.");
+    if (!venueDraft.trim() || !dateDraft.trim()) {
+      setCreateError("Enter a venue and date.");
       return;
     }
-    const id = uniqueEventId(titleDraft, events);
+    // The server numbers match days itself — this is just a placeholder
+    // until it answers with the real "Matchday N".
+    const title = `Matchday ${events.length + 1}`;
+    const id = uniqueEventId(title, events);
     const event: MatchDayEvent = {
       id,
-      title: titleDraft.trim(),
+      title,
       venue: venueDraft.trim(),
       date: isoDateLabel(dateDraft),
       createdAt: todayLabel(),
@@ -119,7 +121,6 @@ export default function MatchDay() {
     };
     addEvent(event);
     setActiveEventId(id);
-    setTitleDraft("");
     setVenueDraft(settings.matchDefaultVenue);
     setDateDraft("");
     setCreateError("");
@@ -364,20 +365,10 @@ export default function MatchDay() {
           <div>
             <h2 className="font-display text-2xl text-paper">Create match day</h2>
             <p className="mt-2 text-sm text-paper-dim">
-              Give this session a title, venue and date — the title becomes
-              its id. Save it, then you can pick who's playing.
+              It'll be saved as Matchday {events.length + 1}. Add the venue and
+              date, save it, then you can pick who's playing.
             </p>
             <div className="mt-4 space-y-4">
-              <label className={labelClass}>
-                Title
-                <input
-                  type="text"
-                  className={inputClass}
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  placeholder="e.g. Sunday Session #12"
-                />
-              </label>
               <label className={labelClass}>
                 Venue
                 <input

@@ -32,7 +32,6 @@ function fromApi(e: ApiMatchDayEvent): MatchDayEvent {
 
 function toApiBody(patch: Partial<MatchDayEvent>) {
   const body: Record<string, unknown> = {};
-  if (patch.title !== undefined) body.title = patch.title;
   if (patch.venue !== undefined) body.venue = patch.venue;
   if (patch.date !== undefined) body.date = patch.date;
   if (patch.status !== undefined) body.status = patch.status;
@@ -106,11 +105,13 @@ export function MatchDayProvider({ children }: { children: ReactNode }) {
 
   // Waits for the server (deleting also rolls back cards, ratings and The
   // Vale), and resolves true once done so callers can reload that data.
+  // The match days after it are renumbered, so reload them too.
   function removeEvent(id: string) {
     setError("");
     return apiFetch(`/match-day-events/${id}`, { method: "DELETE" })
       .then(() => {
         setEvents((prev) => prev.filter((e) => e.id !== id));
+        refresh();
         return true;
       })
       .catch((err) => {
