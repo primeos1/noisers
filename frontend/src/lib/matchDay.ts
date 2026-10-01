@@ -236,23 +236,36 @@ function distributeByPosition(present: Player[], capacities: number[]): number[]
   return teams;
 }
 
-// Guests don't have a rating or position to balance by, so once the squad
-// players are placed, guests just top up whichever team currently has the
-// most room — keeping team sizes even without pretending to rate them.
-function fillWithGuests(teams: ParticipantId[][], capacities: number[], guestIds: string[]): void {
-  for (const id of shuffle(guestIds)) {
+// How many guests each team gets, decided before any squad player is placed
+// so guests are spread evenly instead of piling into whatever room is left.
+// Each guest goes to the team with the fewest guests so far (ties: the one
+// with the most room, then random), never past a team's capacity.
+function guestQuotas(capacities: number[], guestCount: number): number[] {
+  const quotas = capacities.map(() => 0);
+  const order = shuffle(capacities.map((_, i) => i));
+  for (let g = 0; g < guestCount; g++) {
     let bestIdx = -1;
-    let bestRoom = 0;
-    for (let i = 0; i < teams.length; i++) {
-      const room = capacities[i] - teams[i].length;
-      if (room > bestRoom) {
-        bestRoom = room;
+    for (const i of order) {
+      if (quotas[i] >= capacities[i]) continue;
+      if (
+        bestIdx === -1 ||
+        quotas[i] < quotas[bestIdx] ||
+        (quotas[i] === quotas[bestIdx] && capacities[i] - quotas[i] > capacities[bestIdx] - quotas[bestIdx])
+      ) {
         bestIdx = i;
       }
     }
     if (bestIdx === -1) break;
-    teams[bestIdx].push(id);
+    quotas[bestIdx] += 1;
   }
+  return quotas;
+}
+
+// Guests don't have a rating or position to balance by, so they're dealt out
+// randomly into the slots guestQuotas reserved for them.
+function fillWithGuests(teams: ParticipantId[][], quotas: number[], guestIds: string[]): void {
+  const shuffled = shuffle(guestIds);
+  quotas.forEach((quota, i) => teams[i].push(...shuffled.splice(0, quota)));
 }
 
 export function buildTeams(
@@ -265,20 +278,22 @@ export function buildTeams(
   const total = presentSquad.length + guests.length;
   const capacities = teamCapacities(total, teamSize);
   if (capacities.length === 0) return [];
+  const quotas = guestQuotas(capacities, guests.length);
+  const squadCapacities = capacities.map((c, i) => c - quotas[i]);
 
   let squadTeams: number[][];
   if (mode === "rating") {
-    squadTeams = distributeByRating(presentSquad.map((n) => findPlayer(players, n)), capacities);
+    squadTeams = distributeByRating(presentSquad.map((n) => findPlayer(players, n)), squadCapacities);
   } else if (mode === "position") {
-    squadTeams = distributeByPosition(presentSquad.map((n) => findPlayer(players, n)), capacities);
+    squadTeams = distributeByPosition(presentSquad.map((n) => findPlayer(players, n)), squadCapacities);
   } else {
-    squadTeams = distributeRandom(presentSquad, capacities);
+    squadTeams = distributeRandom(presentSquad, squadCapacities);
   }
 
   const teams: ParticipantId[][] = squadTeams.map((t) => [...t]);
   fillWithGuests(
     teams,
-    capacities,
+    quotas,
     guests.map((g) => g.id),
   );
 

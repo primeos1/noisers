@@ -148,21 +148,33 @@ function distributeByPosition(present: Player[], capacities: number[]): number[]
   return teams;
 }
 
-// Guests have no rating or position, so they top up whichever team has the most room.
-function fillWithGuests(teams: ParticipantId[][], capacities: number[], guestIds: string[]) {
-  for (const id of shuffle(guestIds)) {
+// Guests are spread evenly: each team's guest count is decided before any
+// squad player is placed — fewest guests first (ties: most room, then random).
+function guestQuotas(capacities: number[], guestCount: number): number[] {
+  const quotas = capacities.map(() => 0);
+  const order = shuffle(capacities.map((_, i) => i));
+  for (let g = 0; g < guestCount; g++) {
     let best = -1;
-    let bestRoom = 0;
-    for (let i = 0; i < teams.length; i++) {
-      const room = capacities[i] - teams[i].length;
-      if (room > bestRoom) {
-        bestRoom = room;
+    for (const i of order) {
+      if (quotas[i] >= capacities[i]) continue;
+      if (
+        best === -1 ||
+        quotas[i] < quotas[best] ||
+        (quotas[i] === quotas[best] && capacities[i] - quotas[i] > capacities[best] - quotas[best])
+      ) {
         best = i;
       }
     }
     if (best === -1) break;
-    teams[best].push(id);
+    quotas[best] += 1;
   }
+  return quotas;
+}
+
+// Guests have no rating or position, so they're dealt randomly into their reserved slots.
+function fillWithGuests(teams: ParticipantId[][], quotas: number[], guestIds: string[]) {
+  const shuffled = shuffle(guestIds);
+  quotas.forEach((quota, i) => teams[i].push(...shuffled.splice(0, quota)));
 }
 
 export function buildTeams(
@@ -174,19 +186,21 @@ export function buildTeams(
 ): MatchDayTeam[] {
   const capacities = teamCapacities(presentSquad.length + guests.length, teamSize);
   if (capacities.length === 0) return [];
+  const quotas = guestQuotas(capacities, guests.length);
+  const squadCapacities = capacities.map((c, i) => c - quotas[i]);
   const present = presentSquad
     .map((id) => players.find((p) => p.id === id))
     .filter((p): p is Player => !!p);
 
   const squadTeams =
     mode === "rating"
-      ? distributeByRating(present, capacities)
+      ? distributeByRating(present, squadCapacities)
       : mode === "position"
-        ? distributeByPosition(present, capacities)
-        : distributeRandom(presentSquad, capacities);
+        ? distributeByPosition(present, squadCapacities)
+        : distributeRandom(presentSquad, squadCapacities);
 
   const teams: ParticipantId[][] = squadTeams.map((t) => [...t]);
-  fillWithGuests(teams, capacities, guests.map((g) => g.id));
+  fillWithGuests(teams, quotas, guests.map((g) => g.id));
   return teams.map((roster, i) => ({ name: defaultTeamName(i), players: roster }));
 }
 
