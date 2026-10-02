@@ -84,18 +84,6 @@ function ContactCard({ href, external, accent, icon, label, value, note }: CardP
   );
 }
 
-export function EmailCard() {
-  return (
-    <ContactCard
-      href={`mailto:${CLUB_EMAIL}`}
-      accent="#d8b56a"
-      icon={<MailIcon className="h-6 w-6" />}
-      label="Email"
-      value={CLUB_EMAIL}
-    />
-  );
-}
-
 export function WhatsAppCard({ label = "WhatsApp", note }: { label?: string; note?: string }) {
   return (
     <ContactCard
@@ -110,15 +98,31 @@ export function WhatsAppCard({ label = "WhatsApp", note }: { label?: string; not
   );
 }
 
-export function InstagramCard() {
+const contactIcons = [
+  { label: `Email ${CLUB_EMAIL}`, href: `mailto:${CLUB_EMAIL}`, accent: "#d8b56a", icon: <MailIcon />, external: false },
+  { label: `WhatsApp ${WHATSAPP_NUMBER}`, href: WHATSAPP_URL, accent: WHATSAPP_GREEN, icon: <WhatsAppLogo />, external: true },
+  { label: `Instagram @${INSTAGRAM_HANDLE}`, href: INSTAGRAM_URL, accent: "#E1306C", icon: <InstagramLogo />, external: true },
+];
+
+// Email, WhatsApp and Instagram as a single row of icon buttons; each takes
+// its brand colour on hover and names itself in a tooltip.
+export function ContactIcons() {
   return (
-    <ContactCard
-      href={INSTAGRAM_URL}
-      external
-      accent="#E1306C"
-      icon={<InstagramLogo className="h-6 w-6" />}
-      label="Instagram"
-      value={`@${INSTAGRAM_HANDLE}`}
-    />
+    <ul className="flex items-center gap-3">
+      {contactIcons.map(({ label, href, accent, icon, external }) => (
+        <li key={href}>
+          <a
+            href={href}
+            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            aria-label={label}
+            title={label}
+            className="grid h-11 w-11 place-items-center rounded-full border border-ink-line bg-ink-raised text-paper-dim transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] hover:text-[var(--accent)]"
+            style={{ "--accent": accent } as CSSProperties}
+          >
+            {icon}
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

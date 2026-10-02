@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
-import { EmailCard, InstagramCard, WhatsAppCard } from "./ContactCards";
+import { ContactIcons } from "./ContactCards";
 import { useHomeContent } from "../lib/HomeContentContext";
 import AndroidAppBand from "./AndroidAppBand";
 
@@ -73,19 +73,12 @@ export default function Footer() {
               </li>
             </ul>
           </div>
-        </div>
-      </div>
 
-      <div className="mx-auto max-w-7xl px-5 pb-10 md:px-10 md:pb-14">
-        <div className="border-t border-ink-line pt-8">
-          <div>
-            <p className="font-display text-3xl leading-none text-paper">CONTACT US</p>
-            <p className="mt-2 text-sm text-paper-dim">Questions, fixtures or joining — get in touch.</p>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <EmailCard />
-            <WhatsAppCard />
-            <InstagramCard />
+          <div className="col-span-2 sm:col-span-1">
+            <p className="text-sm text-paper">Contact us</p>
+            <div className="mt-3">
+              <ContactIcons />
+            </div>
           </div>
         </div>
       </div>
