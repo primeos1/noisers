@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
+import { CLUB_EMAIL, WHATSAPP_NUMBER, WHATSAPP_URL } from "../lib/contact";
 import { useHomeContent } from "../lib/HomeContentContext";
 import AndroidAppBand from "./AndroidAppBand";
 
@@ -69,6 +70,22 @@ export default function Footer() {
                 <Link to="/join" className="hover:text-paper">
                   Join the squad
                 </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-sm text-paper">Contact us</p>
+            <ul className="mt-3 space-y-2 text-sm text-paper-dim">
+              <li>
+                <a href={`mailto:${CLUB_EMAIL}`} className="break-all hover:text-paper">
+                  {CLUB_EMAIL}
+                </a>
+              </li>
+              <li>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-paper">
+                  WhatsApp {WHATSAPP_NUMBER}
+                </a>
               </li>
             </ul>
           </div>

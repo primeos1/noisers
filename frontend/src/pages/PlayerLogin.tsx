@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import logoWhite from "../assets/brand/logo-white.png";
 import { useAuth } from "../lib/AuthContext";
 import { ApiError } from "../lib/api";
+import { WHATSAPP_NUMBER, WHATSAPP_URL } from "../lib/contact";
 import LoginSwitch from "../components/LoginSwitch";
 
 // Player portal sign-in, built as a stadium scoreboard. The passcode is typed
@@ -177,6 +178,13 @@ export default function PlayerLogin() {
             </Link>
           </p>
           <p className="text-mist">No passcode? A committee member can give it to you.</p>
+          <p className="text-mist">
+            Player support:{" "}
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-paper underline underline-offset-4 hover:text-paper-dim">
+              {WHATSAPP_NUMBER}
+            </a>{" "}
+            (WhatsApp only)
+          </p>
         </div>
       </main>
     </div>

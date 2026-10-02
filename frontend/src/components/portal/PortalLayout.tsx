@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import logoWhite from "../../assets/brand/logo-white.png";
 import { useAuth } from "../../lib/AuthContext";
+import { WHATSAPP_NUMBER, WHATSAPP_URL } from "../../lib/contact";
 import TabBar from "../TabBar";
 import { publicLinks } from "../Navbar";
 import { ChevronRightIcon, LogoutIcon, MoreIcon } from "../icons";
@@ -142,6 +143,13 @@ export default function PortalLayout() {
 
       <main key={location.pathname} className="screen-in pb-tabbar mx-auto max-w-3xl px-4 pt-3 md:pb-16 md:pt-8">
         <Outlet />
+        <p className="mt-10 border-t border-ink-line pt-4 text-center text-xs text-mist">
+          Player support:{" "}
+          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-paper-dim underline underline-offset-4 hover:text-paper">
+            {WHATSAPP_NUMBER}
+          </a>{" "}
+          (WhatsApp only)
+        </p>
       </main>
 
       <TabBar
