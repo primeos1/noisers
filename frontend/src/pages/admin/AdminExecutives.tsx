@@ -88,7 +88,7 @@ function ExecutiveFormModal({
 
         <label className={labelClass}>
           Title
-          <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Chairman" />
+          <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="President" />
         </label>
 
         {error && <p className="text-sm text-loss">{error}</p>}

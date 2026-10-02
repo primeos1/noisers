@@ -10,7 +10,7 @@ import {
 import Layout from "../components/Layout";
 import { useExecutives, type Executive, type ExecutiveGroup } from "../lib/ExecutivesContext";
 
-const fallbackTitles = ["Chairman", "Secretary", "Treasurer", "Welfare", "Media"];
+const fallbackTitles = ["President", "Secretary", "Treasurer", "Welfare", "Media"];
 
 /** How each section presents itself on the page — its own name, voice and accent. */
 const sections: {

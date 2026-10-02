@@ -28,7 +28,7 @@ class AdminUserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => env('CHAIRMAN_EMAIL', 'president@noisersfc.com')],
             [
-                'name' => 'Chairman',
+                'name' => 'President',
                 'password' => Hash::make(env('CHAIRMAN_PASSWORD', 'password')),
                 'role' => 'committee',
                 'email_verified_at' => now(),
