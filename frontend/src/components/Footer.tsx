@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
-import { CLUB_EMAIL, WHATSAPP_NUMBER, WHATSAPP_URL } from "../lib/contact";
+import { EmailCard, InstagramCard, WhatsAppCard } from "./ContactCards";
 import { useHomeContent } from "../lib/HomeContentContext";
 import AndroidAppBand from "./AndroidAppBand";
 
@@ -73,21 +73,19 @@ export default function Footer() {
               </li>
             </ul>
           </div>
+        </div>
+      </div>
 
+      <div className="mx-auto max-w-7xl px-5 pb-10 md:px-10 md:pb-14">
+        <div className="border-t border-ink-line pt-8">
           <div>
-            <p className="text-sm text-paper">Contact us</p>
-            <ul className="mt-3 space-y-2 text-sm text-paper-dim">
-              <li>
-                <a href={`mailto:${CLUB_EMAIL}`} className="break-all hover:text-paper">
-                  {CLUB_EMAIL}
-                </a>
-              </li>
-              <li>
-                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-paper">
-                  WhatsApp {WHATSAPP_NUMBER}
-                </a>
-              </li>
-            </ul>
+            <p className="font-display text-3xl leading-none text-paper">CONTACT US</p>
+            <p className="mt-2 text-sm text-paper-dim">Questions, fixtures or joining — get in touch.</p>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <EmailCard />
+            <WhatsAppCard />
+            <InstagramCard />
           </div>
         </div>
       </div>
