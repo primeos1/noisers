@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Open the Wednesday/Sunday match days automatically (App\Support\MatchDaySchedule).
+    'auto_match_days' => (bool) env('AUTO_MATCH_DAYS', true),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

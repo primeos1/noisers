@@ -7,6 +7,7 @@ use App\Http\Resources\MatchDayEventResource;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
 use App\Support\MatchDayFinalizer;
+use App\Support\MatchDaySchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +19,9 @@ class MatchDayEventController extends Controller
      */
     public function index()
     {
+        // Wednesdays and Sundays open their match day ahead of kickoff.
+        MatchDaySchedule::ensure();
+
         return MatchDayEventResource::collection(
             MatchDayEvent::query()->orderBy('created_at')->get()
         );
@@ -26,7 +30,7 @@ class MatchDayEventController extends Controller
     /**
      * Store a newly created event. The id is client-generated (a slug, see
      * matchDay.ts's uniqueEventId) so the app's existing id scheme carries
-     * over unchanged. The title isn't the admin's to choose — it's always
+     * over unchanged. The title isn't the admin's to choose ï¿½ it's always
      * "Matchday N" (see MatchDayFinalizer::renumber).
      */
     public function store(Request $request)

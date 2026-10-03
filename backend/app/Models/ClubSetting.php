@@ -25,6 +25,7 @@ class ClubSetting extends Model
         'rating_max_swing',
         'vale_auto_awards',
         'player_passcode',
+        'last_scheduled_match_day',
     ];
 
     // Never sent with the public settings — staff read it from its own
