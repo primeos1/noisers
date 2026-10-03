@@ -71,13 +71,15 @@ export interface GameLogEntry {
 export function playerGameLog(events: MatchDayEvent[], playerId: number): GameLogEntry[] {
   const log: GameLogEntry[] = [];
   for (const event of sortEvents(events)) {
-    event.games.forEach((game, i) => {
+    // Last game of the day first, so the log reads newest to oldest throughout.
+    for (let i = event.games.length - 1; i >= 0; i--) {
+      const game = event.games[i];
       const teamIndex = game.teams[0].players.includes(playerId)
         ? 0
         : game.teams[1].players.includes(playerId)
           ? 1
           : null;
-      if (teamIndex === null) return;
+      if (teamIndex === null) continue;
       log.push({
         event,
         game,
@@ -92,7 +94,7 @@ export function playerGameLog(events: MatchDayEvent[], playerId: number): GameLo
         yellows: game.cards.filter((c) => c.playerId === playerId && c.type === "yellow").length,
         reds: game.cards.filter((c) => c.playerId === playerId && c.type === "red").length,
       });
-    });
+    }
   }
   return log;
 }

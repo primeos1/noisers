@@ -68,7 +68,7 @@ export default function PlayerScreen() {
   const firstName = player.name.split(" ")[0];
 
   const matchDays = [...new Map(log.map((g) => [g.event.id, g.event])).values()].map((event) => {
-    const games = log.filter((g) => g.event.id === event.id);
+    const games = log.filter((g) => g.event.id === event.id).sort((a, b) => a.gameNumber - b.gameNumber);
     return {
       event,
       games,
