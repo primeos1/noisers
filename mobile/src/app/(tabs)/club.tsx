@@ -1,24 +1,106 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Linking, Platform, Pressable, Share, StyleSheet, View } from "react-native";
 import { router, type Href } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../lib/auth";
 import { useClub } from "../../lib/club";
 import { apiFetch } from "../../lib/api";
-import { API_URL } from "../../lib/config";
+import { API_URL, SITE_URL } from "../../lib/config";
+import { CLUB_EMAIL, INSTAGRAM_HANDLE, INSTAGRAM_URL, WHATSAPP_NUMBER, WHATSAPP_URL } from "../../lib/contact";
+import { LinearGradient } from "expo-linear-gradient";
 import { cardDate, formatNaira, outstandingFines, participantName, plural, scoreOf, sortEvents } from "../../lib/derive";
 import { SignInForm } from "../../components/SignInForm";
 import { confirm } from "../../components/form";
-import { Avatar, Bar, Button, Group, PageTitle, RefCard, Row, Screen, Txt, text } from "../../components/ui";
-import { colors, fonts, radius, space } from "../../theme";
+import { Avatar, Bar, Button, Group, IconTile, PageTitle, RefCard, Row, Screen, SectionHeader, Txt, text } from "../../components/ui";
+import { Glass, Reveal, Tilt } from "../../components/depth";
+import { colors, fonts, glass, radius, shadow, space } from "../../theme";
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+const HUB: { label: string; blurb: string; href: Href; icon: IconName; tone: string }[] = [
+  { label: "The Vale", blurb: "Weekly awards", href: "/vale", icon: "trophy", tone: colors.gold },
+  { label: "Noisers", blurb: "The club blog", href: "/noisers", icon: "newspaper", tone: colors.win },
+  { label: "Highlights", blurb: "Photos & clips", href: "/highlights", icon: "images", tone: colors.travel },
+  { label: "The club", blurb: "Executives & staff", href: "/executives", icon: "people", tone: colors.justice },
+];
+
+const CONTACT: { label: string; detail: string; url: string; icon: IconName; tone: string }[] = [
+  { label: "WhatsApp", detail: WHATSAPP_NUMBER, url: WHATSAPP_URL, icon: "logo-whatsapp", tone: "#25d366" },
+  { label: "Email", detail: CLUB_EMAIL, url: `mailto:${CLUB_EMAIL}`, icon: "mail", tone: colors.paper },
+  { label: "Instagram", detail: `@${INSTAGRAM_HANDLE}`, url: INSTAGRAM_URL, icon: "logo-instagram", tone: "#e1306c" },
+];
+
+/** Everyone's part of the club tab: the public pages, the join link and how to reach us. */
+function ClubHub() {
+  return (
+    <>
+      <View style={styles.hub}>
+        {HUB.map((h, i) => (
+          <Reveal key={h.label} index={i} style={styles.hubCell}>
+            <Tilt onPress={() => router.push(h.href)} accessibilityLabel={`${h.label}, ${h.blurb}`} max={12}>
+              <Glass style={styles.hubTile}>
+                <LinearGradient colors={[`${h.tone}40`, "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                <IconTile name={h.icon} tone={h.tone} size={42} />
+                <Txt style={styles.hubLabel}>{h.label}</Txt>
+                <Txt style={text.small} numberOfLines={1}>
+                  {h.blurb}
+                </Txt>
+              </Glass>
+            </Tilt>
+          </Reveal>
+        ))}
+      </View>
+
+      <Reveal index={4}>
+        <Glass style={styles.join}>
+          <LinearGradient colors={["rgba(212,169,58,0.28)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <Txt style={text.eyebrow}>Grow the squad</Txt>
+          <Txt style={styles.joinTitle}>Bring a mate along</Txt>
+          <Txt style={[text.dim, styles.joinBody]}>New players sign up with the squad passcode, pick a free shirt number and they{"'"}re in.</Txt>
+          <View style={styles.actions}>
+            <View style={styles.flex}>
+              <Button label="Sign someone up" variant="gold" icon="person-add" onPress={() => router.push("/join")} />
+            </View>
+            <Pressable
+              onPress={() => Share.share({ message: `Join the Noisers FC squad: ${SITE_URL}/join` })}
+              style={styles.shareButton}
+              accessibilityRole="button"
+              accessibilityLabel="Share the join link"
+            >
+              <Ionicons name="share-outline" size={20} color={colors.paper} />
+            </Pressable>
+          </View>
+        </Glass>
+      </Reveal>
+
+      <Reveal index={5}>
+        <SectionHeader title="Get in touch" />
+        <View style={styles.contact}>
+          {CONTACT.map((c) => (
+            <Tilt key={c.label} onPress={() => Linking.openURL(c.url)} accessibilityLabel={`${c.label}: ${c.detail}`} containerStyle={styles.contactCell}>
+              <Glass style={styles.contactTile}>
+                <Ionicons name={c.icon} size={24} color={c.tone} />
+                <Txt style={[text.semi, styles.contactLabel]}>{c.label}</Txt>
+              </Glass>
+            </Tilt>
+          ))}
+        </View>
+      </Reveal>
+    </>
+  );
+}
 
 function SquadMember() {
   const { leave } = useAuth();
   return (
     <>
-      <PageTitle title="Committee" sub="Sign in to run match days, manage the squad, fines and the club site." />
-      <SignInForm />
+      <ClubHub />
+      <SectionHeader title="Committee" />
+      <Txt style={[text.dim, styles.committeeIntro]}>Sign in to run match days, manage the squad, fines and the club site.</Txt>
+      <Glass style={styles.signIn}>
+        <SignInForm />
+      </Glass>
       <View style={styles.spacer} />
       <Group>
         <Row
@@ -50,12 +132,11 @@ function greeting() {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-type IconName = keyof typeof Ionicons.glyphMap;
-
 /** The committee home — the phone version of the web admin dashboard. */
 function Dashboard() {
   const { user, signOut } = useAuth();
-  const { cards, players, events, refresh } = useClub();
+  const { cards, players, events, absences, refresh } = useClub();
+  const out = absences.filter((a) => a.status === "active").length;
   const passcode = useSquadPasscode();
   const [showPasscode, setShowPasscode] = useState(false);
 
@@ -77,16 +158,22 @@ function Dashboard() {
     { label: "Squad", href: "/admin/squad", icon: "shirt-outline", meta: plural(players.length, "player") },
     { label: "Matches", href: "/admin/matches", icon: "calendar-outline", meta: plural(events.length, "match day") },
     { label: "Cards & fines", href: "/admin/cards", icon: "albums-outline", meta: `${unpaid.length} unpaid` },
+    { label: "Availability", href: "/admin/availability", icon: "medkit-outline", meta: out ? `${out} out now` : "Injuries, travel, suspensions" },
     { label: "Reports", href: "/admin/reports", icon: "stats-chart-outline", meta: "Season stats" },
     { label: "Home page", href: "/admin/home-content", icon: "home-outline", meta: "Public site copy & images" },
     { label: "The Vale", href: "/admin/vale", icon: "trophy-outline", meta: "Weekly awards" },
     { label: "Highlights", href: "/admin/highlights", icon: "images-outline", meta: "Photo & video gallery" },
+    { label: "Executives", href: "/admin/executives", icon: "people-outline", meta: "Executives, staff, disciplinary" },
     { label: "Settings", href: "/admin/settings", icon: "settings-outline", meta: "Fines, match rules, ratings" },
   ];
 
   return (
     <>
-      <View style={styles.hero}>
+      <PageTitle eyebrow="Noisers FC" title="Club" />
+      <ClubHub />
+      <SectionHeader title="Committee" />
+      <View style={[styles.hero, shadow.card]}>
+        <LinearGradient colors={["rgba(47,158,138,0.25)", "rgba(19,26,43,0.4)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <Image source={require("../../../assets/brand/logo-white.png")} style={styles.heroCrest} contentFit="contain" />
         <Txt style={styles.heroDate}>{today}</Txt>
         <Txt style={styles.heroTitle} accessibilityRole="header">
@@ -135,9 +222,7 @@ function Dashboard() {
       <Group title="Committee tools">
         {sections.map((s) => (
           <Row key={s.label} onPress={() => router.push(s.href)} accessibilityLabel={`${s.label}, ${s.meta}`}>
-            <View style={styles.icon}>
-              <Ionicons name={s.icon} size={18} color={colors.paper} />
-            </View>
+            <IconTile name={s.icon} tone={s.label === "Match Day" && liveEvent ? colors.loss : colors.paper} />
             <View style={styles.flex}>
               <Txt style={text.semi}>{s.label}</Txt>
               <Txt style={[text.small, s.label === "Match Day" && liveEvent ? { color: colors.loss } : null]} numberOfLines={1}>
@@ -252,8 +337,15 @@ export default function ClubScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Screen onRefresh={signedIn ? refresh : undefined} topInset>
-        {signedIn ? <Dashboard /> : <SquadMember />}
+      <Screen onRefresh={refresh} topInset>
+        {signedIn ? (
+          <Dashboard />
+        ) : (
+          <>
+            <PageTitle eyebrow="Noisers FC" title="Club" />
+            <SquadMember />
+          </>
+        )}
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -266,10 +358,10 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row", gap: space.md, marginTop: space.lg },
 
   hero: {
-    backgroundColor: colors.inkRaised,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.inkLine,
+    backgroundColor: glass.surface,
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.edgeBright,
     padding: space.lg,
     paddingTop: space.xl,
     marginBottom: space.lg,
@@ -281,11 +373,24 @@ const styles = StyleSheet.create({
   heroSub: { marginTop: 6, lineHeight: 20 },
 
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.xl },
-  tile: { flexBasis: "46%", flexGrow: 1, backgroundColor: colors.inkRaised, borderRadius: radius.md, padding: space.lg, gap: 4 },
+  tile: { flexBasis: "46%", flexGrow: 1, backgroundColor: glass.surface, borderRadius: radius.lg, padding: space.lg, gap: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   tileLabel: { fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: colors.mist },
   tileValue: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.paper, marginTop: 4 },
 
-  icon: { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.inkLine, alignItems: "center", justifyContent: "center" },
+  hub: { flexDirection: "row", flexWrap: "wrap", gap: space.md, marginBottom: space.lg },
+  hubCell: { flexBasis: "47%", flexGrow: 1 },
+  hubTile: { padding: space.lg, minHeight: 140, justifyContent: "flex-end", gap: 2 },
+  hubLabel: { fontFamily: fonts.display, fontSize: 24, color: colors.paper, marginTop: space.md },
+  join: { padding: space.lg, marginBottom: space.xl },
+  joinTitle: { fontFamily: fonts.displayHeavy, fontSize: 30, lineHeight: 32, color: colors.paper, marginTop: 4 },
+  joinBody: { marginTop: 6, lineHeight: 20 },
+  shareButton: { width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", backgroundColor: glass.raised, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edgeBright },
+  contact: { flexDirection: "row", gap: space.md, marginBottom: space.xl },
+  contactCell: { flex: 1 },
+  contactTile: { alignItems: "center", paddingVertical: space.lg, gap: 6 },
+  contactLabel: { fontSize: 13 },
+  committeeIntro: { marginTop: -4, marginBottom: space.md, lineHeight: 20 },
+  signIn: { padding: space.lg },
   rank: { width: 16, textAlign: "center", fontFamily: fonts.display, fontSize: 18, color: colors.mist },
   bar: { marginTop: 6 },
   goals: { fontFamily: fonts.display, fontSize: 24, color: colors.paper, fontVariant: ["tabular-nums"] },

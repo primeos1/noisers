@@ -3,17 +3,18 @@
     "name": "Noisers FC",
     "slug": "noisers-fc",
     "scheme": "noisers",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0a0e1a",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.noisersfc.app"
+      "bundleIdentifier": "com.noisersfc.app",
+      "buildNumber": "2"
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "package": "com.noisersfc.app",
       "adaptiveIcon": {
         "backgroundColor": "#0a0e1a",
@@ -48,6 +49,13 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0a0e1a"
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Noisers FC uses motion to tilt player cards as you move your phone."
         }
       ]
     ],

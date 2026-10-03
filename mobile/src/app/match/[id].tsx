@@ -11,9 +11,11 @@ import {
   participantName,
   scoreOf,
 } from "../../lib/derive";
-import type { MatchDayGame, MatchDayTeam, ParticipantId } from "../../lib/types";
-import { CardPips, Empty, Figures, Group, LiveTag, Loading, PageTitle, RefCard, Row, Screen, Txt, text } from "../../components/ui";
-import { colors, fonts, radius, space } from "../../theme";
+import type { MatchDayGame, MatchDayTeam, ParticipantId, Player } from "../../lib/types";
+import { CardPips, Empty, Figures, Group, LiveTag, Loading, PageTitle, RefCard, Row, Screen, SectionHeader, Txt, text } from "../../components/ui";
+import { FlipNumber, PulseRing, Reveal } from "../../components/depth";
+import { LinearGradient } from "expo-linear-gradient";
+import { colors, fonts, glass, radius, space } from "../../theme";
 
 function GameCard({ game, number, name }: { game: MatchDayGame; number: number; name: (id: ParticipantId) => string }) {
   const [open, setOpen] = useState(false);
@@ -39,6 +41,15 @@ function GameCard({ game, number, name }: { game: MatchDayGame; number: number; 
 
   return (
     <View style={styles.game}>
+      {game.status === "live" ? <PulseRing rounded={radius.lg} /> : null}
+      {a !== b ? (
+        <LinearGradient
+          colors={a > b ? ["rgba(47,158,138,0.22)", "transparent"] : ["transparent", "rgba(47,158,138,0.22)"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       <Pressable
         onPress={() => setOpen((o) => !o)}
         disabled={timeline.length === 0}
@@ -55,11 +66,11 @@ function GameCard({ game, number, name }: { game: MatchDayGame; number: number; 
           <Txt style={[text.semi, styles.team, a > b ? null : styles.teamDim]} numberOfLines={1}>
             {game.teams[0].name}
           </Txt>
-          <Txt style={styles.score}>
-            {a}
-            <Txt style={styles.scoreColon}> : </Txt>
-            {b}
-          </Txt>
+          <View style={styles.digits}>
+            <FlipNumber value={a} style={styles.score} />
+            <Txt style={styles.scoreColon}>:</Txt>
+            <FlipNumber value={b} style={styles.score} />
+          </View>
           <Txt style={[text.semi, styles.team, styles.teamRight, b > a ? null : styles.teamDim]} numberOfLines={1}>
             {game.teams[1].name}
           </Txt>
@@ -99,7 +110,7 @@ function GameCard({ game, number, name }: { game: MatchDayGame; number: number; 
   );
 }
 
-function TeamRoster({ team, name }: { team: MatchDayTeam; name: (id: ParticipantId) => string }) {
+function TeamRoster({ team, name, players }: { team: MatchDayTeam; name: (id: ParticipantId) => string; players: Player[] }) {
   const [open, setOpen] = useState(false);
   return (
     <View style={styles.roster}>
@@ -118,7 +129,7 @@ function TeamRoster({ team, name }: { team: MatchDayTeam; name: (id: Participant
       {open
         ? team.players.map((pid) => (
             <View key={String(pid)} style={styles.rosterRow}>
-              <Txt style={styles.rosterNumber}>{typeof pid === "number" ? pid : ""}</Txt>
+              <Txt style={styles.rosterNumber}>{typeof pid === "number" ? (players.find((p) => p.id === pid)?.number ?? "") : ""}</Txt>
               <Txt style={[text.body, styles.flex]}>{name(pid)}</Txt>
               {typeof pid !== "number" ? <Txt style={text.small}>Guest</Txt> : null}
             </View>
@@ -135,7 +146,7 @@ export default function MatchScreen() {
 
   if (!event) {
     return (
-      <Screen onRefresh={refresh}>
+      <Screen onRefresh={refresh} topInset="header">
         {loading ? <Loading label="Loading match day…" /> : <Empty>This match day doesn't exist any more. Pick another one from Matches.</Empty>}
       </Screen>
     );
@@ -155,16 +166,19 @@ export default function MatchScreen() {
     : [...new Map(event.games.flatMap((g) => g.teams).map((t) => [t.name, t])).values()];
 
   return (
-    <Screen onRefresh={refresh}>
-      <PageTitle
-        title={event.title}
-        sub={
-          <View style={styles.subLine}>
-            <Txt style={text.small}>{[event.date, event.venue].filter(Boolean).join(", ")}</Txt>
-            {event.status === "live" ? <LiveTag /> : null}
-          </View>
-        }
-      />
+    <Screen onRefresh={refresh} topInset="header">
+      <Reveal>
+        <PageTitle
+          eyebrow="Match sheet"
+          title={event.title}
+          sub={
+            <View style={styles.subLine}>
+              <Txt style={text.dim}>{[event.date, event.venue].filter(Boolean).join(" · ")}</Txt>
+              {event.status === "live" ? <LiveTag /> : null}
+            </View>
+          }
+        />
+      </Reveal>
 
       <Figures
         items={[
@@ -174,15 +188,15 @@ export default function MatchScreen() {
         ]}
       />
 
-      <Txt style={styles.sectionTitle} accessibilityRole="header">
-        Games
-      </Txt>
+      <SectionHeader title="Games" />
       {event.games.length === 0 ? (
         <Empty>No games have kicked off yet.</Empty>
       ) : (
         <View style={styles.games}>
           {event.games.map((game, i) => (
-            <GameCard key={game.id} game={game} number={i + 1} name={name} />
+            <Reveal key={game.id} index={i}>
+              <GameCard game={game} number={i + 1} name={name} />
+            </Reveal>
           ))}
         </View>
       )}
@@ -256,15 +270,13 @@ export default function MatchScreen() {
         </Group>
       ) : null}
 
-      <Txt style={styles.sectionTitle} accessibilityRole="header">
-        Teams
-      </Txt>
+      <SectionHeader title="Teams" />
       {rosters.length === 0 ? (
         <Empty>Teams haven't been picked yet.</Empty>
       ) : (
         <View style={styles.games}>
           {rosters.map((team) => (
-            <TeamRoster key={team.name} team={team} name={name} />
+            <TeamRoster key={team.name} team={team} name={name} players={players} />
           ))}
         </View>
       )}
@@ -274,22 +286,23 @@ export default function MatchScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
-  pressed: { backgroundColor: "rgba(38,47,69,0.4)" },
+  pressed: { backgroundColor: glass.pressed },
   subLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 4 },
   sectionTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.paperDim, marginBottom: space.sm, paddingHorizontal: 4 },
   games: { gap: space.md, marginBottom: space.xl },
 
-  game: { backgroundColor: colors.inkRaised, borderRadius: radius.md, overflow: "hidden" },
+  game: { backgroundColor: glass.surface, borderRadius: radius.lg, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
+  digits: { flexDirection: "row", alignItems: "center", gap: 6 },
   gameHead: { paddingHorizontal: space.lg, paddingVertical: space.md },
   gameMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   scoreLine: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: 4 },
   team: { flex: 1, fontSize: 15 },
   teamRight: { textAlign: "right" },
   teamDim: { color: colors.paperDim },
-  score: { fontFamily: fonts.displayHeavy, fontSize: 48, lineHeight: 52, color: colors.paper, fontVariant: ["tabular-nums"] },
-  scoreColon: { color: colors.inkLine },
+  score: { fontFamily: fonts.displayHeavy, fontSize: 52, lineHeight: 56, color: colors.paper, fontVariant: ["tabular-nums"] },
+  scoreColon: { fontFamily: fonts.displayHeavy, fontSize: 36, color: "rgba(246,246,243,0.3)" },
   toggle: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 6 },
-  timeline: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.inkLine, paddingHorizontal: space.lg, paddingVertical: space.sm },
+  timeline: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: glass.edge, paddingHorizontal: space.lg, paddingVertical: space.sm },
   event: { flexDirection: "row", alignItems: "center", gap: space.md, paddingVertical: space.sm },
   eventRight: { flexDirection: "row-reverse" },
   alignRight: { alignItems: "flex-end" },
@@ -300,10 +313,10 @@ const styles = StyleSheet.create({
   gaUnit: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.mist },
   alsoPlayed: { marginTop: -12, marginBottom: space.xl, paddingHorizontal: 4, lineHeight: 18 },
 
-  roster: { backgroundColor: colors.inkRaised, borderRadius: radius.md, overflow: "hidden" },
+  roster: { backgroundColor: glass.surface, borderRadius: radius.lg, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   rosterHead: { minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: space.lg },
   rosterName: { fontSize: 20 },
   rosterCount: { flexDirection: "row", alignItems: "center", gap: 6 },
-  rosterRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.inkLine },
+  rosterRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: glass.edge },
   rosterNumber: { width: 28, textAlign: "right", fontFamily: fonts.display, fontSize: 18, color: colors.mist },
 });

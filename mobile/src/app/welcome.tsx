@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Keyboard, StyleSheet, TextInput, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { router } from "expo-router";
 import Animated, {
   Easing,
   FadeIn,
@@ -281,6 +282,13 @@ function WelcomeScene() {
           </Animated.View>
         </Animated.View>
 
+        <Animated.View entering={reduced ? undefined : FadeIn.delay(1600)}>
+          <Pressable onPress={() => router.push("/join")} style={styles.join} accessibilityRole="link" hitSlop={8}>
+            <Txt style={styles.joinText}>
+              New to the squad? <Txt style={styles.joinLink}>Join with the passcode</Txt>
+            </Txt>
+          </Pressable>
+        </Animated.View>
         <Animated.View entering={reduced ? undefined : FadeIn.delay(1800)}>
           <Txt style={styles.server}>{API_URL.replace(/^https?:\/\//, "")}</Txt>
         </Animated.View>
@@ -331,5 +339,8 @@ const styles = StyleSheet.create({
   stubTextWrap: { width: TICKET_HEIGHT - 40, alignItems: "center", transform: [{ rotate: "-90deg" }] },
   stubText: { fontFamily: fonts.display, fontSize: 15, letterSpacing: 3, color: "rgba(212,169,58,0.8)" },
 
-  server: { marginTop: space.lg, textAlign: "center", fontSize: 11, color: colors.mist, letterSpacing: 0.5 },
+  join: { marginTop: space.xl, alignSelf: "center", minHeight: 44, justifyContent: "center" },
+  joinText: { fontSize: 14, color: colors.paperDim, textAlign: "center" },
+  joinLink: { fontFamily: fonts.bodySemi, color: GOLD, textDecorationLine: "underline" },
+  server: { marginTop: space.md, textAlign: "center", fontSize: 11, color: colors.mist, letterSpacing: 0.5 },
 });

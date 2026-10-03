@@ -12,7 +12,8 @@ import { resolveMediaUrl } from "../lib/config";
 import { pickAndUploadImage } from "../lib/media";
 import { plural } from "../lib/derive";
 import type { MatchDayEvent, Player } from "../lib/types";
-import { colors, fonts, radius, space } from "../theme";
+import { BlurView } from "expo-blur";
+import { colors, fonts, glass, radius, space } from "../theme";
 import { Txt, text } from "./ui";
 
 /** Ask before something destructive. Web has no Alert buttons, so it just runs. */
@@ -469,6 +470,7 @@ export function SaveBar({
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.saveBar, { paddingBottom: insets.bottom + space.md }]}>
+      {Platform.OS === "ios" ? <BlurView intensity={50} tint="systemChromeMaterialDark" style={StyleSheet.absoluteFill} /> : null}
       <Txt style={[text.small, styles.flex, { color: error ? colors.loss : colors.paperDim }]} numberOfLines={2}>
         {error || message}
       </Txt>
@@ -492,10 +494,10 @@ export function SaveBar({
 export const formStyles = StyleSheet.create({
   input: {
     minHeight: 48,
-    backgroundColor: colors.ink,
-    borderRadius: 12,
+    backgroundColor: "rgba(5,7,15,0.55)",
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.inkLine,
+    borderColor: glass.edgeBright,
     paddingHorizontal: space.md,
     color: colors.paper,
     fontFamily: fonts.body,
@@ -508,7 +510,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
   disabled: { opacity: 0.45 },
 
-  section: { backgroundColor: colors.inkRaised, borderRadius: radius.md, padding: space.lg, marginBottom: space.lg, borderWidth: 1, borderColor: colors.inkLine },
+  section: { backgroundColor: glass.surface, borderRadius: radius.lg, padding: space.lg, marginBottom: space.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge },
   sectionDanger: { borderColor: "rgba(194,59,107,0.4)" },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md },
   sectionTitle: { fontFamily: fonts.display, fontSize: 24, color: colors.paper, flexShrink: 1 },
@@ -529,18 +531,18 @@ const styles = StyleSheet.create({
   suffix: { position: "absolute", right: space.md, top: 15, fontSize: 13, color: colors.mist },
   urlInput: { marginTop: space.sm, fontSize: 14 },
 
-  switchRow: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.ink, borderRadius: 12, paddingHorizontal: space.md, paddingVertical: space.md, marginBottom: space.md },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: glass.raised, borderRadius: 14, paddingHorizontal: space.md, paddingVertical: space.md, marginBottom: space.md },
   switchHint: { marginTop: 2, lineHeight: 16 },
 
   choices: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginBottom: space.lg },
-  choice: { flexGrow: 1, flexBasis: "30%", minHeight: 44, justifyContent: "center", backgroundColor: colors.ink, borderRadius: 12, borderWidth: 1, borderColor: colors.inkLine, paddingHorizontal: space.md, paddingVertical: space.sm },
+  choice: { flexGrow: 1, flexBasis: "30%", minHeight: 44, justifyContent: "center", backgroundColor: glass.raised, borderRadius: 14, borderWidth: 1, borderColor: glass.edge, paddingHorizontal: space.md, paddingVertical: space.sm },
   choiceActive: { backgroundColor: colors.paper, borderColor: colors.paper },
   choiceText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.paperDim },
   choiceTextActive: { color: colors.ink },
 
   shirts: { gap: space.sm, paddingBottom: 4 },
   shirtGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  shirt: { minWidth: 46, height: 46, borderRadius: 23, paddingHorizontal: space.md, alignItems: "center", justifyContent: "center", backgroundColor: colors.ink, borderWidth: 1, borderColor: colors.inkLine },
+  shirt: { minWidth: 46, height: 46, borderRadius: 23, paddingHorizontal: space.md, alignItems: "center", justifyContent: "center", backgroundColor: glass.raised, borderWidth: 1, borderColor: glass.edgeBright },
   shirtActive: { backgroundColor: colors.paper, borderColor: colors.paper },
   shirtNumber: { fontFamily: fonts.display, fontSize: 19, color: colors.paper },
   shirtNone: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.paperDim },
@@ -552,10 +554,10 @@ const styles = StyleSheet.create({
   previewWide: { width: 112 },
   previewEmpty: { alignItems: "center", justifyContent: "center" },
   imageActions: { flex: 1, gap: space.sm, alignItems: "flex-start" },
-  smallButton: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.inkLine, paddingHorizontal: space.md, paddingVertical: 8 },
+  smallButton: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: glass.edgeBright, backgroundColor: glass.raised, minHeight: 36, paddingHorizontal: space.md, paddingVertical: 8 },
   smallButtonText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.paper },
 
-  saveBar: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.inkRaised, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.inkLine, paddingHorizontal: space.lg, paddingTop: space.md },
+  saveBar: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: Platform.OS === "ios" ? "rgba(10,14,26,0.55)" : colors.inkRaised, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: glass.edgeBright, overflow: "hidden", paddingHorizontal: space.lg, paddingTop: space.md },
   discard: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.paperDim },
   saveButton: { backgroundColor: colors.paper, borderRadius: radius.pill, paddingHorizontal: space.xl, paddingVertical: 10 },
   saveText: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink },

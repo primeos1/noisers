@@ -1,7 +1,7 @@
 // Interactive parts of the welcome ticket. Motion is transform/opacity only,
 // and loops are skipped when the phone asks for reduced motion.
 
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, TextInput, View, type TextInputProps } from "react-native";
 import Animated, {
   Easing,
@@ -179,6 +179,10 @@ export const PasscodeField = forwardRef<TextInput, { value: string; onChangeText
   function PasscodeField({ value, onChangeText, onSubmit, invalid }, ref) {
     const [focused, setFocused] = useState(false);
     const [reveal, setReveal] = useState(false);
+    // The real input is invisible, and iOS won't hit-test a near-transparent
+    // view — so a tap anywhere on the box focuses it explicitly.
+    const input = useRef<TextInput>(null);
+    useImperativeHandle(ref, () => input.current as TextInput);
     const glow = useSharedValue(0);
     useEffect(() => {
       glow.value = withTiming(focused ? 1 : 0, { duration: 220 });
@@ -189,7 +193,11 @@ export const PasscodeField = forwardRef<TextInput, { value: string; onChangeText
 
     return (
       <View>
-        <View style={[styles.pips, invalid ? styles.pipsInvalid : null]}>
+        <Pressable
+          onPress={() => input.current?.focus()}
+          accessible={false}
+          style={[styles.pips, invalid ? styles.pipsInvalid : null]}
+        >
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.pipsGlow, glowStyle]} />
           <View style={styles.pipRow} pointerEvents="none">
             {chars.length === 0 && !focused ? (
@@ -204,7 +212,7 @@ export const PasscodeField = forwardRef<TextInput, { value: string; onChangeText
             {focused ? <Caret /> : null}
           </View>
           <TextInput
-            ref={ref}
+            ref={input}
             value={value}
             onChangeText={(v) => {
               if (v.length > value.length) haptic.select();
@@ -231,7 +239,7 @@ export const PasscodeField = forwardRef<TextInput, { value: string; onChangeText
           >
             <Ionicons name={reveal ? "eye-off-outline" : "eye-outline"} size={20} color={colors.mist} />
           </Pressable>
-        </View>
+        </Pressable>
       </View>
     );
   },
@@ -401,7 +409,7 @@ const styles = StyleSheet.create({
   pipChar: { fontFamily: fonts.display, fontSize: 22, color: colors.paper },
   pipPlaceholder: { fontFamily: fonts.body, fontSize: 15, color: colors.mist },
   caret: { width: 2, height: 22, borderRadius: 1, backgroundColor: GOLD },
-  hiddenInput: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.01, color: "transparent" },
+  hiddenInput: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.02, color: "transparent" },
   eye: { position: "absolute", right: 14, top: 0, bottom: 0, justifyContent: "center" },
 
   field: { marginBottom: space.lg },

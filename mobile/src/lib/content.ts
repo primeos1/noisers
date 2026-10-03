@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, errorMessage } from "./api";
-import type { HighlightCategory, Highlight, HomeContent, HomeStat, GalleryImage, LiveStatId, MediaType } from "./types";
+import type {
+  Executive,
+  ExecutiveGroup,
+  GalleryImage,
+  Highlight,
+  HighlightCategory,
+  HomeContent,
+  HomeStat,
+  LiveStatId,
+  MediaType,
+  Story,
+  StoryKind,
+  TeamOfWeek,
+} from "./types";
+import { colors } from "../theme";
 
-// Public-site content the committee edits: the Home page, The Vale and the
-// Highlights gallery. Only the committee screens need these, so each screen
-// loads its own copy rather than going through the ClubProvider. Field
+// Public-site content: the Home page, The Vale, the Highlights gallery, the
+// Executives and the Noisers blog. Each screen loads its own copy rather
+// than going through the ClubProvider. Field
 // mappings match frontend/src/lib/{HomeContent,ValeContent,Highlights}Context.tsx.
 
 function useResource<T>(path: string, initial: T, map: (raw: never) => T = (raw) => raw as T) {
@@ -342,4 +356,137 @@ export function useHighlights() {
   }
 
   return { highlights: data, loading, error, reload, add, update, remove };
+}
+
+// ---- Executives ----------------------------------------------------------
+
+export const EXECUTIVE_GROUPS: { id: ExecutiveGroup; label: string; singular: string }[] = [
+  { id: "executive", label: "Executives", singular: "Executive" },
+  { id: "staff", label: "Staff members", singular: "Staff member" },
+  { id: "disciplinary", label: "Disciplinary committee", singular: "Disciplinary member" },
+];
+
+export interface ExecutiveInput {
+  name: string;
+  title: string;
+  group: ExecutiveGroup;
+  photo: string;
+}
+
+function executiveBody(e: ExecutiveInput) {
+  return { name: e.name.trim(), title: e.title.trim(), group: e.group, photo_url: e.photo || null };
+}
+
+export function useExecutives() {
+  const { data, setData, loading, error, reload } = useResource<Executive[]>("/executives", []);
+
+  async function add(input: ExecutiveInput) {
+    const res = await apiFetch<{ data: Executive }>("/executives", { method: "POST", body: executiveBody(input) });
+    setData((prev) => [...prev, res.data]);
+  }
+
+  async function update(id: number, input: ExecutiveInput) {
+    const res = await apiFetch<{ data: Executive }>(`/executives/${id}`, { method: "PUT", body: executiveBody(input) });
+    setData((prev) => prev.map((e) => (e.id === id ? res.data : e)));
+  }
+
+  async function remove(id: number) {
+    await apiFetch(`/executives/${id}`, { method: "DELETE" });
+    setData((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  /** Saves the full order; applied at once and put back if the save fails. */
+  async function reorder(ids: number[]) {
+    let previous: Executive[] = [];
+    setData((prev) => {
+      previous = prev;
+      const byId = new Map(prev.map((e) => [e.id, e]));
+      return ids.flatMap((id, i) => {
+        const e = byId.get(id);
+        return e ? [{ ...e, sortOrder: i }] : [];
+      });
+    });
+    try {
+      await apiFetch("/executives/order", { method: "PUT", body: { ids } });
+    } catch (err) {
+      setData(previous);
+      throw err;
+    }
+  }
+
+  return { executives: data, loading, error, reload, add, update, remove, reorder };
+}
+
+// ---- Noisers -------------------------------------------------------------
+
+/** The feed's sections — each groups one or more story kinds. */
+export const DESKS: { id: string; label: string; kinds: StoryKind[] }[] = [
+  { id: "all", label: "All stories", kinds: [] },
+  { id: "reports", label: "Match reports", kinds: ["match_report"] },
+  { id: "totw", label: "Team of the week", kinds: ["team_of_week"] },
+  { id: "discipline", label: "Discipline", kinds: ["discipline", "suspension"] },
+  { id: "treatment", label: "Treatment room", kinds: ["injury", "comeback"] },
+  { id: "away", label: "Away & out", kinds: ["travel", "unavailable"] },
+];
+
+export const KIND_ACCENT: Record<StoryKind, string> = {
+  match_report: colors.win,
+  team_of_week: colors.justice,
+  discipline: "#e0413a",
+  injury: colors.loss,
+  travel: colors.travel,
+  suspension: "#f4c430",
+  unavailable: colors.mist,
+  comeback: "#3fd6a4",
+};
+
+/** "Just now", "3h ago", "Yesterday", "Sat 27 Sep" */
+export function timeAgo(iso: string, now = Date.now()) {
+  const mins = Math.round((now - new Date(iso).getTime()) / 60_000);
+  if (mins < 2) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  if (hours < 48) return "Yesterday";
+  return new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+/** Roughly how long a story takes to read, at ~200 words a minute. */
+export function readingTime(story: Story) {
+  const words = [story.headline, story.standfirst, ...story.body].join(" ").split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+// Kept between screens so opening a story from the feed is instant.
+let storyCache: Story[] = [];
+
+export function cachedStory(id: string) {
+  return storyCache.find((s) => s.id === id);
+}
+
+export function useNoisers() {
+  const res = useResource<Story[]>("/noisers", storyCache, (raw: Story[]) => {
+    storyCache = raw ?? [];
+    return storyCache;
+  });
+  return { stories: res.data, loading: res.loading && res.data.length === 0, error: res.error, reload: res.reload };
+}
+
+// ---- Team of the week ----------------------------------------------------
+
+/** Worked out by the API from one match day's results; null if none finished. */
+export function useTeamOfWeek(eventId: string | null) {
+  const [result, setResult] = useState<{ eventId: string; team: TeamOfWeek | null } | null>(null);
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    apiFetch<{ data: TeamOfWeek | null }>(`/match-day-events/${eventId}/team-of-week`)
+      .then((res) => !cancelled && setResult({ eventId, team: res.data }))
+      .catch(() => !cancelled && setResult({ eventId, team: null }));
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+  const current = result?.eventId === eventId ? result : null;
+  return { team: current?.team ?? null, loading: !!eventId && !current };
 }

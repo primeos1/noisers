@@ -2,9 +2,9 @@ import { createContext, use, useCallback, useEffect, useRef, useState, type Reac
 import { AppState } from "react-native";
 import { apiFetch, errorMessage } from "./api";
 import { getItem, setItem } from "./storage";
-import type { Card, CardType, ClubSettings, MatchDayEvent, Player, Position, Membership } from "./types";
+import type { Absence, AbsenceType, Card, CardType, ClubSettings, MatchDayEvent, Player, Position, Membership } from "./types";
 
-// Everything the app shows comes from four public endpoints, loaded together
+// Everything the app shows comes from five public endpoints, loaded together
 // and refreshed on pull-to-refresh (and every 30s while a match day is live).
 
 // Mirrors PlayerRatings::defaultPositionWeights() on the backend.
@@ -59,6 +59,14 @@ export interface PlayerInput {
   photoUrl: string | null;
 }
 
+export interface AbsenceInput {
+  playerId: number;
+  type: AbsenceType;
+  reason: string;
+  startsOn: string;
+  endsOn: string | null;
+}
+
 /** Match day fields the API accepts in a patch (camelCase here, snake_case on the wire). */
 export type EventPatch = Partial<
   Pick<MatchDayEvent, "title" | "venue" | "date" | "status" | "presentPlayers" | "guests" | "groups" | "games">
@@ -69,6 +77,8 @@ interface ClubContextValue {
   cards: Card[];
   events: MatchDayEvent[];
   settings: ClubSettings;
+  /** Every logged absence, newest first — see lib/absences.ts. */
+  absences: Absence[];
   /** True until the first load finishes (successfully or not). */
   loading: boolean;
   /** Set when the last refresh couldn't reach the API. */
@@ -89,6 +99,9 @@ interface ClubContextValue {
   updateEvent: (id: string, patch: EventPatch) => Promise<void>;
   removeEvent: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<ClubSettings>) => Promise<void>;
+  addAbsence: (input: AbsenceInput) => Promise<void>;
+  updateAbsence: (id: number, input: AbsenceInput) => Promise<void>;
+  removeAbsence: (id: number) => Promise<void>;
 }
 
 const ClubContext = createContext<ClubContextValue | null>(null);
@@ -98,6 +111,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const [cards, setCards] = useState<Card[]>([]);
   const [events, setEvents] = useState<MatchDayEvent[]>([]);
   const [settings, setSettings] = useState<ClubSettings>(DEFAULT_SETTINGS);
+  const [absences, setAbsences] = useState<Absence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [myShirt, setMyShirtState] = useState<number | null>(null);
@@ -111,18 +125,20 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   }, [events]);
 
   const refresh = useCallback(async () => {
-    const [p, c, e, s] = await Promise.allSettled([
+    const [p, c, e, s, a] = await Promise.allSettled([
       apiFetch<{ data: Player[] }>("/players?active_only=false"),
       apiFetch<{ data: Card[] }>("/cards"),
       apiFetch<{ data: MatchDayEvent[] }>("/match-day-events"),
       apiFetch<{ data: ClubSettings }>("/settings"),
+      apiFetch<{ data: Absence[] }>("/player-absences"),
     ]);
     if (p.status === "fulfilled") setPlayers(p.value.data);
     if (c.status === "fulfilled") setCards(c.value.data);
     if (e.status === "fulfilled") setEvents(e.value.data.map(normaliseEvent));
     if (s.status === "fulfilled") setSettings({ ...DEFAULT_SETTINGS, ...s.value.data });
+    if (a.status === "fulfilled") setAbsences(a.value.data);
 
-    const failed = [p, c, e, s].find((r) => r.status === "rejected");
+    const failed = [p, c, e, s, a].find((r) => r.status === "rejected");
     setError(failed ? errorMessage(failed.reason, "Couldn't load the latest club data.") : "");
     setLoading(false);
   }, []);
@@ -237,6 +253,22 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     setSettings({ ...DEFAULT_SETTINGS, ...res.data });
   }
 
+  // Absences feed the Noisers blog and team picking, so they save first.
+  async function addAbsence(input: AbsenceInput) {
+    const res = await apiFetch<{ data: Absence }>("/player-absences", { method: "POST", body: absenceBody(input) });
+    setAbsences((prev) => [res.data, ...prev]);
+  }
+
+  async function updateAbsence(id: number, input: AbsenceInput) {
+    const res = await apiFetch<{ data: Absence }>(`/player-absences/${id}`, { method: "PUT", body: absenceBody(input) });
+    setAbsences((prev) => prev.map((x) => (x.id === id ? res.data : x)));
+  }
+
+  async function removeAbsence(id: number) {
+    await apiFetch(`/player-absences/${id}`, { method: "DELETE" });
+    setAbsences((prev) => prev.filter((x) => x.id !== id));
+  }
+
   return (
     <ClubContext
       value={{
@@ -244,6 +276,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         cards,
         events,
         settings,
+        absences,
         loading,
         error,
         refresh,
@@ -260,6 +293,9 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         updateEvent,
         removeEvent,
         updateSettings,
+        addAbsence,
+        updateAbsence,
+        removeAbsence,
       }}
     >
       {children}
@@ -276,6 +312,16 @@ function playerBody(p: PlayerInput) {
     membership: p.membership,
     rating: p.rating,
     photo_url: p.photoUrl || null,
+  };
+}
+
+function absenceBody(a: AbsenceInput) {
+  return {
+    player_id: a.playerId,
+    type: a.type,
+    reason: a.reason.trim() || null,
+    starts_on: a.startsOn,
+    ends_on: a.endsOn || null,
   };
 }
 

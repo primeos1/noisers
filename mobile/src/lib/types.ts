@@ -196,3 +196,84 @@ export interface StaffUser {
   email: string;
   role: "admin" | "committee";
 }
+
+// Who's out — injured, travelling, suspended or otherwise unavailable
+// (PlayerAbsenceResource). Status is worked out by the API against today.
+
+export type AbsenceType = "injury" | "travel" | "suspension" | "other";
+export type AbsenceStatus = "upcoming" | "active" | "ended";
+
+export interface Absence {
+  id: number;
+  playerId: number;
+  type: AbsenceType;
+  reason: string | null;
+  /** yyyy-mm-dd */
+  startsOn: string;
+  /** yyyy-mm-dd, or null while there's no return date. */
+  endsOn: string | null;
+  status: AbsenceStatus;
+}
+
+// The people who run the club (ExecutiveResource).
+
+export type ExecutiveGroup = "executive" | "staff" | "disciplinary";
+
+export interface Executive {
+  id: number;
+  name: string;
+  title: string;
+  group: ExecutiveGroup;
+  photo: string | null;
+  sortOrder: number;
+}
+
+// Noisers — the club blog, written by the API from match days, cards and
+// absences (App\Support\NoisersFeed). Mirrors frontend/src/lib/noisers.ts.
+
+export type StoryKind =
+  | "match_report"
+  | "team_of_week"
+  | "discipline"
+  | "injury"
+  | "travel"
+  | "suspension"
+  | "unavailable"
+  | "comeback";
+
+export interface StoryCard {
+  playerId: number | null;
+  name: string;
+  type: CardType;
+  reason: string | null;
+  minute: number | null;
+}
+
+export interface Story {
+  id: string;
+  kind: StoryKind;
+  tag: string;
+  publishedAt: string;
+  headline: string;
+  standfirst: string;
+  body: string[];
+  /** Featured players, the lead first. */
+  playerIds: number[];
+  matchDay: { id: string; title: string; venue: string | null; date: string } | null;
+  scoreline: { home: string; away: string; homeScore: number; awayScore: number }[] | null;
+  stats: { label: string; value: number }[] | null;
+  lineup: { team: string; playerIds: number[]; won: number; played: number; score: string; rival: string } | null;
+  cards: StoryCard[] | null;
+  absence: { type: AbsenceType; reason: string | null; startsOn: string; endsOn: string | null; status: AbsenceStatus } | null;
+}
+
+/** /match-day-events/{id}/team-of-week */
+export interface TeamOfWeek {
+  title: string;
+  dateRange: string;
+  sessionsWon: number;
+  sessionsPlayed: number;
+  rivalTeam: string;
+  score: string;
+  lineupPlayerIds: number[];
+}

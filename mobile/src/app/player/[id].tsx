@@ -1,17 +1,25 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import Animated from "react-native-reanimated";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { resolveMediaUrl } from "../../lib/config";
+import { absenceLabel, currentAbsence, returnHint } from "../../lib/absences";
+import { Backdrop, haptic, useParallax } from "../../components/depth";
+import { HoloCard, stockPhoto } from "../../components/PlayerCard";
 import { useClub } from "../../lib/club";
 import { useAuth } from "../../lib/auth";
 import { cardCounts, cardDate, formatNaira, isKeeper, playerGameLog, plural, positionLabel } from "../../lib/derive";
 import {
-  Avatar,
   CardPips,
   Empty,
   Figures,
   Group,
   Loading,
-  PageTitle,
+  Pill,
   RatingMeter,
   RefCard,
   ResultChip,
@@ -22,7 +30,9 @@ import {
   text,
   MembershipBadge,
 } from "../../components/ui";
-import { colors, fonts, radius, space } from "../../theme";
+import { colors, fonts, glass, radius, space } from "../../theme";
+
+const HERO = 560;
 
 type Tab = "overview" | "games" | "form" | "fines";
 
@@ -37,16 +47,20 @@ function Line({ label, value, tone = colors.paper }: { label: string; value: str
 
 export default function PlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { players, cards, events, loading, refresh, myShirt, setMyShirt } = useClub();
+  const { players, cards, events, absences, loading, refresh, myShirt, setMyShirt } = useClub();
   const { status } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(width * 0.62, 260);
+  const { onScroll, heroStyle, fadeStyle } = useParallax(HERO);
 
   const playerId = Number(id);
   const player = players.find((p) => p.id === playerId);
 
   if (!player) {
     return (
-      <Screen onRefresh={refresh}>
+      <Screen onRefresh={refresh} topInset="header">
         {loading ? <Loading label="Loading player…" /> : <Empty>{"We couldn't find that player. Pick someone from the Squad tab."}</Empty>}
       </Screen>
     );
@@ -67,6 +81,14 @@ export default function PlayerScreen() {
   const form = finished.slice(0, 10);
   const firstName = player.name.split(" ")[0];
 
+  const backRows = [
+    { label: "Won", value: String(record.W), tone: colors.win },
+    { label: "Drawn", value: String(record.D), tone: colors.draw },
+    { label: "Lost", value: String(record.L), tone: colors.loss },
+    { label: "Win rate", value: finished.length ? `${Math.round((record.W / finished.length) * 100)}%` : "–", tone: colors.paper },
+    { label: "Fines owed", value: formatNaira(fines.outstanding), tone: fines.outstanding ? colors.loss : colors.win },
+  ];
+
   const matchDays = [...new Map(log.map((g) => [g.event.id, g.event])).values()].map((event) => {
     const games = log.filter((g) => g.event.id === event.id).sort((a, b) => a.gameNumber - b.gameNumber);
     return {
@@ -77,50 +99,87 @@ export default function PlayerScreen() {
     };
   });
 
-  return (
-    <Screen onRefresh={refresh}>
-      <PageTitle title={player.name} sub={`${positionLabel[player.position]}${player.secondaryPosition ? ` / ${positionLabel[player.secondaryPosition]}` : ""}, number ${player.number}`} />
-      <MembershipBadge membership={player.membership ?? "member"} />
+  const out = currentAbsence(absences, playerId);
+  const outLabel = out ? absenceLabel(out.type) : null;
 
-      <View style={styles.hero}>
-        <View style={styles.heroTop}>
-          <Avatar player={player} size={120} rounded={radius.md} />
-          <View style={styles.flex}>
-            <Txt style={text.small}>Rating</Txt>
-            <Txt style={styles.rating}>{player.rating.toFixed(2)}</Txt>
-            <RatingMeter rating={player.rating} />
+  return (
+    <View style={styles.root}>
+      <Backdrop />
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.paper} />}
+      >
+        <View style={[styles.hero, { paddingTop: insets.top + 56 }]}>
+          <Animated.View style={[styles.heroBg, heroStyle]}>
+            <Image source={{ uri: resolveMediaUrl(player.photoUrl) ?? stockPhoto(player.id) }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={28} />
+            <LinearGradient colors={["rgba(10,14,26,0.35)", "rgba(10,14,26,0.7)", colors.ink]} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+          <Animated.View style={fadeStyle}>
+            <HoloCard
+              player={player}
+              width={cardWidth}
+              back={
+                <View style={styles.back}>
+                  <Txt style={[text.eyebrow, styles.center]}>Record</Txt>
+                  {backRows.map((r) => (
+                    <View key={r.label} style={styles.backRow}>
+                      <Txt style={text.dim}>{r.label}</Txt>
+                      <Txt style={[styles.backValue, { color: r.tone }]}>{r.value}</Txt>
+                    </View>
+                  ))}
+                </View>
+              }
+            />
+          </Animated.View>
+          <Txt style={styles.name} accessibilityRole="header">
+            {player.name}
+          </Txt>
+          <Txt style={[text.dim, styles.center]}>
+            {positionLabel[player.position]}
+            {player.secondaryPosition ? ` / ${positionLabel[player.secondaryPosition]}` : ""} · #{player.number}
+          </Txt>
+          <View style={styles.badges}>
+            <MembershipBadge membership={player.membership ?? "member"} />
+            {outLabel && out ? <Pill label={`${outLabel.short} · ${returnHint(out)}`} tone={outLabel.tone} icon={outLabel.icon} /> : null}
           </View>
-        </View>
-        <View style={styles.heroBottom}>
-          <View style={styles.formRow}>
-            {form.length ? (
-              form.slice(0, 5).map((g) => <ResultChip key={`${g.event.id}-${g.game.id}`} result={g.result} />)
-            ) : (
-              <Txt style={text.small}>No results yet</Txt>
-            )}
-          </View>
+          <Txt style={[text.small, styles.center]}>Drag the card to turn it · tap to flip</Txt>
           <View style={styles.heroActions}>
             {canEdit ? (
-              <Pressable
-                onPress={() => router.push({ pathname: "/profile", params: { id: String(playerId) } })}
-                accessibilityRole="button"
-                style={styles.meButton}
-              >
+              <Pressable onPress={() => router.push({ pathname: "/profile", params: { id: String(playerId) } })} accessibilityRole="button" style={styles.meButton}>
+                <Ionicons name="create-outline" size={15} color={colors.paperDim} />
                 <Txt style={[text.semi, styles.meText]}>Edit profile</Txt>
               </Pressable>
             ) : null}
             <Pressable
-              onPress={() => setMyShirt(isMe ? null : playerId)}
+              onPress={() => {
+                haptic.success();
+                setMyShirt(isMe ? null : playerId);
+              }}
               accessibilityRole="button"
               accessibilityState={{ selected: isMe }}
               style={[styles.meButton, isMe ? styles.meButtonActive : null]}
             >
+              <Ionicons name={isMe ? "star" : "star-outline"} size={15} color={isMe ? colors.ink : colors.paperDim} />
               <Txt style={[text.semi, styles.meText, isMe ? styles.meTextActive : null]}>{isMe ? "This is you" : "This is me"}</Txt>
             </Pressable>
           </View>
+          {player.bio ? <Txt style={[text.dim, styles.bio]}>{player.bio}</Txt> : null}
         </View>
-        {player.bio ? <Txt style={[text.dim, styles.bio]}>{player.bio}</Txt> : null}
-      </View>
+
+        <View style={styles.body}>
+        <View style={styles.ratingCard}>
+          <View style={styles.ratingTop}>
+            <Txt style={text.eyebrow}>Rating</Txt>
+            <Txt style={styles.rating}>{player.rating.toFixed(2)}</Txt>
+          </View>
+          <RatingMeter rating={player.rating} />
+          <View style={styles.formRow}>
+            {form.length ? form.slice(0, 5).map((g) => <ResultChip key={`${g.event.id}-${g.game.id}`} result={g.result} />) : <Txt style={text.small}>No results yet</Txt>}
+          </View>
+        </View>
 
       <Figures
         items={[
@@ -262,25 +321,37 @@ export default function PlayerScreen() {
           )}
         </>
       ) : null}
-    </Screen>
+        </View>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.ink },
+  content: { paddingBottom: 64 },
   flex: { flex: 1, minWidth: 0 },
+  center: { textAlign: "center" },
   alignRight: { alignItems: "flex-end" },
-  hero: { backgroundColor: colors.inkRaised, borderRadius: radius.lg, padding: space.lg, marginBottom: space.xl, borderWidth: 1, borderColor: "rgba(168,132,31,0.25)" },
-  heroTop: { flexDirection: "row", alignItems: "center", gap: space.lg },
-  rating: { fontFamily: fonts.displayHeavy, fontSize: 56, lineHeight: 58, color: colors.draw, fontVariant: ["tabular-nums"], marginBottom: 8 },
-  heroBottom: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space.md, marginTop: space.lg },
-  heroActions: { flexDirection: "row", gap: space.sm },
-  bio: { marginTop: space.lg },
+  hero: { alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.xl },
+  heroBg: { position: "absolute", top: 0, left: 0, right: 0, height: HERO },
+  name: { fontFamily: fonts.displayHeavy, fontSize: 40, lineHeight: 42, color: colors.paper, textAlign: "center", marginTop: space.sm },
+  badges: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6, marginVertical: space.md },
+  heroActions: { flexDirection: "row", gap: space.sm, marginTop: space.lg },
+  bio: { marginTop: space.lg, textAlign: "center", lineHeight: 20 },
+  back: { gap: 9 },
+  backRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  backValue: { fontFamily: fonts.display, fontSize: 20 },
+  body: { paddingHorizontal: space.lg },
+  ratingCard: { backgroundColor: glass.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge, padding: space.lg, marginBottom: space.xl, gap: space.md },
+  ratingTop: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
+  rating: { fontFamily: fonts.displayHeavy, fontSize: 48, lineHeight: 50, color: colors.goldBright, fontVariant: ["tabular-nums"] },
   formRow: { flexDirection: "row", gap: 6 },
-  meButton: { borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: colors.ink, borderWidth: 1, borderColor: colors.inkLine },
-  meButtonActive: { backgroundColor: colors.paper, borderColor: colors.paper },
+  meButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, borderRadius: radius.pill, paddingHorizontal: 16, backgroundColor: glass.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edgeBright },
+  meButtonActive: { backgroundColor: colors.goldBright, borderColor: colors.goldBright },
   meText: { fontSize: 13, color: colors.paperDim },
   meTextActive: { color: colors.ink },
   gameScore: { fontFamily: fonts.display, fontSize: 18, color: colors.paper },
-  formCard: { backgroundColor: colors.inkRaised, borderRadius: radius.md, padding: space.lg, marginBottom: space.xl },
+  formCard: { backgroundColor: glass.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: glass.edge, padding: space.lg, marginBottom: space.xl },
   formGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.md },
 });

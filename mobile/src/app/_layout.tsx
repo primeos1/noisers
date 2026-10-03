@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { Platform, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { DarkTheme, SplashScreen, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -57,6 +59,7 @@ export default function RootLayout() {
   if (!fontsReady) return null;
 
   return (
+    <GestureHandlerRootView style={styles.root}>
     <ThemeProvider value={theme}>
       <AuthProvider>
         <ClubProvider>
@@ -68,6 +71,7 @@ export default function RootLayout() {
         </ClubProvider>
       </AuthProvider>
     </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -80,6 +84,11 @@ function SplashGate({ onDone }: { onDone: () => void }) {
   return <AnimatedSplash ready={ready} onDone={onDone} />;
 }
 
+const ios = Platform.OS === "ios";
+
+/** Transparent header for screens whose hero runs under the status bar. */
+const heroHeader = { title: "", headerTransparent: true, headerBlurEffect: undefined, headerStyle: { backgroundColor: "transparent" } } as const;
+
 function RootNavigator() {
   const { status, hasAccess } = useAuth();
 
@@ -88,7 +97,10 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.ink },
+        // A frosted glass bar on iOS that content scrolls under; solid ink elsewhere.
+        headerTransparent: ios,
+        headerBlurEffect: ios ? "systemChromeMaterialDark" : undefined,
+        headerStyle: { backgroundColor: ios ? "transparent" : colors.ink },
         headerTintColor: colors.paper,
         headerTitleStyle: { fontFamily: fonts.display, fontSize: 22 },
         headerShadowVisible: false,
@@ -99,9 +111,15 @@ function RootNavigator() {
       {/* Squad passcode or committee sign-in, as on the web portal. */}
       <Stack.Protected guard={hasAccess}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="player/[id]" options={{ title: "" }} />
-        <Stack.Screen name="match/[id]" options={{ title: "Match sheet" }} />
+        {/* Full-bleed heroes: the back button floats over the photo. */}
+        <Stack.Screen name="player/[id]" options={heroHeader} />
+        <Stack.Screen name="match/[id]" options={heroHeader} />
         <Stack.Screen name="profile" options={{ title: "Edit profile", presentation: "modal" }} />
+        <Stack.Screen name="vale" options={heroHeader} />
+        <Stack.Screen name="noisers/index" options={heroHeader} />
+        <Stack.Screen name="noisers/[id]" options={heroHeader} />
+        <Stack.Screen name="highlights" options={heroHeader} />
+        <Stack.Screen name="executives" options={heroHeader} />
         <Stack.Protected guard={status === "signedIn"}>
           {/* Committee tools — the same sections as the web admin. */}
           <Stack.Screen name="admin/matchday" options={{ title: "Match Day" }} />
@@ -116,11 +134,19 @@ function RootNavigator() {
           <Stack.Screen name="admin/highlights" options={{ title: "Highlights" }} />
           <Stack.Screen name="admin/settings" options={{ title: "Settings" }} />
           <Stack.Screen name="admin/match-record" options={{ title: "Match record", presentation: "modal" }} />
+          <Stack.Screen name="admin/availability" options={{ title: "Availability" }} />
+          <Stack.Screen name="admin/absence" options={{ title: "Absence", presentation: "modal" }} />
+          <Stack.Screen name="admin/executives" options={{ title: "Executives" }} />
+          <Stack.Screen name="admin/executive" options={{ title: "Executive", presentation: "modal" }} />
         </Stack.Protected>
       </Stack.Protected>
       <Stack.Protected guard={!hasAccess}>
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
       </Stack.Protected>
+      {/* The /join form, reachable from the front door and from inside the app. */}
+      <Stack.Screen name="join" options={{ title: "Join the squad", presentation: "modal" }} />
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.ink } });
