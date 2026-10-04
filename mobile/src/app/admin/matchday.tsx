@@ -10,7 +10,10 @@ import {
   buildTeams,
   formatClock,
   formatEventDate,
+  isUntouched,
   MAX_TEAMS,
+  newGame,
+  nextFixture,
   nextGuestId,
   nextTeamName,
   uniqueEventId,
@@ -206,19 +209,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
     const a = event.groups[sideA];
     const b = event.groups[sideB];
     if (!a || !b || sideA === sideB) return;
-    const game: MatchDayGame = {
-      id: `g${Date.now()}`,
-      teams: [
-        { name: a.name, players: [...a.players] },
-        { name: b.name, players: [...b.players] },
-      ],
-      goals: [],
-      cards: [],
-      saves: [],
-      status: "live",
-      clockStartedAt: null,
-      clockElapsed: 0,
-    };
+    const game = newGame(a, b);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     patch({ games: [...event.games, game] });
   }
@@ -337,6 +328,8 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
           <View style={styles.teamHead}>
             <TextInput
               defaultValue={team.name}
+              // Games know teams by name, so names lock once play starts.
+              editable={event.games.length === 0}
               onEndEditing={(e) => {
                 const next = e.nativeEvent.text.trim();
                 if (next && next !== team.name) setGroups(event.groups.map((t, j) => (j === i ? { ...t, name: next } : t)));
@@ -436,10 +429,17 @@ function LiveGame({
 
   const timer = useMatchTimer(game, (clock) => updateGame((g) => ({ ...g, ...clock })), settings.matchGameMinutes);
 
-  // Squad stats only count finished games, so reload them once one is saved.
+  // The next game in the winner-stays-on rotation kicks off straight away,
+  // clock paused. Squad stats only count finished games, so reload them once
+  // one is saved.
   function finish(updater: (g: MatchDayGame) => MatchDayGame = (g) => g) {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-    updateGame((g) => ({ ...updater(g), ...timer.stoppedClock(), status: "finished" })).then((ok) => {
+    const games = event.games.map((g) =>
+      g.id === game.id ? { ...updater(g), ...timer.stoppedClock(), status: "finished" as const } : g,
+    );
+    const { next } = nextFixture(event.groups, games);
+    if (next) games.push(newGame(event.groups[next[0]], event.groups[next[1]]));
+    patch({ games }).then((ok) => {
       if (ok) refresh();
     });
   }
@@ -726,7 +726,10 @@ export default function MatchDayScreen() {
       return { clockStartedAt: null, clockElapsed: Math.min((g.clockElapsed ?? 0) + run, settings.matchGameMinutes * 60) };
     };
     patch({
-      games: event.games.map((g) => (g.status === "live" ? { ...g, ...stopped(g), status: "finished" as const } : g)),
+      // The game auto-started after the last one isn't a 0–0 if it never began.
+      games: event.games
+        .filter((g) => !(g.status === "live" && isUntouched(g)))
+        .map((g) => (g.status === "live" ? { ...g, ...stopped(g), status: "finished" as const } : g)),
       status: "ended",
     }).then((ok) => {
       // Ending the day files the fines and rewrites The Vale server-side.

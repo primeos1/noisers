@@ -317,6 +317,79 @@ export function scoreOf(game: Pick<MatchDayGame, "goals">, teamIndex: 0 | 1) {
   return game.goals.filter((g) => g.teamIndex === teamIndex).length;
 }
 
+export function newGame(a: MatchDayTeam, b: MatchDayTeam): MatchDayGame {
+  return {
+    id: `g${Date.now()}`,
+    teams: [
+      { name: a.name, players: [...a.players] },
+      { name: b.name, players: [...b.players] },
+    ],
+    goals: [],
+    cards: [],
+    saves: [],
+    status: "live",
+    clockStartedAt: null,
+    clockElapsed: 0,
+  };
+}
+
+/** A game auto-started but never played — nothing logged, clock never run. */
+export function isUntouched(game: MatchDayGame) {
+  return (
+    game.goals.length === 0 &&
+    game.cards.length === 0 &&
+    (game.saves ?? []).length === 0 &&
+    !game.clockStartedAt &&
+    !game.clockElapsed
+  );
+}
+
+export interface Rotation {
+  /** Indexes into the groups for the next game, or null with under two teams. */
+  next: [number, number] | null;
+  /** Teams waiting after that, in order. */
+  queue: number[];
+}
+
+// Winner stays on. The randomized team order is the queue: the first two
+// play, the winner stays to face the next in line and the loser goes to the
+// back. A draw sends both off — the challenger first, then the team that was
+// already on (it has played more) — and the next two in line play. The queue
+// is rebuilt from the finished games each time, so correcting or deleting a
+// result fixes the rotation too. Games are matched to teams by name.
+export function nextFixture(groups: MatchDayTeam[], games: MatchDayGame[]): Rotation {
+  if (groups.length < 2) return { next: null, queue: [] };
+
+  const indexOf = (name: string) => groups.findIndex((g) => g.name === name);
+  let queue = groups.map((_, i) => i);
+  let holder: number | null = null;
+
+  for (const game of games) {
+    if (game.status !== "finished") continue;
+    const a = indexOf(game.teams[0].name);
+    const b = indexOf(game.teams[1].name);
+    if (a < 0 || b < 0 || a === b) continue;
+
+    // A hand-picked game that left the team on out — it keeps its turn.
+    if (holder !== null && holder !== a && holder !== b) queue.unshift(holder);
+    queue = queue.filter((i) => i !== a && i !== b);
+
+    const sa = scoreOf(game, 0);
+    const sb = scoreOf(game, 1);
+    if (sa === sb) {
+      queue.push(...(holder === a ? [b, a] : [a, b]));
+      holder = null;
+    } else {
+      const winner: number = sa > sb ? a : b;
+      queue.push(winner === a ? b : a);
+      holder = winner;
+    }
+  }
+
+  const next: [number, number] = holder !== null ? [holder, queue[0]] : [queue[0], queue[1]];
+  return { next, queue: queue.filter((i) => !next.includes(i)) };
+}
+
 // Flattens every game played across every match day, in play order, paired
 // with the event it belongs to (needed to resolve guest names/date/etc).
 export function allGames(events: MatchDayEvent[]): { event: MatchDayEvent; game: MatchDayGame }[] {

@@ -13,6 +13,9 @@ import { absenceStatus } from "../../lib/absences";
 import {
   buildTeams,
   MAX_TEAMS,
+  isUntouched,
+  newGame,
+  nextFixture,
   nextTeamName,
   nextGuestId,
   participantName,
@@ -209,20 +212,7 @@ export default function MatchDay() {
     const teamA = activeEvent.groups[playA];
     const teamB = activeEvent.groups[playB];
     if (!teamA || !teamB) return;
-    const game: MatchDayGame = {
-      id: `g${Date.now()}`,
-      teams: [
-        { name: teamA.name, players: [...teamA.players] },
-        { name: teamB.name, players: [...teamB.players] },
-      ],
-      goals: [],
-      cards: [],
-      saves: [],
-      status: "live",
-      clockStartedAt: null,
-      clockElapsed: 0,
-    };
-    patch({ games: [...activeEvent.games, game] });
+    patch({ games: [...activeEvent.games, newGame(teamA, teamB)] });
   }
 
   function updateLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
@@ -230,9 +220,17 @@ export default function MatchDay() {
     return patch({ games: activeEvent.games.map((g) => (g.id === liveGame.id ? updater(g) : g)) });
   }
 
-  // Squad stats only count finished games, so reload them once one is saved.
+  // The next game in the winner-stays-on rotation kicks off straight away,
+  // clock paused. Squad stats only count finished games, so reload them once
+  // one is saved.
   function finishLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
-    updateLiveGame((g) => ({ ...updater(g), ...timer.stoppedClock(), status: "finished" })).then((saved) => {
+    if (!activeEvent || !liveGame) return;
+    const games = activeEvent.games.map((g) =>
+      g.id === liveGame.id ? { ...updater(g), ...timer.stoppedClock(), status: "finished" as const } : g,
+    );
+    const { next } = nextFixture(activeEvent.groups, games);
+    if (next) games.push(newGame(activeEvent.groups[next[0]], activeEvent.groups[next[1]]));
+    patch({ games }).then((saved) => {
       if (saved) refreshSquad();
     });
   }
@@ -304,9 +302,10 @@ export default function MatchDay() {
   function endMatchDay() {
     if (!activeEvent) return;
     updateEvent(activeEvent.id, {
-      games: activeEvent.games.map((g) =>
-        g.status === "live" ? { ...g, ...timer.stoppedClock(), status: "finished" } : g,
-      ),
+      // The game auto-started after the last one isn't a 0–0 if it never began.
+      games: activeEvent.games
+        .filter((g) => !(g.status === "live" && isUntouched(g)))
+        .map((g) => (g.status === "live" ? { ...g, ...timer.stoppedClock(), status: "finished" } : g)),
       status: "ended",
     }).then((saved) => {
       // Ending the day files the cards (with fines) and rewrites The Vale's
@@ -586,6 +585,9 @@ export default function MatchDay() {
                           type="text"
                           className="w-full border-none bg-transparent font-display text-xl text-paper outline-none"
                           value={team.name}
+                          // Games know teams by name, so names lock once play starts.
+                          readOnly={activeEvent.games.length > 0}
+                          title={activeEvent.games.length > 0 ? "Team names are locked once the first game starts" : undefined}
                           onChange={(e) => renameTeam(i, e.target.value)}
                         />
                         <span className="shrink-0 text-xs text-mist">{team.players.length}/{TEAM_SIZE}</span>
