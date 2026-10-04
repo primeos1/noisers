@@ -41,7 +41,7 @@ export function nextGuestId(guests: Guest[]): string {
   return `guest-${n}`;
 }
 
-export const TEAM_NAMES = ["Team Black", "Team Blue", "Team Green", "Team Grey", "Team White Stripes"] as const;
+export const TEAM_NAMES = ["Team Black", "Team Blue", "Team Green", "Team Grey", "Team White Stripes", "Team Bibs"] as const;
 export const MAX_TEAMS = TEAM_NAMES.length;
 
 export function defaultTeamName(index: number) {
@@ -155,31 +155,36 @@ function teamCapacities(total: number, teamSize: number): number[] {
   return capacities;
 }
 
-function distributeRandom(items: number[], capacities: number[]): number[][] {
-  const teams: number[][] = Array.from({ length: capacities.length }, () => []);
+// Round-robins so a group spreads out instead of piling into the first
+// team(s). Quotas always add up to the group size, so everyone gets a place.
+function distributeRandom(ids: number[], quotas: number[]): number[][] {
+  const teams: number[][] = quotas.map(() => []);
   let t = 0;
-  for (const item of shuffle(items)) {
+  for (const id of shuffle(ids)) {
     let tries = 0;
-    while (teams[t].length >= capacities[t] && tries < capacities.length) {
-      t = (t + 1) % capacities.length;
+    while (teams[t].length >= quotas[t] && tries < quotas.length) {
+      t = (t + 1) % quotas.length;
       tries++;
     }
-    if (tries >= capacities.length) break;
-    teams[t].push(item);
-    t = (t + 1) % capacities.length;
+    if (tries >= quotas.length) break;
+    teams[t].push(id);
+    t = (t + 1) % quotas.length;
   }
   return teams;
 }
 
-// Greedy draft: the next-best player always goes to the weakest team so far.
-function distributeByRating(present: Player[], capacities: number[]): number[][] {
-  const sorted = shuffle(present).sort((a, b) => b.rating - a.rating);
-  const teams: number[][] = Array.from({ length: capacities.length }, () => []);
-  const totals = Array(capacities.length).fill(0);
+// Greedy "draft to the lightest team": sort by rating (shuffled first so
+// ties don't always land the same way) and hand the next player to the team
+// with the lowest rating total so far — counting the players already placed
+// from an earlier group — so the strongest and weakest are spread evenly.
+function distributeByRating(group: Player[], quotas: number[], placed: Player[][]): number[][] {
+  const sorted = shuffle(group).sort((a, b) => b.rating - a.rating);
+  const teams: number[][] = quotas.map(() => []);
+  const totals = placed.map((team) => team.reduce((sum, p) => sum + p.rating, 0));
   for (const player of sorted) {
     let best = -1;
     for (let i = 0; i < teams.length; i++) {
-      if (teams[i].length >= capacities[i]) continue;
+      if (teams[i].length >= quotas[i]) continue;
       if (best === -1 || totals[i] < totals[best]) best = i;
     }
     if (best === -1) break;
@@ -189,12 +194,19 @@ function distributeByRating(present: Player[], capacities: number[]): number[][]
   return teams;
 }
 
-// Spreads each position evenly across the teams.
-function distributeByPosition(present: Player[], capacities: number[]): number[][] {
+// Same greedy idea, but balancing each position across teams rather than a
+// single rating total. Players are balanced by their main position; a second
+// position doesn't count.
+function distributeByPosition(group: Player[], quotas: number[], placed: Player[][]): number[][] {
   const positions: Position[] = ["GK", "DEF", "MID", "FWD"];
-  const groups = positions.map((pos) => shuffle(present.filter((p) => p.position === pos)));
-  const teams: number[][] = Array.from({ length: capacities.length }, () => []);
-  const counts = teams.map(() => ({ GK: 0, DEF: 0, MID: 0, FWD: 0 }) as Record<Position, number>);
+  const groups = positions.map((pos) => shuffle(group.filter((p) => p.position === pos)));
+  const teams: number[][] = quotas.map(() => []);
+  const counts = placed.map((team) => {
+    const count: Record<Position, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+    team.forEach((p) => count[p.position]++);
+    return count;
+  });
+  const size = (i: number) => placed[i].length + teams[i].length;
 
   let remaining = groups.reduce((n, g) => n + g.length, 0);
   while (remaining > 0) {
@@ -205,11 +217,11 @@ function distributeByPosition(present: Player[], capacities: number[]): number[]
       const pos = positions[g];
       let best = -1;
       for (let i = 0; i < teams.length; i++) {
-        if (teams[i].length >= capacities[i]) continue;
+        if (teams[i].length >= quotas[i]) continue;
         if (
           best === -1 ||
           counts[i][pos] < counts[best][pos] ||
-          (counts[i][pos] === counts[best][pos] && teams[i].length < teams[best].length)
+          (counts[i][pos] === counts[best][pos] && size(i) < size(best))
         ) {
           best = i;
         }
@@ -222,19 +234,20 @@ function distributeByPosition(present: Player[], capacities: number[]): number[]
   return teams;
 }
 
-// Guests are spread evenly: each team's guest count is decided before any
-// squad player is placed — fewest guests first (ties: most room, then random).
-function guestQuotas(capacities: number[], guestCount: number): number[] {
-  const quotas = capacities.map(() => 0);
-  const order = shuffle(capacities.map((_, i) => i));
-  for (let g = 0; g < guestCount; g++) {
+// How many of a group each team takes so the group is spread evenly: each
+// one goes to the team with the fewest of them so far (ties: the most room
+// left, then random), never past the room a team has left.
+function spreadQuotas(room: number[], count: number): number[] {
+  const quotas = room.map(() => 0);
+  const order = shuffle(room.map((_, i) => i));
+  for (let n = 0; n < count; n++) {
     let best = -1;
     for (const i of order) {
-      if (quotas[i] >= capacities[i]) continue;
+      if (quotas[i] >= room[i]) continue;
       if (
         best === -1 ||
         quotas[i] < quotas[best] ||
-        (quotas[i] === quotas[best] && capacities[i] - quotas[i] > capacities[best] - quotas[best])
+        (quotas[i] === quotas[best] && room[i] - quotas[i] > room[best] - quotas[best])
       ) {
         best = i;
       }
@@ -245,12 +258,9 @@ function guestQuotas(capacities: number[], guestCount: number): number[] {
   return quotas;
 }
 
-// Guests have no rating or position, so they're dealt randomly into their reserved slots.
-function fillWithGuests(teams: ParticipantId[][], quotas: number[], guestIds: string[]) {
-  const shuffled = shuffle(guestIds);
-  quotas.forEach((quota, i) => teams[i].push(...shuffled.splice(0, quota)));
-}
-
+// Members are placed first, then guest members, then guests — each group
+// spread as evenly as the room left by the one before allows. Guests have
+// no rating or position, so they're simply dealt into whatever is left.
 export function buildTeams(
   players: Player[],
   presentSquad: number[],
@@ -258,24 +268,74 @@ export function buildTeams(
   mode: TeamMode,
   teamSize: number,
 ): MatchDayTeam[] {
-  const capacities = teamCapacities(presentSquad.length + guests.length, teamSize);
-  if (capacities.length === 0) return [];
-  const quotas = guestQuotas(capacities, guests.length);
-  const squadCapacities = capacities.map((c, i) => c - quotas[i]);
-  const present = presentSquad
+  const squad = presentSquad
     .map((id) => players.find((p) => p.id === id))
     .filter((p): p is Player => !!p);
+  const capacities = teamCapacities(squad.length + guests.length, teamSize);
+  if (capacities.length === 0) return [];
 
-  const squadTeams =
-    mode === "rating"
-      ? distributeByRating(present, squadCapacities)
-      : mode === "position"
-        ? distributeByPosition(present, squadCapacities)
-        : distributeRandom(presentSquad, squadCapacities);
+  const placed: Player[][] = capacities.map(() => []);
+  let room = [...capacities];
+  for (const group of [squad.filter((p) => p.membership !== "guest"), squad.filter((p) => p.membership === "guest")]) {
+    const quotas = spreadQuotas(room, group.length);
+    const picks =
+      mode === "rating"
+        ? distributeByRating(group, quotas, placed)
+        : mode === "position"
+          ? distributeByPosition(group, quotas, placed)
+          : distributeRandom(group.map((p) => p.id), quotas);
+    picks.forEach((ids, i) => placed[i].push(...group.filter((p) => ids.includes(p.id))));
+    room = room.map((r, i) => r - quotas[i]);
+  }
 
-  const teams: ParticipantId[][] = squadTeams.map((t) => [...t]);
-  fillWithGuests(teams, quotas, guests.map((g) => g.id));
-  return teams.map((roster, i) => ({ name: defaultTeamName(i), players: roster }));
+  const teams: ParticipantId[][] = placed.map((team) => team.map((p) => p.id));
+  const guestIds = shuffle(guests.map((g) => g.id));
+  room.forEach((r, i) => teams[i].push(...guestIds.splice(0, r)));
+
+  return nameTeams(players, teams);
+}
+
+// The five colours are dealt out in a random order; Team Bibs only ever
+// appears as the sixth team. Rozay (#7) always wears the white stripes:
+// his team takes that name, swapping with whichever team had it. Bibs is
+// pinned to sixth, so if he's drawn there he instead trades places with the
+// most similar player on White Stripes (same position, closest rating).
+const WHITE_STRIPES = "Team White Stripes";
+const BIBS = "Team Bibs";
+
+function isRozay(player: Player) {
+  return player.name.trim().toLowerCase() === "rozay";
+}
+
+function nameTeams(players: Player[], rosters: ParticipantId[][]): MatchDayTeam[] {
+  const colours = shuffle(TEAM_NAMES.filter((n) => n !== BIBS));
+  const teams = rosters.map((roster, i) => ({
+    name: i < colours.length ? colours[i] : defaultTeamName(i),
+    players: [...roster],
+  }));
+
+  const rozay = players.find(isRozay);
+  const his = rozay ? teams.findIndex((t) => t.players.includes(rozay.id)) : -1;
+  if (!rozay || his < 0 || teams[his].name === WHITE_STRIPES) return teams;
+
+  const stripes = teams.findIndex((t) => t.name === WHITE_STRIPES);
+  if (teams[his].name === BIBS && stripes >= 0) {
+    const candidates = teams[stripes].players;
+    const squad = candidates
+      .map((id) => players.find((p) => p.id === id))
+      .filter((p): p is Player => !!p);
+    const score = (p: Player) =>
+      (p.membership === rozay.membership ? 0 : 10000) + (p.position === rozay.position ? 0 : 1000) + Math.abs(p.rating - rozay.rating);
+    const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
+    if (partner === undefined) return teams;
+    teams[his].players = teams[his].players.map((id) => (id === rozay.id ? partner : id));
+    teams[stripes].players = candidates.map((id) => (id === partner ? rozay.id : id));
+    return teams;
+  }
+
+  if (stripes >= 0) teams[stripes].name = teams[his].name;
+  teams[his].name = WHITE_STRIPES;
+  return teams;
 }
 
 // ---- The game clock ----------------------------------------------------
