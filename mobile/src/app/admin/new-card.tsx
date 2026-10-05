@@ -41,26 +41,30 @@ export default function NewCardScreen() {
   // A card missed during a match day goes into that game's record; the
   // server then logs its fine and updates stats, ratings and The Vale.
   async function addToGame(id: string, target: MatchDayGame, player: number) {
-    const games = event!.games.map((g) =>
-      g.id !== target.id
-        ? g
-        : {
-            ...g,
-            cards: [
-              ...g.cards,
-              {
-                id: `c${Date.now()}`,
-                teamIndex: g.teams[1].players.includes(player) ? (1 as const) : (0 as const),
-                playerId: player,
-                type,
-                reason: reason.trim() || (type === "yellow" ? "Yellow card" : "Red card"),
-                minute: 0,
-              },
-            ],
-          },
-    );
+    const cardId = `c${Date.now()}`;
+    const cardReason = reason.trim() || (type === "yellow" ? "Yellow card" : "Red card");
     try {
-      await updateEvent(id, { games });
+      // Built on the latest copy, in case someone is editing that match day too.
+      await updateEvent(id, (e) => ({
+        games: e.games.map((g) =>
+          g.id !== target.id
+            ? g
+            : {
+                ...g,
+                cards: [
+                  ...g.cards,
+                  {
+                    id: cardId,
+                    teamIndex: g.teams[1].players.includes(player) ? (1 as const) : (0 as const),
+                    playerId: player,
+                    type,
+                    reason: cardReason,
+                    minute: 0,
+                  },
+                ],
+              },
+        ),
+      }));
     } finally {
       await refresh();
     }

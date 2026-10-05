@@ -6,6 +6,7 @@ import { useSettings } from "../../lib/SettingsContext";
 import CardFormModal, { type CardMatchLink } from "../../components/admin/CardFormModal";
 import { useMatchDay } from "../../lib/MatchDayContext";
 import { useValeContent } from "../../lib/ValeContentContext";
+import type { MatchDayEvent } from "../../lib/matchDay";
 
 type Filter = "all" | "unpaid" | "paid" | CardType;
 
@@ -32,25 +33,29 @@ export default function AdminCards() {
   async function addToMatchDay(card: CardRecord, link: CardMatchLink) {
     const event = events.find((e) => e.id === link.eventId);
     if (!event) return;
-    const games = event.games.map((g) =>
-      g.id !== link.gameId
-        ? g
-        : {
-            ...g,
-            cards: [
-              ...g.cards,
-              {
-                id: `c${Date.now()}`,
-                teamIndex: g.teams[1].players.includes(card.playerId) ? (1 as const) : (0 as const),
-                playerId: card.playerId,
-                type: card.type,
-                reason: card.reason,
-                minute: 0,
-              },
-            ],
-          },
-    );
-    if (await updateEvent(event.id, { games })) {
+    const cardId = `c${Date.now()}`;
+    // Built on the latest copy, in case someone is editing that match day too.
+    const edit = (latest: MatchDayEvent) => ({
+      games: latest.games.map((g) =>
+        g.id !== link.gameId
+          ? g
+          : {
+              ...g,
+              cards: [
+                ...g.cards,
+                {
+                  id: cardId,
+                  teamIndex: g.teams[1].players.includes(card.playerId) ? (1 as const) : (0 as const),
+                  playerId: card.playerId,
+                  type: card.type,
+                  reason: card.reason,
+                  minute: 0,
+                },
+              ],
+            },
+      ),
+    });
+    if (await updateEvent(event.id, edit)) {
       refreshCards();
       refreshSquad();
       refreshVale();

@@ -22,17 +22,19 @@ export default function SavesCounter({
   game: MatchDayGame;
   players: Player[];
   minute: number;
-  onChange: (saves: MatchDaySave[]) => void;
+  /** Gets a change to make to the game's latest saves, so it can be re-applied. */
+  onChange: (update: (saves: MatchDaySave[]) => MatchDaySave[]) => void;
 }) {
   const saves = game.saves ?? [];
 
   function add(teamIndex: 0 | 1, playerId: number) {
-    onChange([...saves, { id: newSaveId(), teamIndex, playerId, minute }]);
+    const save = { id: newSaveId(), teamIndex, playerId, minute };
+    onChange((latest) => [...latest, save]);
   }
 
   function undo(playerId: number) {
-    const last = saves.findLastIndex((s) => s.playerId === playerId);
-    if (last !== -1) onChange(saves.filter((_, i) => i !== last));
+    const last = saves.findLast((s) => s.playerId === playerId);
+    if (last) onChange((latest) => latest.filter((s) => s.id !== last.id));
   }
 
   return (

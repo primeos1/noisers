@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useClub, type EventPatch } from "../../lib/club";
+import { useClub, type EventEdit } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
 import { participantName, plural, scoreOf } from "../../lib/derive";
 import {
@@ -16,6 +16,7 @@ import {
   nextFixture,
   nextGuestId,
   nextTeamName,
+  stoppedClockOf,
   uniqueEventId,
   useMatchTimer,
 } from "../../lib/matchDay";
@@ -186,7 +187,7 @@ function Setup({
   onBackToGame,
 }: {
   event: MatchDayEvent;
-  patch: (p: EventPatch) => void;
+  patch: (edit: EventEdit) => void;
   liveGame: MatchDayGame | null;
   onBackToGame: () => void;
 }) {
@@ -203,18 +204,24 @@ function Setup({
   const [sideA, sideB] = sides[0] < event.groups.length && sides[1] < event.groups.length ? sides : [0, 1];
   const pastGames = event.games.filter((g) => g.status === "finished");
 
+  // Edits are functions of the latest copy, so another admin's changes saved
+  // in the meantime are built on rather than overwritten (see lib/club.tsx).
   function togglePresent(playerId: number) {
     tap();
-    const has = event.presentPlayers.includes(playerId);
-    patch({
-      presentPlayers: has ? event.presentPlayers.filter((id) => id !== playerId) : [...event.presentPlayers, playerId],
+    const leaving = event.presentPlayers.includes(playerId);
+    patch((e) => ({
+      presentPlayers: leaving ? e.presentPlayers.filter((id) => id !== playerId) : [...e.presentPlayers.filter((id) => id !== playerId), playerId],
       // Someone who went home can't stay on a team.
-      groups: has ? event.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== playerId) })) : event.groups,
-    });
+      groups: leaving ? e.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== playerId) })) : e.groups,
+    }));
   }
 
   function setGroups(groups: MatchDayTeam[]) {
     patch({ groups });
+  }
+
+  function editGroups(update: (groups: MatchDayTeam[]) => MatchDayTeam[]) {
+    patch((e) => ({ groups: update(e.groups) }));
   }
 
   function randomize() {
@@ -225,22 +232,26 @@ function Setup({
 
   function assign(index: number, id: ParticipantId) {
     tap();
-    if (event.groups[index].players.length >= teamSize) return;
-    setGroups(
-      event.groups.map((t, i) => {
-        const rest = t.players.filter((p) => p !== id);
-        return i === index ? { ...t, players: [...rest, id] } : { ...t, players: rest };
-      }),
+    editGroups((groups) =>
+      !groups[index] || groups[index].players.length >= teamSize
+        ? groups
+        : groups.map((t, i) => {
+            const rest = t.players.filter((p) => p !== id);
+            return i === index ? { ...t, players: [...rest, id] } : { ...t, players: rest };
+          }),
     );
   }
 
   function startGame() {
-    const a = event.groups[sideA];
-    const b = event.groups[sideB];
-    if (!a || !b || sideA === sideB) return;
-    const game = newGame(a, b);
+    if (!event.groups[sideA] || !event.groups[sideB] || sideA === sideB) return;
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-    patch({ games: [...event.games, game] });
+    patch((e) => {
+      const a = e.groups[sideA];
+      const b = e.groups[sideB];
+      // Another admin may have kicked one off already.
+      if (!a || !b || e.games.some((g) => g.status === "live")) return {};
+      return { games: [...e.games, newGame(a, b)] };
+    });
   }
 
   return (
@@ -254,7 +265,7 @@ function Setup({
               <Txt style={styles.textButton}>All</Txt>
             </Pressable>
             <Pressable
-              onPress={() => patch({ presentPlayers: [], groups: event.groups.map((t) => ({ ...t, players: t.players.filter((p) => typeof p === "string") })) })}
+              onPress={() => patch((e) => ({ presentPlayers: [], groups: e.groups.map((t) => ({ ...t, players: t.players.filter((p) => typeof p === "string") })) }))}
               hitSlop={6}
               accessibilityRole="button"
             >
@@ -298,7 +309,7 @@ function Setup({
         title="Guests"
         aside={
           <Pressable
-            onPress={() => patch({ guests: [...event.guests, { id: nextGuestId(event.guests), name: `Guest ${event.guests.length + 1}` }] })}
+            onPress={() => patch((e) => ({ guests: [...e.guests, { id: nextGuestId(e.guests), name: `Guest ${e.guests.length + 1}` }] }))}
             hitSlop={6}
             accessibilityRole="button"
           >
@@ -317,17 +328,17 @@ function Setup({
                 defaultValue={g.name}
                 onEndEditing={(e) => {
                   const next = e.nativeEvent.text.trim();
-                  if (next && next !== g.name) patch({ guests: event.guests.map((x) => (x.id === g.id ? { ...x, name: next } : x)) });
+                  if (next && next !== g.name) patch((e) => ({ guests: e.guests.map((x) => (x.id === g.id ? { ...x, name: next } : x)) }));
                 }}
                 style={[formStyles.input, styles.flex]}
                 accessibilityLabel={`Name for ${g.id}`}
               />
               <Pressable
                 onPress={() =>
-                  patch({
-                    guests: event.guests.filter((x) => x.id !== g.id),
-                    groups: event.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== g.id) })),
-                  })
+                  patch((e) => ({
+                    guests: e.guests.filter((x) => x.id !== g.id),
+                    groups: e.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== g.id) })),
+                  }))
                 }
                 hitSlop={8}
                 accessibilityRole="button"
@@ -347,7 +358,7 @@ function Setup({
             <Button label={event.groups.length ? "Re-randomize" : "Randomize"} icon="shuffle" onPress={randomize} disabled={allPresent.length < 2 || !!liveGame} />
           </View>
           <View style={styles.flex}>
-            <Button label="New team" variant="secondary" icon="add" disabled={event.groups.length >= MAX_TEAMS} onPress={() => setGroups([...event.groups, { name: nextTeamName(event.groups), players: [] }])} />
+            <Button label="New team" variant="secondary" icon="add" disabled={event.groups.length >= MAX_TEAMS} onPress={() => editGroups((groups) => (groups.length >= MAX_TEAMS ? groups : [...groups, { name: nextTeamName(groups), players: [] }]))} />
           </View>
         </View>
         {/* Re-drawing mid-game would rename the teams and break the rotation. */}
@@ -364,7 +375,7 @@ function Setup({
               editable={event.games.length === 0}
               onEndEditing={(e) => {
                 const next = e.nativeEvent.text.trim();
-                if (next && next !== team.name) setGroups(event.groups.map((t, j) => (j === i ? { ...t, name: next } : t)));
+                if (next && next !== team.name) editGroups((groups) => groups.map((t, j) => (j === i ? { ...t, name: next } : t)));
               }}
               style={styles.teamName}
               accessibilityLabel={`Team ${i + 1} name`}
@@ -373,7 +384,7 @@ function Setup({
               {team.players.length}/{teamSize}
             </Txt>
             {team.players.length === 0 ? (
-              <Pressable onPress={() => setGroups(event.groups.filter((_, j) => j !== i))} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Delete ${team.name}`}>
+              <Pressable onPress={() => editGroups((groups) => groups.filter((t, j) => !(j === i && t.players.length === 0)))} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Delete ${team.name}`}>
                 <Ionicons name="trash-outline" size={18} color={colors.mist} />
               </Pressable>
             ) : null}
@@ -384,7 +395,7 @@ function Setup({
                 {name(id)}
               </Txt>
               <Pressable
-                onPress={() => setGroups(event.groups.map((t, j) => (j === i ? { ...t, players: t.players.filter((p) => p !== id) } : t)))}
+                onPress={() => editGroups((groups) => groups.map((t, j) => (j === i ? { ...t, players: t.players.filter((p) => p !== id) } : t)))}
                 hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel={`Take ${name(id)} off ${team.name}`}
@@ -452,7 +463,7 @@ function LiveGame({
 }: {
   event: MatchDayEvent;
   game: MatchDayGame;
-  patch: (p: EventPatch) => Promise<boolean>;
+  patch: (edit: EventEdit) => Promise<boolean>;
   onShowSquad: () => void;
 }) {
   const { players, settings, refresh } = useClub();
@@ -460,22 +471,31 @@ function LiveGame({
   const name = (id: ParticipantId) => participantName(players, event.guests, id);
 
   function updateGame(updater: (g: MatchDayGame) => MatchDayGame) {
-    return patch({ games: event.games.map((g) => (g.id === game.id ? updater(g) : g)) });
+    const gameId = game.id;
+    return patch((e) => ({ games: e.games.map((g) => (g.id === gameId ? updater(g) : g)) }));
   }
 
   const timer = useMatchTimer(game, (clock) => updateGame((g) => ({ ...g, ...clock })), settings.matchGameMinutes);
 
-  // The next game in the winner-stays-on rotation kicks off straight away,
-  // clock paused. Squad stats only count finished games, so reload them once
-  // one is saved.
+  // Finishes the game and kicks off the next one in the winner-stays-on
+  // rotation straight away, clock paused. If another admin already finished
+  // it, the change still lands on that game but nothing restarts twice.
+  function finishGame(e: MatchDayEvent, updater: (g: MatchDayGame) => MatchDayGame) {
+    const target = e.games.find((g) => g.id === game.id);
+    if (!target) return {};
+    if (target.status !== "live") return { games: e.games.map((g) => (g.id === game.id ? updater(g) : g)) };
+    const games = e.games.map((g) =>
+      g.id === game.id ? { ...updater(g), ...stoppedClockOf(g, settings.matchGameMinutes), status: "finished" as const } : g,
+    );
+    const { next } = nextFixture(e.groups, games);
+    if (next) games.push(newGame(e.groups[next[0]], e.groups[next[1]]));
+    return { games };
+  }
+
+  // Squad stats only count finished games, so reload them once one is saved.
   function finish(updater: (g: MatchDayGame) => MatchDayGame = (g) => g) {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-    const games = event.games.map((g) =>
-      g.id === game.id ? { ...updater(g), ...timer.stoppedClock(), status: "finished" as const } : g,
-    );
-    const { next } = nextFixture(event.groups, games);
-    if (next) games.push(newGame(event.groups[next[0]], event.groups[next[1]]));
-    patch({ games }).then((ok) => {
+    patch((e) => finishGame(e, updater)).then((ok) => {
       if (ok) refresh();
     });
   }
@@ -501,13 +521,18 @@ function LiveGame({
 
   function addGoal() {
     if (scorer === null) return;
-    const goals = [
-      ...game.goals,
-      { id: `g${Date.now()}`, teamIndex: goalTeam, playerId: scorer, assistPlayerId: !ownGoal ? assist : null, ownGoal, minute: timer.minute },
-    ];
+    const goal = { id: `g${Date.now()}`, teamIndex: goalTeam, playerId: scorer, assistPlayerId: !ownGoal ? assist : null, ownGoal, minute: timer.minute };
+    const withGoal = (g: MatchDayGame) => ({ ...g, goals: [...g.goals, goal] });
+    const won = (g: MatchDayGame) => scoreOf(g, 0) >= winGoals || scoreOf(g, 1) >= winGoals;
+    const endsGame = won(withGoal(game));
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => undefined);
-    if (scoreOf({ goals }, 0) >= winGoals || scoreOf({ goals }, 1) >= winGoals) finish((g) => ({ ...g, goals }));
-    else updateGame((g) => ({ ...g, goals }));
+    patch((e) => {
+      const latest = e.games.find((g) => g.id === game.id);
+      if (!latest) return {};
+      return won(withGoal(latest)) ? finishGame(e, withGoal) : { games: e.games.map((g) => (g.id === game.id ? withGoal(g) : g)) };
+    }).then((ok) => {
+      if (ok && endsGame) refresh();
+    });
     setScorer(null);
     setAssist(null);
     setOwnGoal(false);
@@ -515,29 +540,27 @@ function LiveGame({
 
   function addCard() {
     if (cardPlayer === null) return;
-    updateGame((g) => ({
-      ...g,
-      cards: [
-        ...g.cards,
-        {
-          id: `c${Date.now()}`,
-          teamIndex: cardTeam,
-          playerId: cardPlayer,
-          type: cardType,
-          reason: cardReason.trim() || (cardType === "yellow" ? "Yellow card" : "Red card"),
-          minute: timer.minute,
-        },
-      ],
-    }));
+    const card = {
+      id: `c${Date.now()}`,
+      teamIndex: cardTeam,
+      playerId: cardPlayer,
+      type: cardType,
+      reason: cardReason.trim() || (cardType === "yellow" ? "Yellow card" : "Red card"),
+      minute: timer.minute,
+    };
+    updateGame((g) => ({ ...g, cards: [...g.cards, card] }));
     setCardPlayer(null);
     setCardReason("");
   }
 
   function substitute() {
     if (subOff === null || subOn === null) return;
+    const side = subTeam;
+    const off = subOff;
+    const on = subOn;
     updateGame((g) => {
       const teams = [...g.teams] as [MatchDayTeam, MatchDayTeam];
-      teams[subTeam] = { ...teams[subTeam], players: [...teams[subTeam].players.filter((id) => id !== subOff), subOn] };
+      teams[side] = { ...teams[side], players: [...teams[side].players.filter((id) => id !== off && id !== on), on] };
       return { ...g, teams };
     });
     setSubOff(null);
@@ -699,7 +722,7 @@ function LiveGame({
       </Section>
 
       <Section title="Saves" description="Tap + each time a keeper makes a save. Only players listed as GK show here.">
-        <SavesCounter game={game} players={players} minute={timer.minute} onChange={(saves) => updateGame((g) => ({ ...g, saves }))} />
+        <SavesCounter game={game} players={players} minute={timer.minute} onChange={(update) => updateGame((g) => ({ ...g, saves: update(g.saves ?? []) }))} />
       </Section>
 
       <Section title="Substitute" description="Swap a tired or injured player for someone on the bench.">
@@ -738,7 +761,9 @@ function LiveGame({
 }
 
 export default function MatchDayScreen() {
-  const { events, settings, refresh, updateEvent } = useClub();
+  const { events, settings, refresh, updateEvent, watchLive } = useClub();
+  // Keep up with other admins recording the same match day.
+  useEffect(() => watchLive(), [watchLive]);
   // undefined = follow whichever match day is live; null = the create form.
   const [chosenId, setChosenId] = useState<string | null | undefined>(undefined);
   const [error, setError] = useState("");
@@ -753,10 +778,10 @@ export default function MatchDayScreen() {
   const event = chosenId === undefined ? events.find((e) => e.status === "live") ?? null : events.find((e) => e.id === chosenId) ?? null;
   const liveGame = event?.games.find((g) => g.status === "live") ?? null;
 
-  function patch(p: EventPatch) {
+  function patch(edit: EventEdit) {
     if (!event) return Promise.resolve(false);
     setError("");
-    return updateEvent(event.id, p)
+    return updateEvent(event.id, edit)
       .then(() => true)
       .catch((err) => {
         setError(`${errorMessage(err, "Couldn't save that change.")} Check your connection and try again.`);
@@ -766,18 +791,13 @@ export default function MatchDayScreen() {
 
   function endMatchDay() {
     if (!event) return;
-    // Stop any running clock where it is, as the timer's stoppedClock() does.
-    const stopped = (g: MatchDayGame) => {
-      const run = g.clockStartedAt ? (Date.now() - g.clockStartedAt) / 1000 : 0;
-      return { clockStartedAt: null, clockElapsed: Math.min((g.clockElapsed ?? 0) + run, settings.matchGameMinutes * 60) };
-    };
-    patch({
+    patch((e) => ({
       // The game auto-started after the last one isn't a 0–0 if it never began.
-      games: event.games
+      games: e.games
         .filter((g) => !(g.status === "live" && isUntouched(g)))
-        .map((g) => (g.status === "live" ? { ...g, ...stopped(g), status: "finished" as const } : g)),
+        .map((g) => (g.status === "live" ? { ...g, ...stoppedClockOf(g, settings.matchGameMinutes), status: "finished" as const } : g)),
       status: "ended",
-    }).then((ok) => {
+    })).then((ok) => {
       // Ending the day files the fines and rewrites The Vale server-side.
       if (ok) refresh();
     });

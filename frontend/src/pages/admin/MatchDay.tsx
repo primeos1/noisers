@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useValeContent } from "../../lib/ValeContentContext";
 import { nextJerseyNumber, positionCodes, type Player } from "../../lib/clubData";
-import { useMatchDay } from "../../lib/MatchDayContext";
+import { useMatchDay, type EventEdit } from "../../lib/MatchDayContext";
 import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 import SavesCounter from "../../components/admin/SavesCounter";
@@ -30,7 +30,7 @@ import {
   type ParticipantId,
   type TeamMode,
 } from "../../lib/matchDay";
-import { formatClock, useMatchTimer } from "../../lib/useMatchTimer";
+import { formatClock, stoppedClockOf, useMatchTimer } from "../../lib/useMatchTimer";
 
 const inputClass =
   "mt-1 w-full border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper";
@@ -56,7 +56,9 @@ export default function MatchDay() {
   };
   const { refresh: refreshCards } = useCards();
   const { refresh: refreshVale } = useValeContent();
-  const { events, addEvent, updateEvent, error: matchDayError } = useMatchDay();
+  const { events, addEvent, updateEvent, watchLive, error: matchDayError } = useMatchDay();
+  // Keep up with other admins recording the same match day.
+  useEffect(() => watchLive(), [watchLive]);
   const { settings } = useSettings();
   const TEAM_SIZE = settings.matchTeamSize;
   const WIN_GOALS = settings.matchWinGoals;
@@ -133,45 +135,45 @@ export default function MatchDay() {
     setCreateError("");
   }
 
-  function patch(p: Partial<MatchDayEvent>) {
+  // Edits are functions of the latest copy, so another admin's changes saved
+  // in the meantime are built on rather than overwritten (see MatchDayContext).
+  function patch(edit: EventEdit) {
     if (!activeEvent) return Promise.resolve(false);
-    return updateEvent(activeEvent.id, p);
+    return updateEvent(activeEvent.id, edit);
   }
 
   function togglePresent(playerId: number) {
     if (!activeEvent) return;
-    const has = activeEvent.presentPlayers.includes(playerId);
-    patch({
-      presentPlayers: has
-        ? activeEvent.presentPlayers.filter((id) => id !== playerId)
-        : [...activeEvent.presentPlayers, playerId],
-    });
+    const present = !activeEvent.presentPlayers.includes(playerId);
+    patch((e) => ({
+      presentPlayers: present
+        ? [...e.presentPlayers.filter((id) => id !== playerId), playerId]
+        : e.presentPlayers.filter((id) => id !== playerId),
+    }));
   }
 
   async function handleAddPlayer(player: Omit<Player, "id">) {
     setAddingPlayer(false);
     // Mark them present once saved — their id only exists after that.
     const created = await addPlayer(player);
-    if (created && activeEvent) patch({ presentPlayers: [...activeEvent.presentPlayers, created.id] });
+    if (created && activeEvent) {
+      patch((e) => ({ presentPlayers: [...e.presentPlayers.filter((id) => id !== created.id), created.id] }));
+    }
   }
 
   function addGuest() {
-    if (!activeEvent) return;
-    const id = nextGuestId(activeEvent.guests);
-    patch({ guests: [...activeEvent.guests, { id, name: `Guest ${activeEvent.guests.length + 1}` }] });
+    patch((e) => ({ guests: [...e.guests, { id: nextGuestId(e.guests), name: `Guest ${e.guests.length + 1}` }] }));
   }
 
   function renameGuest(id: string, newName: string) {
-    if (!activeEvent) return;
-    patch({ guests: activeEvent.guests.map((g) => (g.id === id ? { ...g, name: newName } : g)) });
+    patch((e) => ({ guests: e.guests.map((g) => (g.id === id ? { ...g, name: newName } : g)) }));
   }
 
   function removeGuest(id: string) {
-    if (!activeEvent) return;
-    patch({
-      guests: activeEvent.guests.filter((g) => g.id !== id),
-      groups: activeEvent.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== id) })),
-    });
+    patch((e) => ({
+      guests: e.guests.filter((g) => g.id !== id),
+      groups: e.groups.map((t) => ({ ...t, players: t.players.filter((p) => p !== id) })),
+    }));
   }
 
   function handleRandomize() {
@@ -183,64 +185,78 @@ export default function MatchDay() {
   }
 
   function addNewTeam() {
-    if (!activeEvent || activeEvent.groups.length >= MAX_TEAMS) return;
-    patch({ groups: [...activeEvent.groups, { name: nextTeamName(activeEvent.groups), players: [] }] });
+    patch((e) => (e.groups.length >= MAX_TEAMS ? {} : { groups: [...e.groups, { name: nextTeamName(e.groups), players: [] }] }));
   }
 
   function renameTeam(index: number, newName: string) {
-    if (!activeEvent) return;
-    patch({ groups: activeEvent.groups.map((t, i) => (i === index ? { ...t, name: newName } : t)) });
+    patch((e) => ({ groups: e.groups.map((t, i) => (i === index ? { ...t, name: newName } : t)) }));
   }
 
   function assignToTeam(index: number, id: ParticipantId) {
-    if (!activeEvent) return;
-    const target = activeEvent.groups[index];
-    if (!target || target.players.length >= TEAM_SIZE) return;
-    patch({
-      groups: activeEvent.groups.map((t, i) => {
-        const players = t.players.filter((p) => p !== id);
-        return i === index ? { ...t, players: [...players, id] } : { ...t, players };
-      }),
+    patch((e) => {
+      const target = e.groups[index];
+      if (!target || target.players.length >= TEAM_SIZE) return {};
+      return {
+        groups: e.groups.map((t, i) => {
+          const players = t.players.filter((p) => p !== id);
+          return i === index ? { ...t, players: [...players, id] } : { ...t, players };
+        }),
+      };
     });
   }
 
   function removeFromTeam(index: number, id: ParticipantId) {
-    if (!activeEvent) return;
-    patch({
-      groups: activeEvent.groups.map((t, i) => (i === index ? { ...t, players: t.players.filter((p) => p !== id) } : t)),
-    });
+    patch((e) => ({
+      groups: e.groups.map((t, i) => (i === index ? { ...t, players: t.players.filter((p) => p !== id) } : t)),
+    }));
   }
 
   function startGame() {
     if (!activeEvent || activeEvent.groups.length < 2 || playA === playB) return;
-    const teamA = activeEvent.groups[playA];
-    const teamB = activeEvent.groups[playB];
-    if (!teamA || !teamB) return;
-    patch({ games: [...activeEvent.games, newGame(teamA, teamB)] });
+    patch((e) => {
+      const teamA = e.groups[playA];
+      const teamB = e.groups[playB];
+      // Another admin may have kicked one off already.
+      if (!teamA || !teamB || e.games.some((g) => g.status === "live")) return {};
+      return { games: [...e.games, newGame(teamA, teamB)] };
+    });
   }
 
   function updateLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
-    if (!activeEvent || !liveGame) return Promise.resolve(false);
-    return patch({ games: activeEvent.games.map((g) => (g.id === liveGame.id ? updater(g) : g)) });
+    if (!liveGame) return Promise.resolve(false);
+    const gameId = liveGame.id;
+    return patch((e) => ({ games: e.games.map((g) => (g.id === gameId ? updater(g) : g)) }));
   }
 
-  // The next game in the winner-stays-on rotation kicks off straight away,
-  // clock paused. Squad stats only count finished games, so reload them once
-  // one is saved.
-  function finishLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
-    if (!activeEvent || !liveGame) return;
-    const games = activeEvent.games.map((g) =>
-      g.id === liveGame.id ? { ...updater(g), ...timer.stoppedClock(), status: "finished" as const } : g,
+  // Finishes a game and kicks off the next one in the winner-stays-on
+  // rotation straight away, clock paused. If another admin already finished
+  // it, the change still lands on that game but nothing restarts twice.
+  function finishGame(e: MatchDayEvent, gameId: string, updater: (game: MatchDayGame) => MatchDayGame) {
+    const target = e.games.find((g) => g.id === gameId);
+    if (!target) return {};
+    if (target.status !== "live") return { games: e.games.map((g) => (g.id === gameId ? updater(g) : g)) };
+    const games = e.games.map((g) =>
+      g.id === gameId
+        ? { ...updater(g), ...stoppedClockOf(g, settings.matchGameMinutes), status: "finished" as const }
+        : g,
     );
-    const { next } = nextFixture(activeEvent.groups, games);
-    if (next) games.push(newGame(activeEvent.groups[next[0]], activeEvent.groups[next[1]]));
-    patch({ games }).then((saved) => {
+    const { next } = nextFixture(e.groups, games);
+    if (next) games.push(newGame(e.groups[next[0]], e.groups[next[1]]));
+    return { games };
+  }
+
+  // Squad stats only count finished games, so reload them once one is saved.
+  function finishLiveGame(updater: (game: MatchDayGame) => MatchDayGame) {
+    if (!liveGame) return;
+    const gameId = liveGame.id;
+    patch((e) => finishGame(e, gameId, updater)).then((saved) => {
       if (saved) refreshSquad();
     });
   }
 
   function addGoal() {
     if (!liveGame || goalPlayer === "") return;
+    const gameId = liveGame.id;
     const goal: MatchDayGoal = {
       id: `g${Date.now()}`,
       teamIndex: goalTeam,
@@ -249,10 +265,18 @@ export default function MatchDay() {
       ownGoal,
       minute: timer.minute,
     };
-    const goals = [...liveGame.goals, goal];
-    const finishNow = scoreOf({ goals }, 0) >= WIN_GOALS || scoreOf({ goals }, 1) >= WIN_GOALS;
-    if (finishNow) finishLiveGame((g) => ({ ...g, goals }));
-    else updateLiveGame((g) => ({ ...g, goals }));
+    const withGoal = (g: MatchDayGame) => ({ ...g, goals: [...g.goals, goal] });
+    const won = (g: MatchDayGame) => scoreOf(g, 0) >= WIN_GOALS || scoreOf(g, 1) >= WIN_GOALS;
+    const endsGame = won(withGoal(liveGame));
+    patch((e) => {
+      const game = e.games.find((g) => g.id === gameId);
+      if (!game) return {};
+      return won(withGoal(game))
+        ? finishGame(e, gameId, withGoal)
+        : { games: e.games.map((g) => (g.id === gameId ? withGoal(g) : g)) };
+    }).then((saved) => {
+      if (saved && endsGame) refreshSquad();
+    });
     setGoalPlayer("");
     setAssistPlayer("");
     setOwnGoal(false);
@@ -264,20 +288,15 @@ export default function MatchDay() {
 
   function addCard() {
     if (!liveGame || cardPlayer === "") return;
-    updateLiveGame((g) => ({
-      ...g,
-      cards: [
-        ...g.cards,
-        {
-          id: `c${Date.now()}`,
-          teamIndex: cardTeam,
-          playerId: cardPlayer,
-          type: cardType,
-          reason: cardReason.trim() || (cardType === "yellow" ? "Yellow card" : "Red card"),
-          minute: timer.minute,
-        },
-      ],
-    }));
+    const card = {
+      id: `c${Date.now()}`,
+      teamIndex: cardTeam,
+      playerId: cardPlayer,
+      type: cardType,
+      reason: cardReason.trim() || (cardType === "yellow" ? "Yellow card" : "Red card"),
+      minute: timer.minute,
+    };
+    updateLiveGame((g) => ({ ...g, cards: [...g.cards, card] }));
     setCardPlayer("");
     setCardReason("");
   }
@@ -288,11 +307,14 @@ export default function MatchDay() {
 
   function substitute() {
     if (!liveGame || subOff === "" || subOn === "") return;
+    const side = subTeam;
+    const off = subOff;
+    const on = subOn;
     updateLiveGame((g) => {
       const teams = [...g.teams] as [MatchDayTeam, MatchDayTeam];
-      const roster = teams[subTeam].players.filter((id) => id !== subOff);
-      roster.push(subOn);
-      teams[subTeam] = { ...teams[subTeam], players: roster };
+      const roster = teams[side].players.filter((id) => id !== off && id !== on);
+      roster.push(on);
+      teams[side] = { ...teams[side], players: roster };
       return { ...g, teams };
     });
     setSubOff("");
@@ -305,13 +327,15 @@ export default function MatchDay() {
 
   function endMatchDay() {
     if (!activeEvent) return;
-    updateEvent(activeEvent.id, {
+    updateEvent(activeEvent.id, (e) => ({
       // The game auto-started after the last one isn't a 0–0 if it never began.
-      games: activeEvent.games
+      games: e.games
         .filter((g) => !(g.status === "live" && isUntouched(g)))
-        .map((g) => (g.status === "live" ? { ...g, ...timer.stoppedClock(), status: "finished" } : g)),
+        .map((g) =>
+          g.status === "live" ? { ...g, ...stoppedClockOf(g, settings.matchGameMinutes), status: "finished" as const } : g,
+        ),
       status: "ended",
-    }).then((saved) => {
+    })).then((saved) => {
       // Ending the day files the cards (with fines) and rewrites The Vale's
       // weekly awards server-side — reload everything that shows them.
       if (saved) Promise.all([refreshSquad(), refreshCards(), refreshVale()]);
@@ -936,7 +960,7 @@ export default function MatchDay() {
                 game={liveGame}
                 players={players}
                 minute={timer.minute}
-                onChange={(saves) => updateLiveGame((g) => ({ ...g, saves }))}
+                onChange={(update) => updateLiveGame((g) => ({ ...g, saves: update(g.saves ?? []) }))}
               />
             </div>
           </div>

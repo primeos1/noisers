@@ -9,6 +9,11 @@ function elapsedAt(clock: ClockFields, now: number, gameSeconds: number) {
   return Math.min(gameSeconds, base + Math.max(0, run));
 }
 
+/** A game's clock fields, stopped where it is now — for saves built outside the hook. */
+export function stoppedClockOf(game: ClockFields, gameMinutes: number): ClockFields {
+  return { clockStartedAt: null, clockElapsed: elapsedAt(game, Date.now(), gameMinutes * 60) };
+}
+
 /**
  * The clock lives on the game record (persisted to the API), not in component
  * state, so it keeps running when the admin navigates away, reloads or logs out.

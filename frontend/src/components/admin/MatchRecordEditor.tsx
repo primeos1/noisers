@@ -347,7 +347,7 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
                   game={game}
                   players={players}
                   minute={0}
-                  onChange={(saves) => patchGame(game.id, (g) => ({ ...g, saves }))}
+                  onChange={(update) => patchGame(game.id, (g) => ({ ...g, saves: update(g.saves ?? []) }))}
                 />
               </div>
             </li>

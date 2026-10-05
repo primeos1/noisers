@@ -25,10 +25,15 @@ export function setToken(token: string | null) {
 export class ApiError extends Error {
   /** Per-field validation messages from a 422, e.g. { number: ["…"] }. */
   fields: Record<string, string[]>;
+  /** HTTP status (0 if the server couldn't be reached) and the parsed body. */
+  status: number;
+  body: unknown;
 
-  constructor(message: string, fields: Record<string, string[]> = {}) {
+  constructor(message: string, fields: Record<string, string[]> = {}, status = 0, body: unknown = null) {
     super(message);
     this.fields = fields;
+    this.status = status;
+    this.body = body;
   }
 }
 
@@ -42,7 +47,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const firstFieldError = data?.errors ? Object.values(data.errors)[0]?.[0] : undefined;
     const message = data?.message ?? firstFieldError ?? "Something went wrong.";
-    throw new ApiError(message, data?.errors ?? {});
+    throw new ApiError(message, data?.errors ?? {}, response.status, data);
   }
 
   return data as T;

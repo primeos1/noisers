@@ -81,6 +81,8 @@ export interface MatchDayEvent {
   groups: MatchDayTeam[];
   games: MatchDayGame[];
   status: MatchDayStatus;
+  /** The server's save counter — see MatchDayContext's save queue. */
+  version?: number;
 }
 
 function shuffle<T>(items: T[]): T[] {

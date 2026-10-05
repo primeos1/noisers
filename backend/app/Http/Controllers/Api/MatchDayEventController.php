@@ -61,12 +61,18 @@ class MatchDayEventController extends Controller
     /**
      * Update the specified resource — accepts a partial patch of any field,
      * mirroring MatchDayContext.updateEvent(id, patch) on the frontend.
+     *
+     * Several admins can record the same match day at once, so a client sends
+     * the `version` it edited. If someone else saved in between, the edit is
+     * refused with a 409 carrying the latest copy, and the client re-applies
+     * its change on top of that. (Clients that send no version still save.)
      */
     public function update(Request $request, MatchDayEvent $matchDayEvent)
     {
         $this->authorize('update', $matchDayEvent);
 
         $validated = $request->validate([
+            'version' => ['sometimes', 'integer'],
             'venue' => ['nullable', 'string', 'max:255'],
             'date' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'in:live,ended'],
@@ -75,24 +81,41 @@ class MatchDayEventController extends Controller
             'groups' => ['sometimes', 'array'],
             'games' => ['sometimes', 'array'],
         ]);
+        $expectedVersion = $validated['version'] ?? null;
+        unset($validated['version']);
 
-        $wasLive = $matchDayEvent->status !== 'ended';
-
-        DB::transaction(function () use ($matchDayEvent, $validated, $wasLive) {
-            // Read before the update — an edit can change the title/date The Vale matches on.
-            $valeShowedIt = ! $wasLive && MatchDayFinalizer::valeShows($matchDayEvent);
-
-            $matchDayEvent->update($validated);
-
-            if ($wasLive && $matchDayEvent->status === 'ended') {
-                MatchDayFinalizer::finalize($matchDayEvent);
-            } elseif (! $wasLive && $matchDayEvent->status === 'ended' && $matchDayEvent->wasChanged(['games', 'date'])) {
-                // Editing a finished match day's record (Settings → Match records).
-                MatchDayFinalizer::reapply($matchDayEvent, $valeShowedIt);
+        $saved = DB::transaction(function () use ($matchDayEvent, $validated, $expectedVersion) {
+            // Locked so two saves can't both pass the version check.
+            $event = MatchDayEvent::whereKey($matchDayEvent->getKey())->lockForUpdate()->firstOrFail();
+            if ($expectedVersion !== null && (int) $expectedVersion !== $event->version) {
+                return null;
             }
+
+            $wasLive = $event->status !== 'ended';
+            // Read before the update — an edit can change the title/date The Vale matches on.
+            $valeShowedIt = ! $wasLive && MatchDayFinalizer::valeShows($event);
+
+            $event->update($validated);
+
+            if ($wasLive && $event->status === 'ended') {
+                MatchDayFinalizer::finalize($event);
+            } elseif (! $wasLive && $event->status === 'ended' && $event->wasChanged(['games', 'date'])) {
+                // Editing a finished match day's record (Settings → Match records).
+                MatchDayFinalizer::reapply($event, $valeShowedIt);
+            }
+
+            return $event;
         });
 
-        return new MatchDayEventResource($matchDayEvent);
+        if ($saved === null) {
+            return (new MatchDayEventResource($matchDayEvent->refresh()))
+                ->additional(['message' => 'Someone else changed this match day — reload and try again.'])
+                ->response()
+                ->setStatusCode(409);
+        }
+
+        // Finalizing can renumber titles, so send back what's stored now.
+        return new MatchDayEventResource($saved->refresh());
     }
 
     /**

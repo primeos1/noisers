@@ -23,6 +23,7 @@ class MatchDayEventResource extends JsonResource
             'groups' => $this->groups,
             'games' => $this->games,
             'status' => $this->status,
+            'version' => $this->version ?? 0,
         ];
     }
 }

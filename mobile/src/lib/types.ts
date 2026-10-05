@@ -143,6 +143,8 @@ export interface MatchDayEvent {
   groups: MatchDayTeam[];
   games: MatchDayGame[];
   status: "live" | "ended";
+  /** The server's save counter — see the save queue in lib/club.tsx. */
+  version?: number;
 }
 
 // Public-site content the committee edits (HighlightResource, HomeContentResource).

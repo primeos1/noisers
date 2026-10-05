@@ -55,7 +55,7 @@ export default function PlayerFormScreen() {
       } else {
         const created = await addPlayer(input);
         const event = params.present ? events.find((e) => e.id === params.present) : undefined;
-        if (event) await updateEvent(event.id, { presentPlayers: [...event.presentPlayers, created.id] });
+        if (event) await updateEvent(event.id, (e) => ({ presentPlayers: [...e.presentPlayers.filter((id) => id !== created.id), created.id] }));
       }
       router.back();
     } catch (err) {

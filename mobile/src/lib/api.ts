@@ -14,6 +14,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** The parsed response body, if any. */
+    readonly body: unknown = null,
   ) {
     super(message);
   }
@@ -55,7 +57,7 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const firstFieldError = data?.errors ? Object.values(data.errors)[0]?.[0] : undefined;
-    throw new ApiError(firstFieldError ?? data?.message ?? "Something went wrong.", response.status);
+    throw new ApiError(firstFieldError ?? data?.message ?? "Something went wrong.", response.status, data);
   }
 
   return data as T;

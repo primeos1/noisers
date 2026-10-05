@@ -25,18 +25,21 @@ export default function SavesCounter({
   game: MatchDayGame;
   players: Player[];
   minute: number;
-  onChange: (saves: MatchDaySave[]) => void;
+  /** Gets a change to make to the game's latest saves, so it can be re-applied. */
+  onChange: (update: (saves: MatchDaySave[]) => MatchDaySave[]) => void;
 }) {
   const saves = game.saves ?? [];
 
   function add(teamIndex: 0 | 1, playerId: number) {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-    onChange([...saves, { id: newSaveId(), teamIndex, playerId, minute }]);
+    const save = { id: newSaveId(), teamIndex, playerId, minute };
+    onChange((latest) => [...latest, save]);
   }
 
   function undo(playerId: number) {
     for (let i = saves.length - 1; i >= 0; i--) {
-      if (saves[i].playerId === playerId) return onChange(saves.filter((_, j) => j !== i));
+      const last = saves[i];
+      if (last.playerId === playerId) return onChange((latest) => latest.filter((s) => s.id !== last.id));
     }
   }
 

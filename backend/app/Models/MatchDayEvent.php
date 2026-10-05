@@ -31,6 +31,16 @@ class MatchDayEvent extends Model
             'guests' => 'array',
             'groups' => 'array',
             'games' => 'array',
+            'version' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Every saved change gets a new version — clients send the one they
+        // edited, and a stale one is turned away rather than overwriting.
+        static::updating(function (MatchDayEvent $event) {
+            $event->version = ($event->version ?? 0) + 1;
+        });
     }
 }

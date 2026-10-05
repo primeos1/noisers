@@ -295,7 +295,7 @@ function Editor({ eventId }: { eventId: string }) {
               ) : null}
 
               <Label>Saves</Label>
-              <SavesCounter game={game} players={players} minute={0} onChange={(saves) => patchGame(game.id, (g) => ({ ...g, saves }))} />
+              <SavesCounter game={game} players={players} minute={0} onChange={(update) => patchGame(game.id, (g) => ({ ...g, saves: update(g.saves ?? []) }))} />
             </Section>
           );
         })}

@@ -1,11 +1,12 @@
 import { createContext, use, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AppState } from "react-native";
-import { apiFetch, errorMessage } from "./api";
+import { ApiError, apiFetch, errorMessage } from "./api";
 import { getItem, setItem } from "./storage";
 import type { Absence, AbsenceType, Card, CardType, ClubSettings, MatchDayEvent, Player, Position, Membership } from "./types";
 
 // Everything the app shows comes from five public endpoints, loaded together
-// and refreshed on pull-to-refresh (and every 30s while a match day is live).
+// and refreshed on pull-to-refresh (and every 30s while a match day is live;
+// match days alone every 5s while the admin Match Day screen is open).
 
 // Mirrors PlayerRatings::defaultPositionWeights() on the backend.
 const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, save: 0.03, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
@@ -37,6 +38,9 @@ export const DEFAULT_SETTINGS: ClubSettings = {
   valeAutoAwards: true,
 };
 const LIVE_POLL_MS = 30000;
+const MATCH_DAY_POLL_MS = 5000;
+// Saves refused because someone else saved first are re-applied this often.
+const MAX_CONFLICT_RETRIES = 5;
 // Holds a player id. (The old "noisers_my_shirt" key held a shirt number,
 // which would now point at the wrong player, so it is left behind.)
 const MY_SHIRT_KEY = "noisers_my_player";
@@ -72,6 +76,29 @@ export type EventPatch = Partial<
   Pick<MatchDayEvent, "title" | "venue" | "date" | "status" | "presentPlayers" | "guests" | "groups" | "games">
 >;
 
+/**
+ * A change to a match day: the fields to set, or — better when other admins
+ * may be editing too — a function of the latest copy that returns them. A
+ * function must be pure: it is re-run whenever the copy under it changes.
+ */
+export type EventEdit = EventPatch | ((event: MatchDayEvent) => EventPatch);
+
+interface PendingEdit {
+  edit: (event: MatchDayEvent) => EventPatch;
+  done: (err?: unknown) => void;
+  // Re-running an edit on the same copy gives back the same objects, so ids
+  // it creates (e.g. the next game) stay put between renders and the save.
+  cache?: { base: MatchDayEvent; patch: EventPatch; merged: MatchDayEvent };
+}
+
+function runEdit(p: PendingEdit, base: MatchDayEvent) {
+  if (p.cache?.base !== base) {
+    const patch = p.edit(base);
+    p.cache = { base, patch, merged: { ...base, ...patch } };
+  }
+  return p.cache;
+}
+
 interface ClubContextValue {
   players: Player[];
   cards: Card[];
@@ -95,8 +122,10 @@ interface ClubContextValue {
   /** Swap in a player the server just returned (e.g. after a profile edit). */
   replacePlayer: (player: Player) => void;
   addEvent: (event: MatchDayEvent) => Promise<void>;
-  /** Applies the patch at once, then saves it; rejects if the save fails. */
-  updateEvent: (id: string, patch: EventPatch) => Promise<void>;
+  /** Shows the edit at once and saves it in order; rejects if the save fails. */
+  updateEvent: (id: string, edit: EventEdit) => Promise<void>;
+  /** Poll match days every few seconds until the returned stop function runs. */
+  watchLive: () => () => void;
   removeEvent: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<ClubSettings>) => Promise<void>;
   addAbsence: (input: AbsenceInput) => Promise<void>;
@@ -117,12 +146,42 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const [myShirt, setMyShirtState] = useState<number | null>(null);
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
-  // updateEvent also writes this synchronously, so back-to-back edits build
-  // on each other before React re-renders.
-  const eventsRef = useRef(events);
-  useEffect(() => {
-    eventsRef.current = events;
-  }, [events]);
+  // Several admins can record one match day at once. Every edit goes into a
+  // per-match-day queue and is saved with the version it was built on; if
+  // someone else saved first the server answers 409 with the latest copy,
+  // and the edit is re-applied on top of that instead of overwriting it.
+  // serverRef is the last copy the server confirmed; `events` adds the
+  // edits not yet saved on top.
+  const serverRef = useRef<MatchDayEvent[]>([]);
+  const pendingRef = useRef(new Map<string, PendingEdit[]>());
+  const savingRef = useRef(new Set<string>());
+  const [watchers, setWatchers] = useState(0);
+
+  const publishEvents = useCallback(() => {
+    setEvents(serverRef.current.map((e) => (pendingRef.current.get(e.id) ?? []).reduce((acc, p) => runEdit(p, acc).merged, e)));
+  }, []);
+
+  // Never step back to an older copy — a poll can land after a save.
+  const storeEvents = useCallback(
+    (incoming: MatchDayEvent[]) => {
+      const known = new Map(serverRef.current.map((e) => [e.id, e]));
+      serverRef.current = incoming.map((raw) => {
+        const e = normaliseEvent(raw);
+        const mine = known.get(e.id);
+        return mine && (mine.version ?? 0) > (e.version ?? 0) ? mine : e;
+      });
+      publishEvents();
+    },
+    [publishEvents],
+  );
+
+  function storeEvent(raw: MatchDayEvent) {
+    const event = normaliseEvent(raw);
+    const list = serverRef.current;
+    const i = list.findIndex((e) => e.id === event.id);
+    if (i === -1) serverRef.current = [...list, event];
+    else if ((event.version ?? 0) >= (list[i].version ?? 0)) serverRef.current = list.map((e, j) => (j === i ? event : e));
+  }
 
   const refresh = useCallback(async () => {
     const [p, c, e, s, a] = await Promise.allSettled([
@@ -134,14 +193,23 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     ]);
     if (p.status === "fulfilled") setPlayers(p.value.data);
     if (c.status === "fulfilled") setCards(c.value.data);
-    if (e.status === "fulfilled") setEvents(e.value.data.map(normaliseEvent));
+    if (e.status === "fulfilled") storeEvents(e.value.data);
     if (s.status === "fulfilled") setSettings({ ...DEFAULT_SETTINGS, ...s.value.data });
     if (a.status === "fulfilled") setAbsences(a.value.data);
 
     const failed = [p, c, e, s, a].find((r) => r.status === "rejected");
     setError(failed ? errorMessage(failed.reason, "Couldn't load the latest club data.") : "");
     setLoading(false);
-  }, []);
+  }, [storeEvents]);
+
+  const refreshEvents = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ data: MatchDayEvent[] }>("/match-day-events");
+      storeEvents(res.data);
+    } catch {
+      // Offline for a moment — the next poll tries again.
+    }
+  }, [storeEvents]);
 
   useEffect(() => {
     refresh();
@@ -159,6 +227,20 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     }, LIVE_POLL_MS);
     return () => clearInterval(timer);
   }, [hasLive, refresh]);
+
+  // Keep up with other admins while the Match Day screen is open.
+  useEffect(() => {
+    if (!watchers || !hasLive) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState === "active") refreshEvents();
+    }, MATCH_DAY_POLL_MS);
+    return () => clearInterval(timer);
+  }, [watchers, hasLive, refreshEvents]);
+
+  const watchLive = useCallback(() => {
+    setWatchers((n) => n + 1);
+    return () => setWatchers((n) => n - 1);
+  }, []);
 
   function setMyShirt(playerId: number | null) {
     setMyShirtState(playerId);
@@ -221,25 +303,81 @@ export function ClubProvider({ children }: { children: ReactNode }) {
       method: "POST",
       body: { id: event.id, ...eventBody(event) },
     });
-    setEvents((prev) => [...prev, normaliseEvent(res.data)]);
+    storeEvent(res.data);
+    publishEvents();
   }
 
-  // Match day edits are applied optimistically — the pitch-side screen has to
-  // feel instant. Every patch carries whole arrays built on the latest local
-  // state, so a failed save is fixed by the next one; like the web, it isn't
-  // rolled back (that would also undo later edits made on top of it).
-  async function updateEvent(id: string, patch: EventPatch) {
-    const next = eventsRef.current.map((e) => (e.id === id ? { ...e, ...patch } : e));
-    eventsRef.current = next;
-    setEvents(next);
-    await apiFetch(`/match-day-events/${id}`, { method: "PUT", body: eventBody(patch) });
+  // Match day edits show at once — the pitch-side screen has to feel
+  // instant — and are saved one at a time per match day.
+  function updateEvent(id: string, edit: EventEdit) {
+    return new Promise<void>((resolve, reject) => {
+      const queue = pendingRef.current.get(id) ?? [];
+      queue.push({ edit: typeof edit === "function" ? edit : () => edit, done: (err) => (err === undefined ? resolve() : reject(err)) });
+      pendingRef.current.set(id, queue);
+      publishEvents();
+      flushEvent(id);
+    });
+  }
+
+  async function flushEvent(id: string) {
+    if (savingRef.current.has(id)) return;
+    savingRef.current.add(id);
+    let conflicts = 0;
+    try {
+      for (;;) {
+        const queue = pendingRef.current.get(id);
+        const head = queue?.[0];
+        if (!queue || !head) break;
+        const base = serverRef.current.find((e) => e.id === id);
+        const finish = (err?: unknown) => {
+          queue.shift();
+          head.done(err);
+          conflicts = 0;
+          publishEvents();
+        };
+        if (!base) {
+          finish(new ApiError("That match day no longer exists.", 404));
+          continue;
+        }
+
+        const body = eventBody(runEdit(head, base).patch);
+        if (Object.keys(body).length === 0) {
+          finish();
+          continue;
+        }
+        try {
+          const res = await apiFetch<{ data: MatchDayEvent }>(`/match-day-events/${id}`, {
+            method: "PUT",
+            body: { ...body, version: base.version },
+          });
+          storeEvent(res.data);
+          finish();
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409 && conflicts < MAX_CONFLICT_RETRIES) {
+            // Someone else saved first — build this edit again on their copy.
+            conflicts += 1;
+            const latest = (err.body as { data?: MatchDayEvent } | null)?.data;
+            if (latest) storeEvent(latest);
+            else await refreshEvents();
+            publishEvents();
+            continue;
+          }
+          finish(err);
+        }
+      }
+    } finally {
+      savingRef.current.delete(id);
+    }
   }
 
   // Deleting also rolls back the day's cards, ratings and The Vale on the
   // server, so reload everything afterwards.
   async function removeEvent(id: string) {
     await apiFetch(`/match-day-events/${id}`, { method: "DELETE" });
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    serverRef.current = serverRef.current.filter((e) => e.id !== id);
+    for (const p of pendingRef.current.get(id) ?? []) p.done(new ApiError("That match day was deleted.", 404));
+    pendingRef.current.delete(id);
+    publishEvents();
     refresh();
   }
 
@@ -291,6 +429,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         replacePlayer,
         addEvent,
         updateEvent,
+        watchLive,
         removeEvent,
         updateSettings,
         addAbsence,
