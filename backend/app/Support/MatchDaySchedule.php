@@ -30,6 +30,9 @@ class MatchDaySchedule
     /** How many hours before kickoff the match day appears. */
     public const OPENS_HOURS_BEFORE = 24;
 
+    /** Used when the club settings leave the default venue empty. */
+    public const DEFAULT_VENUE = 'Greenfield';
+
     public static function ensure(?CarbonInterface $now = null): ?MatchDayEvent
     {
         if (! config('app.auto_match_days')) {
@@ -63,7 +66,7 @@ class MatchDaySchedule
             $event = MatchDayEvent::create([
                 'id' => self::uniqueId(),
                 'title' => 'Matchday',
-                'venue' => $settings->match_default_venue,
+                'venue' => $settings->match_default_venue ?: self::DEFAULT_VENUE,
                 'date' => $label,
                 'status' => 'live',
                 'present_players' => [],

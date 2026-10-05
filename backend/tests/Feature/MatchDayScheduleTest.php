@@ -63,6 +63,7 @@ class MatchDayScheduleTest extends TestCase
         $this->at('2026-10-11 09:00'); // Sunday morning, still in the window
         $this->getJson('/api/match-day-events')->assertJsonCount(1, 'data');
         $this->assertSame('Sun 11 Oct', MatchDayEvent::sole()->date);
+        $this->assertSame('Greenfield', MatchDayEvent::sole()->venue);
     }
 
     public function test_leaves_alone_a_match_day_the_admin_already_made_or_deleted(): void
