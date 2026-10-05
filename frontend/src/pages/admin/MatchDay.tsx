@@ -75,6 +75,9 @@ export default function MatchDay() {
   const [playB, setPlayB] = useState(1);
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  // Peek back at the squad and teams mid-game; the game (and its clock,
+  // which lives on the game record) carries on untouched.
+  const [showSquad, setShowSquad] = useState(false);
 
   const [goalTeam, setGoalTeam] = useState<0 | 1>(0);
   const [goalPlayer, setGoalPlayer] = useState<ParticipantId | "">("");
@@ -90,6 +93,7 @@ export default function MatchDay() {
 
   const resumable = events.filter((e) => e.status === "live" && e.id !== activeEventId);
   const liveGame = activeEvent?.games.find((g) => g.status === "live") ?? null;
+  const squadView = !!liveGame && showSquad;
   const pastGames = activeEvent ? activeEvent.games.filter((g) => g.id !== liveGame?.id) : [];
   const timer = useMatchTimer(
     liveGame,
@@ -123,7 +127,7 @@ export default function MatchDay() {
       status: "live",
     };
     addEvent(event);
-    setActiveEventId(id);
+    openEvent(id);
     setVenueDraft(settings.matchDefaultVenue);
     setDateDraft("");
     setCreateError("");
@@ -315,8 +319,13 @@ export default function MatchDay() {
     setConfirmEnd(false);
   }
 
+  function openEvent(id: string | null) {
+    setActiveEventId(id);
+    setShowSquad(false);
+  }
+
   function startNewMatchDay() {
-    setActiveEventId(null);
+    openEvent(null);
   }
 
   const allPresentIds: ParticipantId[] = activeEvent
@@ -350,7 +359,7 @@ export default function MatchDay() {
                   <li key={e.id}>
                     <button
                       type="button"
-                      onClick={() => setActiveEventId(e.id)}
+                      onClick={() => openEvent(e.id)}
                       className="text-paper underline underline-offset-4 hover:text-paper-dim"
                     >
                       {e.title} — {e.venue}, {e.date}
@@ -448,8 +457,26 @@ export default function MatchDay() {
         </div>
       )}
 
-      {activeEvent && activeEvent.status === "live" && !liveGame && (
+      {activeEvent && activeEvent.status === "live" && (!liveGame || squadView) && (
         <div className="mt-8 space-y-10">
+          {liveGame && (
+            <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-y border-win/40 bg-ink-raised/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:border">
+              <div className="min-w-0 text-sm">
+                <p className="text-xs uppercase tracking-wide text-win">Game in progress</p>
+                <p className="truncate text-paper">
+                  {liveGame.teams[0].name} {scoreOf(liveGame, 0)}–{scoreOf(liveGame, 1)} {liveGame.teams[1].name}
+                  <span className="ml-2 tabular-nums text-paper-dim">{formatClock(timer.secondsLeft)}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSquad(false)}
+                className="border border-win bg-win px-4 py-2 text-sm font-medium text-ink hover:bg-transparent hover:text-win"
+              >
+                Back to game →
+              </button>
+            </div>
+          )}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-2xl text-paper">Who's present?</h2>
@@ -553,7 +580,9 @@ export default function MatchDay() {
               <button
                 type="button"
                 onClick={handleRandomize}
-                disabled={activeEvent.presentPlayers.length + activeEvent.guests.length < 2}
+                // Re-drawing mid-game would rename the teams and break the rotation.
+                disabled={activeEvent.presentPlayers.length + activeEvent.guests.length < 2 || !!liveGame}
+                title={liveGame ? "Finish the current game to re-randomize" : undefined}
                 className="border border-paper bg-paper px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
               >
                 {activeEvent.groups.length > 0 ? "Re-randomize teams" : "Randomize teams"}
@@ -622,39 +651,47 @@ export default function MatchDay() {
                   ))}
                 </div>
 
-                {activeEvent.groups.length > 2 && (
-                  <div className="mt-6 grid gap-4 sm:max-w-lg sm:grid-cols-2">
-                    <label className={labelClass}>
-                      Kicking off — Side 1
-                      <select className={inputClass} value={playA} onChange={(e) => setPlayA(Number(e.target.value))}>
-                        {activeEvent.groups.map((t, i) => (
-                          <option key={i} value={i} disabled={i === playB}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className={labelClass}>
-                      Kicking off — Side 2
-                      <select className={inputClass} value={playB} onChange={(e) => setPlayB(Number(e.target.value))}>
-                        {activeEvent.groups.map((t, i) => (
-                          <option key={i} value={i} disabled={i === playA}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                )}
+                {liveGame ? (
+                  <p className="mt-6 text-sm text-mist">
+                    Team changes apply from the next game — use Substitute in the game to change who's on now.
+                  </p>
+                ) : (
+                  <>
+                    {activeEvent.groups.length > 2 && (
+                      <div className="mt-6 grid gap-4 sm:max-w-lg sm:grid-cols-2">
+                        <label className={labelClass}>
+                          Kicking off — Side 1
+                          <select className={inputClass} value={playA} onChange={(e) => setPlayA(Number(e.target.value))}>
+                            {activeEvent.groups.map((t, i) => (
+                              <option key={i} value={i} disabled={i === playB}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className={labelClass}>
+                          Kicking off — Side 2
+                          <select className={inputClass} value={playB} onChange={(e) => setPlayB(Number(e.target.value))}>
+                            {activeEvent.groups.map((t, i) => (
+                              <option key={i} value={i} disabled={i === playA}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    )}
 
-                <button
-                  type="button"
-                  onClick={startGame}
-                  disabled={activeEvent.groups.length < 2 || playA === playB}
-                  className="mt-6 border border-win bg-win px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-win disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
-                >
-                  Start match — 10:00 on the clock
-                </button>
+                    <button
+                      type="button"
+                      onClick={startGame}
+                      disabled={activeEvent.groups.length < 2 || playA === playB}
+                      className="mt-6 border border-win bg-win px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-win disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
+                    >
+                      Start match — 10:00 on the clock
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -674,8 +711,15 @@ export default function MatchDay() {
         </div>
       )}
 
-      {activeEvent && liveGame && (
+      {activeEvent && liveGame && !squadView && (
         <div className="mt-8 space-y-10">
+          <button
+            type="button"
+            onClick={() => setShowSquad(true)}
+            className="-mb-6 border border-ink-line px-4 py-2 text-sm text-paper-dim hover:text-paper"
+          >
+            ← Squad &amp; teams
+          </button>
           <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 border-y border-ink-line bg-ink-raised/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border md:p-6">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-6">
               <div className="min-w-0 text-center md:text-left">

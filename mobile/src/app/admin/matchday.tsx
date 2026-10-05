@@ -160,7 +160,36 @@ function CreateMatchDay({ onCreated }: { onCreated: (id: string) => void }) {
   );
 }
 
-function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) => void }) {
+// Shown over the squad view while a game is still going, so the way back is
+// always one tap away. The clock lives on the game record and keeps running.
+function LiveGameBanner({ game, onBack }: { game: MatchDayGame; onBack: () => void }) {
+  const { settings } = useClub();
+  const timer = useMatchTimer(game, () => undefined, settings.matchGameMinutes);
+  return (
+    <View style={styles.liveBanner}>
+      <View style={styles.flex}>
+        <Txt style={styles.liveBannerHint}>Game in progress</Txt>
+        <Txt style={text.semi} numberOfLines={1}>
+          {game.teams[0].name} {scoreOf(game, 0)}–{scoreOf(game, 1)} {game.teams[1].name}
+          <Txt style={[text.dim, text.tabular]}>  {formatClock(timer.secondsLeft)}</Txt>
+        </Txt>
+      </View>
+      <Button label="Back to game" icon="arrow-forward" onPress={onBack} />
+    </View>
+  );
+}
+
+function Setup({
+  event,
+  patch,
+  liveGame,
+  onBackToGame,
+}: {
+  event: MatchDayEvent;
+  patch: (p: EventPatch) => void;
+  liveGame: MatchDayGame | null;
+  onBackToGame: () => void;
+}) {
   const { players, settings } = useClub();
   const [mode, setMode] = useState<TeamMode>(settings.matchDefaultTeamMode);
   const [sides, setSides] = useState<[number, number]>([0, 1]);
@@ -172,7 +201,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
   const assigned = new Set<ParticipantId>(event.groups.flatMap((t) => t.players));
   const unassigned = allPresent.filter((id) => !assigned.has(id));
   const [sideA, sideB] = sides[0] < event.groups.length && sides[1] < event.groups.length ? sides : [0, 1];
-  const pastGames = event.games;
+  const pastGames = event.games.filter((g) => g.status === "finished");
 
   function togglePresent(playerId: number) {
     tap();
@@ -216,6 +245,7 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
 
   return (
     <>
+      {liveGame ? <LiveGameBanner game={liveGame} onBack={onBackToGame} /> : null}
       <Group
         title={`Who's present? ${event.presentPlayers.length}/${players.length}`}
         aside={
@@ -314,12 +344,14 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
         <Choice<TeamMode> options={modeOptions} value={mode} onChange={setMode} />
         <View style={styles.inlineButtons}>
           <View style={styles.flex}>
-            <Button label={event.groups.length ? "Re-randomize" : "Randomize"} icon="shuffle" onPress={randomize} disabled={allPresent.length < 2} />
+            <Button label={event.groups.length ? "Re-randomize" : "Randomize"} icon="shuffle" onPress={randomize} disabled={allPresent.length < 2 || !!liveGame} />
           </View>
           <View style={styles.flex}>
             <Button label="New team" variant="secondary" icon="add" disabled={event.groups.length >= MAX_TEAMS} onPress={() => setGroups([...event.groups, { name: nextTeamName(event.groups), players: [] }])} />
           </View>
         </View>
+        {/* Re-drawing mid-game would rename the teams and break the rotation. */}
+        {liveGame ? <Hint>Finish the current game to re-randomize.</Hint> : null}
         {unassigned.length > 0 ? <Hint>Not on a team: {unassigned.map(name).join(", ")}</Hint> : null}
       </Section>
 
@@ -370,7 +402,9 @@ function Setup({ event, patch }: { event: MatchDayEvent; patch: (p: EventPatch) 
         </View>
       ))}
 
-      {event.groups.length >= 2 ? (
+      {liveGame ? (
+        <Hint>Team changes apply from the next game — use Substitute in the game to change who's on now.</Hint>
+      ) : event.groups.length >= 2 ? (
         <Section title="Kick off">
           {event.groups.length > 2 ? (
             <>
@@ -414,10 +448,12 @@ function LiveGame({
   event,
   game,
   patch,
+  onShowSquad,
 }: {
   event: MatchDayEvent;
   game: MatchDayGame;
   patch: (p: EventPatch) => Promise<boolean>;
+  onShowSquad: () => void;
 }) {
   const { players, settings, refresh } = useClub();
   const winGoals = settings.matchWinGoals;
@@ -513,6 +549,9 @@ function LiveGame({
 
   return (
     <>
+      <View style={styles.inlineButtons}>
+        <Button label="Squad & teams" variant="secondary" icon="people-outline" onPress={onShowSquad} />
+      </View>
       <View style={styles.scoreboard}>
         <View style={styles.scoreRow}>
           <View style={styles.side}>
@@ -703,6 +742,13 @@ export default function MatchDayScreen() {
   // undefined = follow whichever match day is live; null = the create form.
   const [chosenId, setChosenId] = useState<string | null | undefined>(undefined);
   const [error, setError] = useState("");
+  // Peek back at the squad and teams mid-game without ending it.
+  const [showSquad, setShowSquad] = useState(false);
+
+  function choose(id: string | null) {
+    setChosenId(id);
+    setShowSquad(false);
+  }
 
   const event = chosenId === undefined ? events.find((e) => e.status === "live") ?? null : events.find((e) => e.id === chosenId) ?? null;
   const liveGame = event?.games.find((g) => g.status === "live") ?? null;
@@ -741,7 +787,7 @@ export default function MatchDayScreen() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={100}>
       <Screen onRefresh={refresh}>
         {!event ? (
-          <CreateMatchDay onCreated={setChosenId} />
+          <CreateMatchDay onCreated={choose} />
         ) : (
           <>
             <View style={styles.header}>
@@ -784,14 +830,14 @@ export default function MatchDayScreen() {
                     <Button label="Match sheet" variant="secondary" icon="document-text-outline" onPress={() => router.push(`/match/${event.id}`)} />
                   </View>
                   <View style={styles.flex}>
-                    <Button label="New match day" icon="add" onPress={() => setChosenId(null)} />
+                    <Button label="New match day" icon="add" onPress={() => choose(null)} />
                   </View>
                 </View>
               </>
-            ) : liveGame ? (
-              <LiveGame event={event} game={liveGame} patch={patch} />
+            ) : liveGame && !showSquad ? (
+              <LiveGame event={event} game={liveGame} patch={patch} onShowSquad={() => setShowSquad(true)} />
             ) : (
-              <Setup event={event} patch={patch} />
+              <Setup event={event} patch={patch} liveGame={liveGame} onBackToGame={() => setShowSquad(false)} />
             )}
 
             {event.status === "live" ? (
@@ -850,6 +896,9 @@ const styles = StyleSheet.create({
   teamName: { flex: 1, fontFamily: fonts.display, fontSize: 22, color: colors.paper, padding: 0 },
   teamPlayer: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.inkLine },
   lateArrivals: { marginTop: space.md, gap: space.sm },
+
+  liveBanner: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.inkRaised, borderRadius: radius.md, borderWidth: 1, borderColor: colors.win, padding: space.md, marginBottom: space.lg },
+  liveBannerHint: { fontSize: 10, letterSpacing: 1, textTransform: "uppercase", color: colors.win },
 
   scoreboard: { backgroundColor: colors.inkRaised, borderRadius: radius.lg, padding: space.lg, paddingBottom: 0, marginBottom: space.lg, borderWidth: 1, borderColor: colors.inkLine },
   scoreRow: { flexDirection: "row", alignItems: "center", marginBottom: space.lg },
