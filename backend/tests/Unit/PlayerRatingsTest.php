@@ -97,6 +97,32 @@ class PlayerRatingsTest extends TestCase
         $this->assertSame(0, $stats[4]['saves']);
     }
 
+    public function test_a_penalty_save_has_its_own_weight_and_counts_as_a_save(): void
+    {
+        $game = $this->game([]);
+        $game['saves'] = [
+            ['id' => 's1', 'teamIndex' => 0, 'playerId' => 1],
+            ['id' => 's2', 'teamIndex' => 0, 'playerId' => 1, 'penalty' => true],
+            // No keeper in goal for B — a defender stood in and saved a penalty.
+            ['id' => 's3', 'teamIndex' => 1, 'playerId' => 5, 'penalty' => true],
+        ];
+
+        $p = $this->points([$game]);
+        $this->assertEqualsWithDelta(0.15 + 0.03 + 0.10, $p[1], 1e-9); // draw, GK clean sheet, save, penalty save
+        $this->assertEqualsWithDelta(0.12 + 0.10, $p[5], 1e-9);        // draw, DEF clean sheet, penalty save
+
+        $weights = PlayerRatings::defaultPositionWeights();
+        $weights['GK']['penalty_save'] = 0.25;
+        $p = $this->points([$game], PlayerRatings::weights($weights));
+        $this->assertEqualsWithDelta(0.15 + 0.03 + 0.25, $p[1], 1e-9);
+
+        $stats = PlayerStats::computeAll([new MatchDayEvent(['games' => [$game]])]);
+        $this->assertSame(2, $stats[1]['saves']);
+        $this->assertSame(1, $stats[1]['penaltySaves']);
+        $this->assertSame(1, $stats[5]['saves']);
+        $this->assertSame(1, $stats[5]['penaltySaves']);
+    }
+
     public function test_each_position_uses_its_own_weights(): void
     {
         $weights = PlayerRatings::defaultPositionWeights();

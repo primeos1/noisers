@@ -6,7 +6,7 @@ import { useCards } from "../lib/CardsContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
 import { formatNaira } from "../lib/cards";
-import { isKeeper, keepsCleanSheets, positionNames } from "../lib/clubData";
+import { isKeeper, keepsCleanSheets, positionNames, savesLabel } from "../lib/clubData";
 import MembershipBadge from "../components/MembershipBadge";
 import { CrownIcon, TrophyIcon } from "../components/icons";
 import AbsenceBadge from "../components/AbsenceBadge";
@@ -58,6 +58,15 @@ export default function PlayerProfile() {
     .filter(({ game }) => playedFor(game, playerId) !== null)
     .reverse();
 
+  // Saves show for keepers, and for anyone who went in goal and made some.
+  const statTiles = [
+    { label: "Apps", value: player.appearances },
+    { label: "Goals", value: player.goals },
+    { label: "Assists", value: player.assists },
+    ...(keepsCleanSheets(player) ? [{ label: "Clean sheets", value: player.cleanSheets }] : []),
+    ...(isKeeper(player) || player.saves > 0 ? [{ label: savesLabel(player.penaltySaves ?? 0), value: player.saves }] : []),
+  ];
+
   return (
     <Layout>
       <PageHeader
@@ -94,14 +103,8 @@ export default function PlayerProfile() {
             </div>
 
             <div className="flex flex-1 flex-col gap-6 self-start">
-            <div className={`grid grid-cols-2 gap-px bg-ink-line ${isKeeper(player) ? "sm:grid-cols-5" : keepsCleanSheets(player) ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
-              {[
-                { label: "Apps", value: player.appearances },
-                { label: "Goals", value: player.goals },
-                { label: "Assists", value: player.assists },
-                ...(keepsCleanSheets(player) ? [{ label: "Clean sheets", value: player.cleanSheets }] : []),
-                ...(isKeeper(player) ? [{ label: "Saves", value: player.saves }] : []),
-              ].map((stat) => (
+            <div className={`grid grid-cols-2 gap-px bg-ink-line ${["sm:grid-cols-3", "sm:grid-cols-4", "sm:grid-cols-5"][statTiles.length - 3]}`}>
+              {statTiles.map((stat) => (
                 <div key={stat.label} className="bg-ink px-5 py-6">
                   <p className="text-xs uppercase tracking-wide text-mist">{stat.label}</p>
                   <p className="mt-3 font-display text-3xl text-paper">{stat.value}</p>

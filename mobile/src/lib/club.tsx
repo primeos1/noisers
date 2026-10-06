@@ -9,7 +9,7 @@ import type { Absence, AbsenceType, Card, CardType, ClubSettings, MatchDayEvent,
 // match days alone every 5s while the admin Match Day screen is open).
 
 // Mirrors PlayerRatings::defaultPositionWeights() on the backend.
-const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, save: 0.03, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
+const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, save: 0.03, penaltySave: 0.1, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
 
 /** The rating-weight fields, restorable as a group from Settings. */
 export const DEFAULT_RATING_WEIGHTS = {

@@ -27,8 +27,10 @@ export interface Player {
   goals: number;
   assists: number;
   cleanSheets: number;
-  /** Only keepers (GK as main or second position) make saves. */
+  /** Keepers (GK as main or second position), or whoever went in goal for a side without one. */
   saves?: number;
+  /** Penalties saved — already included in saves. */
+  penaltySaves?: number;
   /** Cards from match day records this season. */
   yellowCards?: number;
   redCards?: number;
@@ -61,6 +63,7 @@ export type RatingWeightKey =
   | "cleanSheet"
   | "goalConceded"
   | "save"
+  | "penaltySave"
   | "ownGoal"
   | "yellowCard"
   | "redCard";
@@ -122,6 +125,8 @@ export interface MatchDaySave {
   teamIndex: 0 | 1;
   playerId: ParticipantId;
   minute: number;
+  /** A saved penalty — still a save, with its own rating weight. */
+  penalty?: boolean;
 }
 
 export interface MatchDayGame {

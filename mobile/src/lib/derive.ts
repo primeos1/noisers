@@ -35,7 +35,12 @@ export const RATING_MAX = 9.5;
 
 const nairaFormat = new Intl.NumberFormat("en-NG", { maximumFractionDigits: 0 });
 
-/** Keepers by main or second position — the only players saves are logged for. */
+/** "Saves", or "Saves · 2 pens" when some of them were penalties. */
+export function savesLabel(penaltySaves: number): string {
+  return penaltySaves > 0 ? `Saves · ${penaltySaves} pen${penaltySaves === 1 ? "" : "s"}` : "Saves";
+}
+
+/** Keepers by main or second position. Saves are logged for them, or for whoever goes in goal for a side without one. */
 export function isKeeper(player: Pick<Player, "position" | "secondaryPosition">): boolean {
   return player.position === "GK" || player.secondaryPosition === "GK";
 }

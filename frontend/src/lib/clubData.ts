@@ -30,8 +30,10 @@ export interface Player {
   goals: number;
   assists: number;
   cleanSheets: number;
-  /** Only keepers make saves — see isKeeper(). */
+  /** Keepers make saves — see isKeeper() — or whoever went in goal for a side without one. */
   saves: number;
+  /** Penalties saved — already included in saves. */
+  penaltySaves?: number;
   yellowCards: number;
   redCards: number;
   /** Times named player of the week / picked in the team of the week (from the API only). */
@@ -79,7 +81,12 @@ export function keepsCleanSheets(player: Pick<Player, "position">): boolean {
   return player.position !== "FWD";
 }
 
-/** Keepers by main or second position — the only players saves are logged for. */
+/** "Saves", or "Saves · 2 pens" when some of them were penalties. */
+export function savesLabel(penaltySaves: number): string {
+  return penaltySaves > 0 ? `Saves · ${penaltySaves} pen${penaltySaves === 1 ? "" : "s"}` : "Saves";
+}
+
+/** Keepers by main or second position. Saves are logged for them, or for whoever goes in goal for a side without one. */
 export function isKeeper(player: Pick<Player, "position" | "secondaryPosition">): boolean {
   return player.position === "GK" || player.secondaryPosition === "GK";
 }

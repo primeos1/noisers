@@ -54,6 +54,8 @@ export interface MatchDaySave {
   teamIndex: 0 | 1;
   playerId: ParticipantId;
   minute: number;
+  /** A saved penalty — still a save, with its own rating weight. */
+  penalty?: boolean;
 }
 
 export interface MatchDayGame {

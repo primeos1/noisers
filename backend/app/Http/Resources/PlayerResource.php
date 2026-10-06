@@ -32,6 +32,7 @@ class PlayerResource extends JsonResource
             'assists' => $this->match_day_stats['assists'] ?? 0,
             'cleanSheets' => $this->match_day_stats['cleanSheets'] ?? 0,
             'saves' => $this->match_day_stats['saves'] ?? 0,
+            'penaltySaves' => $this->match_day_stats['penaltySaves'] ?? 0,
             'yellowCards' => $this->match_day_stats['yellowCards'] ?? 0,
             'redCards' => $this->match_day_stats['redCards'] ?? 0,
             'playerOfTheWeekWins' => $this->weekly_honours['playerOfTheWeek'] ?? 0,

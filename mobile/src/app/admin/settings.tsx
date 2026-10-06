@@ -55,6 +55,7 @@ const ratingWeightRows: { key: RatingWeightKey; label: string; suffix: "+" | "�
     { key: "save", label: "Save", suffix: "+" },
   ],
   [
+    { key: "penaltySave", label: "Pen. save", suffix: "+" },
     { key: "goalConceded", label: "Conceded", suffix: "−" },
     { key: "ownGoal", label: "Own goal", suffix: "−" },
   ],

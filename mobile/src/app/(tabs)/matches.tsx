@@ -261,7 +261,12 @@ function GameDetail({ game, number, event, players }: { game: MatchDayGame; numb
       {(game.saves ?? []).some((s) => s.teamIndex === t) ? (
         <View style={[styles.event, t === 1 ? styles.eventRight : null]}>
           <Ionicons name="hand-left-outline" size={11} color={colors.travel} />
-          <Txt style={styles.eventText}>{plural((game.saves ?? []).filter((s) => s.teamIndex === t).length, "save")}</Txt>
+          <Txt style={styles.eventText}>
+            {plural((game.saves ?? []).filter((s) => s.teamIndex === t).length, "save")}
+            {(game.saves ?? []).some((s) => s.teamIndex === t && s.penalty)
+              ? ` · ${(game.saves ?? []).filter((s) => s.teamIndex === t && s.penalty).length} pen`
+              : ""}
+          </Txt>
         </View>
       ) : null}
     </View>
