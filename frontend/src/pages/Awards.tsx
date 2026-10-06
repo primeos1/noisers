@@ -5,7 +5,7 @@ import { useSquad } from "../lib/SquadContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { positionCodes, type Player } from "../lib/clubData";
 import type { MatchDayEvent } from "../lib/matchDay";
-import { buildAwards, reignSummary, type CategoryId, type Race, type Standing, type WeeklyWinner } from "../lib/awards";
+import { buildAwards, reignSummary, type CategoryId, type Race, type Standing } from "../lib/awards";
 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -126,6 +126,7 @@ function AwardGlyph({ id, className = "h-6 w-6" }: { id: CategoryId; className?:
       </>
     ),
     "hot-head": <path d="M7 3h7l4 4v14H7Zm7 0v4h4" />,
+    flop: <path d={THUMB} />,
   };
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
@@ -194,7 +195,23 @@ export default function Awards() {
             </div>
           </section>
 
-          <WeeklyWall winners={data.winners} byId={byId} race={data.races.find((r) => r.category.id === "potw")!} />
+          <WeeklyWall
+            picks={data.winners.map((w) => ({
+              ...w,
+              line: `${w.goals}G · ${w.assists}A${w.cleanSheets ? ` · ${w.cleanSheets}CS` : ""} · ${plural(w.games, "game")}`,
+            }))}
+            byId={byId}
+            race={data.races.find((r) => r.category.id === "potw")!}
+          />
+          <WeeklyWall
+            flop
+            picks={data.flops.map((f) => ({
+              ...f,
+              line: `Lost ${f.losses}/${f.games} · ${f.gd > 0 ? "+" : f.gd < 0 ? "−" : ""}${Math.abs(f.gd)} GD · ${f.involvements} G/A`,
+            }))}
+            byId={byId}
+            race={data.races.find((r) => r.category.id === "flop")!}
+          />
         </>
       )}
     </Layout>
@@ -730,13 +747,28 @@ function Movement({ move }: { move: number | null }) {
   );
 }
 
-/** Player of the week — the roll of honour, then every week's winner. */
-function WeeklyWall({ winners, byId, race }: { winners: WeeklyWinner[]; byId: Map<number, Player>; race: Race }) {
-  if (!winners.length) return null;
-  const counts = new Map<number, { playerId: number; wins: number; last: WeeklyWinner; streak: number }>();
+interface WeeklyPick {
+  day: number;
+  event: MatchDayEvent;
+  playerId: number;
+  /** One-line summary of their match day. */
+  line: string;
+}
+
+const STAR = "m12 2.5 2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8Z";
+// Thumbs down — the flop's tally and award glyph.
+const THUMB = "M10 15v4a3 3 0 0 0 3 3l4-9V2H5.7a2 2 0 0 0-2 1.7l-1.4 9A2 2 0 0 0 4.3 15ZM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3";
+
+/**
+ * A weekly award's wall — the count per player, then every week's pick.
+ * The flop gets the same treatment in red: a roll of shame.
+ */
+function WeeklyWall({ picks, byId, race, flop = false }: { picks: WeeklyPick[]; byId: Map<number, Player>; race: Race; flop?: boolean }) {
+  if (!picks.length) return null;
+  const counts = new Map<number, { playerId: number; wins: number; last: WeeklyPick; streak: number }>();
   let run = 0;
-  winners.forEach((w, i) => {
-    const prev = winners[i - 1];
+  picks.forEach((w, i) => {
+    const prev = picks[i - 1];
     run = prev && prev.playerId === w.playerId && prev.day === w.day - 1 ? run + 1 : 1;
     const c = counts.get(w.playerId) ?? { playerId: w.playerId, wins: 0, last: w, streak: 0 };
     c.wins++;
@@ -744,18 +776,29 @@ function WeeklyWall({ winners, byId, race }: { winners: WeeklyWinner[]; byId: Ma
     c.streak = Math.max(c.streak, run);
     counts.set(w.playerId, c);
   });
-  // Same order as the Player of the Week race, so a tie keeps its holder on top.
+  // Same order as the award's race, so a tie keeps its holder on top.
   const place = new Map((race.frames[race.frames.length - 1] ?? []).map((st, i) => [st.playerId, i]));
   const table = [...counts.values()].sort((a, b) => (place.get(a.playerId) ?? 0) - (place.get(b.playerId) ?? 0));
-  const latest = [...winners].reverse();
+  const latest = [...picks].reverse();
+  const accent = flop ? "text-loss" : "text-justice";
+  const ring = (i: number, id: number) => (flop ? (i === 0 ? "#c23b6b" : laneColour(id)) : (MEDALS[i] ?? laneColour(id)));
 
   return (
-    <section className="aw-potw relative mt-10 overflow-hidden border-t border-ink-line py-12 md:py-20" aria-label="Player of the week">
+    <section
+      className={`${flop ? "aw-flop" : "aw-potw mt-10"} relative overflow-hidden border-t border-ink-line py-12 md:py-20`}
+      aria-label={race.category.award}
+    >
       <div className="relative mx-auto max-w-5xl px-4 md:px-10">
         <Reveal className="text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-justice">Roll of honour</p>
-          <h2 className="aw-gold-text mt-2 font-display text-5xl font-extrabold leading-none md:text-7xl">Player of the Week</h2>
-          <p className="mx-auto mt-3 max-w-sm text-sm text-paper-dim">The standout performer of every match day — and how many times each has won it.</p>
+          <p className={`text-xs uppercase tracking-[0.3em] ${accent}`}>{flop ? "Roll of shame" : "Roll of honour"}</p>
+          <h2 className={`${flop ? "aw-flop-text" : "aw-gold-text"} mt-2 font-display text-5xl font-extrabold leading-none md:text-7xl`}>
+            {race.category.award}
+          </h2>
+          <p className="mx-auto mt-3 max-w-sm text-sm text-paper-dim">
+            {flop
+              ? "Every match day has one — most games lost, then the worst goal difference, then the fewest goals and assists."
+              : "The standout performer of every match day — and how many times each has won it."}
+          </p>
         </Reveal>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 md:mt-12 md:grid-cols-3">
@@ -764,22 +807,43 @@ function WeeklyWall({ winners, byId, race }: { winners: WeeklyWinner[]; byId: Ma
             if (!p) return null;
             return (
               <Reveal key={c.playerId} delay={i * 80}>
-                <Link to={`/squad/${p.id}`} className={`aw-honour flex items-center gap-4 rounded-3xl p-4 ring-1 ${i === 0 ? "aw-honour-top ring-justice/50" : "ring-white/5"}`}>
+                <Link
+                  to={`/squad/${p.id}`}
+                  className={`aw-honour flex items-center gap-4 rounded-3xl p-4 ring-1 ${
+                    i === 0 ? (flop ? "aw-shame-top ring-loss/50" : "aw-honour-top ring-justice/50") : "ring-white/5"
+                  }`}
+                >
                   <div className="relative">
-                    <Avatar player={p} size="h-16 w-16" ring={MEDALS[i] ?? laneColour(p.id)} className={i === 0 ? "aw-halo" : ""} />
-                    {i === 0 && <CrownIcon className="aw-crown absolute -top-5 left-1/2 h-6 w-6 -translate-x-1/2 text-[#e9c46a]" />}
+                    <Avatar player={p} size="h-16 w-16" ring={ring(i, p.id)} className={i === 0 ? (flop ? "aw-wobble" : "aw-halo") : ""} />
+                    {i === 0 && !flop && <CrownIcon className="aw-crown absolute -top-5 left-1/2 h-6 w-6 -translate-x-1/2 text-[#e9c46a]" />}
+                    {i === 0 && flop && (
+                      <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-loss px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide text-paper">
+                        Wooden spoon
+                      </span>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-paper">{p.name}</p>
-                    <div className="mt-1 flex flex-wrap gap-0.5" aria-label={plural(c.wins, "win")}>
+                    <div className="mt-1 flex flex-wrap gap-0.5" aria-label={plural(c.wins, flop ? "flop" : "win")}>
                       {Array.from({ length: Math.min(c.wins, 10) }, (_, k) => (
-                        <svg key={k} viewBox="0 0 24 24" className="aw-star h-3.5 w-3.5 text-justice" style={{ "--i": k } as CSSProperties} fill="currentColor" aria-hidden="true">
-                          <path d="m12 2.5 2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8Z" />
+                        <svg
+                          key={k}
+                          viewBox="0 0 24 24"
+                          className={`aw-star h-3.5 w-3.5 ${accent}`}
+                          style={{ "--i": k } as CSSProperties}
+                          fill={flop ? "none" : "currentColor"}
+                          stroke={flop ? "currentColor" : undefined}
+                          strokeWidth={flop ? 2.2 : undefined}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d={flop ? THUMB : STAR} />
                         </svg>
                       ))}
                     </div>
                     <p className="mt-1 text-xs text-mist">
-                      Last won {c.last.event.title}
+                      {flop ? "Last flopped" : "Last won"} {c.last.event.title}
                       {c.streak > 1 ? ` · ${c.streak} in a row` : ""}
                     </p>
                   </div>
@@ -808,15 +872,17 @@ function WeeklyWall({ winners, byId, race }: { winners: WeeklyWinner[]; byId: Ma
               className="aw-week relative w-40 shrink-0 snap-start overflow-hidden rounded-3xl ring-1 ring-white/5"
               style={{ "--i": Math.min(i, 8) } as CSSProperties}
             >
-              <img src={p.photo} alt="" loading="lazy" className="h-48 w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
-              {i === 0 && <span className="absolute left-3 top-3 rounded-full bg-justice px-2 py-0.5 text-[0.6rem] font-bold uppercase text-ink">Latest</span>}
+              <img src={p.photo} alt="" loading="lazy" className={`h-48 w-full object-cover ${flop ? "grayscale" : ""}`} />
+              <div className={`absolute inset-0 bg-gradient-to-t ${flop ? "from-ink via-loss/25" : "from-ink via-ink/40"} to-transparent`} />
+              {i === 0 && (
+                <span className={`absolute left-3 top-3 rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase ${flop ? "bg-loss text-paper" : "bg-justice text-ink"}`}>
+                  Latest
+                </span>
+              )}
               <div className="absolute inset-x-0 bottom-0 p-3">
-                <p className="text-[0.65rem] uppercase tracking-wide text-justice">{w.event.title}</p>
+                <p className={`text-[0.65rem] uppercase tracking-wide ${flop ? "text-[#f08aaf]" : "text-justice"}`}>{w.event.title}</p>
                 <p className="truncate font-display text-xl leading-tight text-paper">{p.name}</p>
-                <p className="text-[0.7rem] text-paper-dim">
-                  {w.goals}G · {w.assists}A{w.cleanSheets ? ` · ${w.cleanSheets}CS` : ""} · {plural(w.games, "game")}
-                </p>
+                <p className="text-[0.7rem] text-paper-dim">{w.line}</p>
               </div>
             </Link>
           );

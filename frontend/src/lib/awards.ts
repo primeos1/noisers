@@ -1,7 +1,9 @@
 // The Awards race — every honour replayed match day by match day, worked out
 // from the ended match days and squad ratings the app already loads. Player
 // of the week follows the server's rule (MatchDayFinalizer::computePlayerOfTheDay):
-// most goal involvements, then goals, then clean sheets.
+// most goal involvements, then goals, then clean sheets. The flop of the week
+// follows MatchDayFinalizer::computeFlopPlayer: most games lost, then worst
+// goal difference, then fewest goal involvements — there's always one.
 
 import type { Player } from "./clubData";
 import type { MatchDayEvent } from "./matchDay";
@@ -9,6 +11,9 @@ import type { MatchDayEvent } from "./matchDay";
 interface Line {
   games: number;
   wins: number;
+  losses: number;
+  /** Goal difference on the pitch. */
+  gd: number;
   goals: number;
   assists: number;
   cleanSheets: number;
@@ -17,7 +22,7 @@ interface Line {
   reds: number;
 }
 
-const emptyLine = (): Line => ({ games: 0, wins: 0, goals: 0, assists: 0, cleanSheets: 0, saves: 0, yellows: 0, reds: 0 });
+const emptyLine = (): Line => ({ games: 0, wins: 0, losses: 0, gd: 0, goals: 0, assists: 0, cleanSheets: 0, saves: 0, yellows: 0, reds: 0 });
 
 /** One match day's numbers per squad player (finished games only, as on the server). */
 function dayLines(event: MatchDayEvent, squad: Map<number, Player>): Map<number, Line> {
@@ -36,12 +41,15 @@ function dayLines(event: MatchDayEvent, squad: Map<number, Player>): Map<number,
 
     game.teams.forEach((team, i) => {
       const won = score[i] > score[1 - i];
+      const lost = score[i] < score[1 - i];
       const cleanSheet = score[1 - i] === 0;
       for (const id of team.players) {
         const l = line(id);
         if (!l) continue;
         l.games++;
         if (won) l.wins++;
+        if (lost) l.losses++;
+        l.gd += score[i] - score[1 - i];
         // Forwards don't keep clean sheets — main position decides.
         if (cleanSheet && squad.get(id as number)!.position !== "FWD") l.cleanSheets++;
       }
@@ -74,6 +82,32 @@ export interface WeeklyWinner {
   games: number;
 }
 
+export interface WeeklyFlop {
+  day: number;
+  event: MatchDayEvent;
+  playerId: number;
+  games: number;
+  losses: number;
+  gd: number;
+  involvements: number;
+}
+
+function flopOfTheDay(lines: Map<number, Line>): [number, Line] | null {
+  let worst: [number, Line] | null = null;
+  const key = (l: Line) => [l.losses, -l.gd, -(l.goals + l.assists)];
+  for (const entry of lines) {
+    if (entry[1].games === 0) continue;
+    if (!worst) {
+      worst = entry;
+      continue;
+    }
+    const k = key(entry[1]);
+    const w = key(worst[1]);
+    if (k[0] > w[0] || (k[0] === w[0] && (k[1] > w[1] || (k[1] === w[1] && k[2] > w[2])))) worst = entry;
+  }
+  return worst;
+}
+
 function playerOfTheDay(lines: Map<number, Line>): [number, Line] | null {
   let best: [number, Line] | null = null;
   const key = (l: Line) => [l.goals + l.assists, l.goals, l.cleanSheets];
@@ -93,6 +127,7 @@ function playerOfTheDay(lines: Map<number, Line>): [number, Line] | null {
 /** What a race's value function sees for one player after a given match day. */
 export interface Tally extends Line {
   potw: number;
+  flops: number;
   hatTricks: number;
   /** Null until the player has played. */
   rating: number | null;
@@ -112,7 +147,8 @@ export type CategoryId =
   | "serial-winner"
   | "climber"
   | "hat-tricks"
-  | "hot-head";
+  | "hot-head"
+  | "flop";
 
 export interface Category {
   id: CategoryId;
@@ -141,6 +177,7 @@ export const categories: Category[] = [
   { id: "ironman", award: "Ironman", stat: "Games played", blurb: "Never misses a game.", unit: "games", value: (t) => t.games, format: whole },
   { id: "climber", award: "The Climber", stat: "Rating gained", blurb: "Biggest rise since their first rated match day.", unit: "rating", value: (t) => t.climb, format: (v) => `+${v.toFixed(2)}` },
   { id: "hat-tricks", award: "Hat-trick Hero", stat: "Hat-trick days", blurb: "Match days with three goals or more.", unit: "hat-tricks", value: (t) => t.hatTricks, format: whole },
+  { id: "flop", award: "Flop of the Week", stat: "Weekly flops", blurb: "Most match days as the week's biggest letdown.", unit: "flops", value: (t) => t.flops, format: whole },
   { id: "hot-head", award: "Hot Head", stat: "Cards", blurb: "The one the referee knows by name.", unit: "cards", value: (t) => t.yellows + t.reds, format: whole },
 ];
 
@@ -169,6 +206,7 @@ export interface AwardsData {
   days: MatchDayEvent[];
   races: Race[];
   winners: WeeklyWinner[];
+  flops: WeeklyFlop[];
 }
 
 /** Ended match days with at least one finished game, oldest first. */
@@ -183,6 +221,7 @@ export function buildAwards(players: Player[], events: MatchDayEvent[]): AwardsD
   const days = awardDays(events);
   const totals = new Map<number, Tally>();
   const winners: WeeklyWinner[] = [];
+  const flops: WeeklyFlop[] = [];
   const frames = new Map<CategoryId, Standing[][]>(categories.map((c) => [c.id, []]));
 
   // Rating after each match day the player was rated in.
@@ -196,7 +235,7 @@ export function buildAwards(players: Player[], events: MatchDayEvent[]): AwardsD
       let t = totals.get(id);
       if (!t) {
         const history = squad.get(id)!.ratingHistory ?? [];
-        t = { ...emptyLine(), potw: 0, hatTricks: 0, rating: history[0]?.before ?? squad.get(id)!.rating, climb: null };
+        t = { ...emptyLine(), potw: 0, flops: 0, hatTricks: 0, rating: history[0]?.before ?? squad.get(id)!.rating, climb: null };
         totals.set(id, t);
       }
       for (const k of Object.keys(l) as (keyof Line)[]) t[k] += l[k];
@@ -216,6 +255,13 @@ export function buildAwards(players: Player[], events: MatchDayEvent[]): AwardsD
       const [playerId, l] = best;
       totals.get(playerId)!.potw++;
       winners.push({ day, event, playerId, goals: l.goals, assists: l.assists, cleanSheets: l.cleanSheets, games: l.games });
+    }
+
+    const worst = flopOfTheDay(lines);
+    if (worst) {
+      const [playerId, l] = worst;
+      totals.get(playerId)!.flops++;
+      flops.push({ day, event, playerId, games: l.games, losses: l.losses, gd: l.gd, involvements: l.goals + l.assists });
     }
 
     for (const category of categories) {
@@ -255,7 +301,7 @@ export function buildAwards(players: Player[], events: MatchDayEvent[]): AwardsD
     return { category, frames: list, reigns };
   });
 
-  return { days, races, winners };
+  return { days, races, winners, flops };
 }
 
 /** Totals per player across a race's reigns at the top. */

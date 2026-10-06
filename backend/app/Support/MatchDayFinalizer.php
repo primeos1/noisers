@@ -375,9 +375,10 @@ class MatchDayFinalizer
     }
 
     /**
-     * The flop player of the week — of the squad players who lost a game,
-     * the one who lost the most, then had the worst goal difference on the
-     * pitch, then the fewest goals and assists. Null when nobody lost.
+     * The flop player of the week — the squad player who lost the most
+     * games, then had the worst goal difference on the pitch, then the
+     * fewest goals and assists. There is always one, even on a day of
+     * draws — null only when no squad player finished a game.
      *
      * @param  array<int, int>  $squadIds
      * @return array{playerId: int, played: int, lost: int, gd: int, involvements: int}|null
@@ -416,7 +417,7 @@ class MatchDayFinalizer
         $flop = null;
         foreach ($rows as $playerId => $r) {
             $key = [$r['lost'], -$r['gd'], -$r['involvements']];
-            if ($r['lost'] > 0 && ($flop === null || $key > $flop['key'])) {
+            if ($flop === null || $key > $flop['key']) {
                 $flop = ['playerId' => $playerId, 'key' => $key] + $r;
             }
         }

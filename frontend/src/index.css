@@ -4315,3 +4315,52 @@
     display: none;
   }
 }
+
+/* Flop of the week: the same wall in red, a roll of shame. */
+.aw-flop {
+  background:
+    radial-gradient(50% 40% at 50% 0%, rgb(194 59 107 / 0.16), transparent 70%),
+    var(--color-ink);
+}
+
+.aw-flop-text {
+  background: linear-gradient(100deg, #8f2550 0%, #f08aaf 30%, #c23b6b 50%, #ffd1e0 56%, #c23b6b 64%, #8f2550 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aw-foil 5s ease-in-out infinite;
+}
+
+.aw-shame-top {
+  background: linear-gradient(135deg, rgb(194 59 107 / 0.2), rgb(194 59 107 / 0.03) 60%), var(--color-ink-raised);
+}
+
+/* The flop's photo gives an embarrassed little shake now and then. */
+.aw-wobble {
+  animation: aw-wobble 3s ease-in-out infinite;
+}
+
+@keyframes aw-wobble {
+  0%,
+  80%,
+  100% {
+    rotate: 0deg;
+  }
+  85% {
+    rotate: -8deg;
+  }
+  90% {
+    rotate: 6deg;
+  }
+  95% {
+    rotate: -3deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-flop-text,
+  .aw-wobble {
+    animation: none;
+  }
+}
