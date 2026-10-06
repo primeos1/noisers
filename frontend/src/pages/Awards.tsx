@@ -660,26 +660,42 @@ function Reigns({ race, byId, days }: { race: Race; byId: Map<number, Player>; d
   );
 }
 
-/** The rest of the field, with how they moved at the last match day. */
+/**
+ * The rest of the field below the podium: how far each is behind No. 1, and
+ * whether that gap shrank (closing in) or grew at the last match day.
+ */
 function Chasers({ race, byId }: { race: Race; byId: Map<number, Player> }) {
   const last = race.frames.length - 1;
   const now = race.frames[last] ?? [];
-  const before = new Map((race.frames[last - 1] ?? []).map((s, i) => [s.playerId, i]));
+  const prevFrame = race.frames[last - 1] ?? [];
+  const before = new Map(prevFrame.map((s, i) => [s.playerId, { rank: i, value: s.value }]));
   const rest = now.slice(3, 15);
   if (!rest.length) return null;
-  const leader = now[0];
+  const top = now[0].value;
+  const prevTop = prevFrame[0]?.value ?? null;
+  const decimal = race.category.spread || race.category.id === "climber";
+  // Ratings are decimals: round so float noise doesn't read as a gap.
+  const tidy = (v: number) => (decimal ? Math.round(v * 100) / 100 : v);
+  const show = (v: number) => (decimal ? v.toFixed(2) : String(v));
 
   return (
     <Reveal className="mt-12 md:mt-16">
       <p className="text-[0.68rem] uppercase tracking-[0.2em] text-justice">The chasing pack</p>
       <h3 className="mt-1 font-display text-3xl text-paper md:text-4xl">Closing in</h3>
+      <p className="mt-2 max-w-md text-sm text-paper-dim">
+        Everyone below the podium, how far they are behind No. 1 — and whether they cut that gap at the last match day.
+      </p>
       <ol className="mt-4 divide-y divide-ink-line overflow-hidden rounded-3xl bg-ink-raised/60 ring-1 ring-white/5">
         {rest.map((s: Standing, i) => {
           const p = byId.get(s.playerId);
           if (!p) return null;
           const rank = i + 3;
           const was = before.get(s.playerId);
-          const move = was === undefined ? null : was - rank;
+          const move = was === undefined ? null : was.rank - rank;
+          const gap = tidy(top - s.value);
+          // A counting stat starts from zero, so a newcomer was the whole top value behind.
+          const wasValue = was?.value ?? (race.category.spread ? null : 0);
+          const closed = prevTop === null || wasValue === null ? 0 : tidy(prevTop - wasValue - gap);
           return (
             <li key={s.playerId}>
               <Link to={`/squad/${p.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-ink-raised">
@@ -687,10 +703,10 @@ function Chasers({ race, byId }: { race: Race; byId: Map<number, Player> }) {
                 <Movement move={move} />
                 <Avatar player={p} size="h-9 w-9" />
                 <span className="min-w-0 flex-1 truncate text-sm text-paper">{p.name}</span>
-                <span className="text-xs text-mist">
-                  {race.category.spread || race.category.id === "climber"
-                    ? `−${(leader.value - s.value).toFixed(2)}`
-                    : `−${leader.value - s.value}`}
+                <span className="text-right text-xs leading-tight">
+                  <span className="block text-mist">{gap === 0 ? "Level with No. 1" : `${show(gap)} behind`}</span>
+                  {closed > 0 && <span className="block font-semibold text-win">Closed {show(closed)}</span>}
+                  {closed < 0 && <span className="block text-loss">Lost {show(-closed)}</span>}
                 </span>
                 <span className="w-12 text-right font-display text-xl text-paper">{race.category.format(s.value)}</span>
               </Link>
