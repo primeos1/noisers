@@ -1,16 +1,12 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
-import reckonLogo from "../assets/sponsors/reckon.png";
-import poundsLogo from "../assets/sponsors/pounds.png";
+// Single-colour (white) logos, so they sit in the site's palette.
+import reckonLogo from "../assets/sponsors/reckon-mono.png";
+import poundsLogo from "../assets/sponsors/pounds-mono.png";
 
 interface Sponsor {
   name: string;
   logo: string;
   tagline: string;
-  /** "light" cards sit on white (the logo's own background), "dark" on black. */
-  tone: "light" | "dark";
-  /** Brand colours for the spinning border and glow. */
-  accent: string;
-  accentSoft: string;
 }
 
 const sponsors: Sponsor[] = [
@@ -18,17 +14,11 @@ const sponsors: Sponsor[] = [
     name: "Reckon Nigeria Limited",
     logo: reckonLogo,
     tagline: "Official partner",
-    tone: "light",
-    accent: "#3fb549",
-    accentSoft: "#0f6b34",
   },
   {
     name: "Pounds Apparel Ltd",
     logo: poundsLogo,
     tagline: "Apparel partner",
-    tone: "dark",
-    accent: "#f5d46a",
-    accentSoft: "#a8741f",
   },
 ];
 
@@ -75,19 +65,14 @@ function SponsorCard({ sponsor, index }: { sponsor: Sponsor; index: number }) {
   return (
     <div
       className="sp-item"
-      style={{ "--i": index, "--accent": sponsor.accent, "--accent-soft": sponsor.accentSoft } as CSSProperties}
+      style={{ "--i": index } as CSSProperties}
     >
       <div ref={cardRef} className="sp-card" onPointerMove={tilt} onPointerLeave={reset}>
-        <div className={`sp-face ${sponsor.tone === "light" ? "sp-face-light" : "sp-face-dark"}`}>
+        <div className="sp-face">
           <span className="sp-glow" aria-hidden="true" />
           <span className="sp-shine" aria-hidden="true" />
-          <div className="sp-logo-wrap">
-            <img src={sponsor.logo} alt={sponsor.name} className="sp-logo" loading="lazy" draggable={false} />
-          </div>
-          <div className="sp-caption">
-            <span className="sp-dot" aria-hidden="true" />
-            <span>{sponsor.tagline}</span>
-          </div>
+          <img src={sponsor.logo} alt={sponsor.name} className="sp-logo" loading="lazy" draggable={false} />
+          <p className="sp-caption">{sponsor.tagline}</p>
         </div>
       </div>
     </div>
@@ -95,8 +80,8 @@ function SponsorCard({ sponsor, index }: { sponsor: Sponsor; index: number }) {
 }
 
 /**
- * The club's sponsors, right under the hero: two animated brand cards
- * (spinning brand-colour border, floating logo, light sweep, tilt on hover)
+ * The club's sponsors, right under the hero: two quiet cards in the site's
+ * palette (a faint light round the border, floating logo, tilt on hover)
  * and an endless logo ribbon underneath.
  */
 export default function Sponsors() {
@@ -107,8 +92,6 @@ export default function Sponsors() {
 
   return (
     <section ref={sectionRef} className="sp-section relative isolate overflow-hidden border-b border-ink-line bg-ink" aria-labelledby="sponsors-title">
-      <div className="sp-aurora" aria-hidden="true" />
-
       <div className="mx-auto max-w-3xl px-4 pt-8 pb-6 md:px-10 md:pt-12 md:pb-8">
         <div className="sp-head text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-ink-line bg-ink-raised/70 px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-paper-dim">
@@ -116,7 +99,7 @@ export default function Sponsors() {
             Proudly backed by
           </p>
           <h2 id="sponsors-title" className="mt-3 font-display text-2xl leading-[0.95] text-paper md:text-4xl">
-            Our <span className="sp-gradient-text">sponsors</span>
+            Our sponsors
           </h2>
           <p className="mx-auto mt-2 max-w-md text-xs text-paper-dim md:text-sm">
             The partners who keep Noisers FC playing, every match day.
@@ -133,9 +116,7 @@ export default function Sponsors() {
       <div className="sp-ribbon" aria-hidden="true">
         <div className="sp-track">
           {[...ribbon, ...ribbon].map((s, i) => (
-            <span key={i} className={`sp-chip ${s.tone === "light" ? "sp-chip-light" : "sp-chip-dark"}`}>
-              <img src={s.logo} alt="" className="h-4 w-auto md:h-5" loading="lazy" draggable={false} />
-            </span>
+            <img key={i} src={s.logo} alt="" className="h-4 w-auto md:h-5" loading="lazy" draggable={false} />
           ))}
         </div>
       </div>
