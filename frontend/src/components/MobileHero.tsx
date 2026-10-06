@@ -1,37 +1,21 @@
 import { Link } from "react-router-dom";
-import type { MatchDayEvent, MatchDayGame } from "../lib/matchDay";
-import { scoreOf } from "../lib/matchDay";
 import logoWhite from "../assets/brand/logo-white.png";
-
-type Game = { event: MatchDayEvent; game: MatchDayGame };
 
 /**
  * Phones only. A photo-first "kick-off" hero: the match photo fills
- * the top and ends on the centre-circle arc, the crest drops onto that line,
- * and a pitch-side LED board scrolls the latest results along the bottom.
+ * the top and ends on the centre-circle arc, and the crest drops onto that line.
  */
 export default function MobileHero({
   eyebrow,
   headline,
   subtext,
   imageUrl,
-  games,
 }: {
   eyebrow: string;
   headline: string;
   subtext: string;
   imageUrl: string;
-  games: Game[];
 }) {
-  const recent = games.slice(-8).reverse();
-  const boardItems = recent.length
-    ? recent.map(({ game, event }) => ({
-        key: game.id,
-        text: `${game.teams[0].name} ${scoreOf(game, 0)}–${scoreOf(game, 1)} ${game.teams[1].name}`,
-        date: event.date,
-      }))
-    : [{ key: "eyebrow", text: eyebrow, date: "" }];
-
   return (
     <section className="relative flex min-h-[100svh] flex-col overflow-hidden border-b border-ink-line bg-ink pb-tabbar md:hidden">
       {/* Photo, ending on the centre-circle arc */}
@@ -96,26 +80,6 @@ export default function MobileHero({
         </div>
       </div>
 
-      {/* Pitch-side LED board */}
-      <a
-        href="#matchday"
-        className="hero-rise led-board relative mt-8 block overflow-hidden border-y border-ink-line bg-ink-raised py-3 [animation-delay:1200ms]"
-        aria-label={recent.length ? `Latest results: ${boardItems.map((b) => b.text).join("; ")}` : eyebrow}
-      >
-        <div className="led-track flex w-max" aria-hidden="true">
-          {[0, 1].map((copy) => (
-            <div key={copy} className="flex shrink-0 items-center">
-              {boardItems.map((item) => (
-                <span key={`${copy}-${item.key}`} className="flex items-center gap-3 px-6">
-                  <span className="led-text font-display text-2xl font-bold uppercase tracking-wide">{item.text}</span>
-                  {item.date && <span className="text-xs text-mist">{item.date}</span>}
-                  <span className="ml-3 h-1.5 w-1.5 rounded-full bg-paper/40" />
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </a>
     </section>
   );
 }

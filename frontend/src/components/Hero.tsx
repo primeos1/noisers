@@ -23,7 +23,6 @@ export default function Hero() {
       headline={hero.headline}
       subtext={hero.subtext}
       imageUrl={imageUrl}
-      games={games}
     />
     <section className="relative hidden min-h-[92svh] flex-row items-end overflow-hidden border-b border-ink-line md:flex">
       <FittedImage
