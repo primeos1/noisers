@@ -1,6 +1,7 @@
 import Layout from "../components/Layout";
 import Hero from "../components/Hero";
 import StatsBand from "../components/StatsBand";
+import Sponsors from "../components/Sponsors";
 import StorySection from "../components/StorySection";
 import AtmosphereBreak from "../components/AtmosphereBreak";
 import SquadPreview from "../components/SquadPreview";
@@ -11,6 +12,7 @@ export default function Home() {
   return (
     <Layout>
       <Hero />
+      <Sponsors />
       <StatsBand />
       <StorySection />
       <AtmosphereBreak />

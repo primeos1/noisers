@@ -4137,3 +4137,293 @@
     transition: none;
   }
 }
+
+/* Sponsors band under the home hero (components/Sponsors.tsx). */
+@layer components {
+  .sp-aurora {
+    position: absolute;
+    inset: -20% -10%;
+    z-index: -1;
+    background:
+      radial-gradient(40% 50% at 20% 30%, rgba(63, 181, 73, 0.16), transparent 70%),
+      radial-gradient(40% 50% at 80% 60%, rgba(245, 212, 106, 0.14), transparent 70%);
+    filter: blur(20px);
+    animation: sp-aurora 14s ease-in-out infinite alternate;
+  }
+
+  @keyframes sp-aurora {
+    to {
+      transform: translate3d(4%, -3%, 0) rotate(6deg) scale(1.08);
+    }
+  }
+
+  .sp-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #3fb549;
+    box-shadow: 0 0 0 0 rgba(63, 181, 73, 0.6);
+    animation: sp-pulse 1.8s ease-out infinite;
+  }
+
+  @keyframes sp-pulse {
+    to {
+      box-shadow: 0 0 0 9px rgba(63, 181, 73, 0);
+    }
+  }
+
+  .sp-gradient-text {
+    background: linear-gradient(90deg, #3fb549, #f5d46a, #c98f2c, #3fb549);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: sp-text 6s linear infinite;
+  }
+
+  @keyframes sp-text {
+    to {
+      background-position: 300% 0;
+    }
+  }
+
+  /* Entrance: heading rises, cards flip up one after the other. */
+  .sp-head,
+  .sp-item {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 0.8s ease,
+      transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .sp-item {
+    transform: perspective(900px) translateY(48px) rotateX(18deg) scale(0.96);
+    transition-delay: calc(0.15s + var(--i) * 0.18s);
+  }
+
+  .sp-section.is-in .sp-head,
+  .sp-section.is-in .sp-item {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The card: a spinning conic border in the sponsor's colours around the face. */
+  .sp-card {
+    --rx: 0deg;
+    --ry: 0deg;
+    --gx: 50%;
+    --gy: 50%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    padding: 2px;
+    transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
+    transition: transform 0.25s ease-out, box-shadow 0.3s ease;
+    box-shadow: 0 20px 60px -25px var(--accent);
+    animation: sp-bob 6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -3s);
+  }
+
+  .sp-card:hover {
+    box-shadow: 0 30px 80px -20px var(--accent);
+  }
+
+  .sp-card::before {
+    content: "";
+    position: absolute;
+    inset: -60%;
+    background: conic-gradient(from 0deg, transparent 0 55%, var(--accent-soft) 70%, var(--accent) 82%, #fff 86%, transparent 92%);
+    animation: sp-spin 5s linear infinite;
+    animation-delay: calc(var(--i) * -2.5s);
+  }
+
+  @keyframes sp-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @keyframes sp-bob {
+    50% {
+      translate: 0 -6px;
+    }
+  }
+
+  .sp-face {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    min-height: 13rem;
+    border-radius: calc(1.75rem - 2px);
+    padding: 1.75rem 1.25rem 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .sp-face {
+      min-height: 17rem;
+      padding: 2.5rem 2rem 1.5rem;
+    }
+  }
+
+  .sp-face-light {
+    background: #ffffff;
+    color: #0f3d1f;
+  }
+
+  .sp-face-dark {
+    background: radial-gradient(120% 90% at 50% 0%, #1a1408, #000 70%);
+    color: #f5d46a;
+  }
+
+  /* Glow that follows the pointer (centred on touch screens). */
+  .sp-glow {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(45% 60% at var(--gx) var(--gy), color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+    transition: background 0.2s;
+  }
+
+  /* A diagonal light sweep every few seconds. */
+  .sp-shine {
+    position: absolute;
+    inset: -20% auto -20% -40%;
+    width: 30%;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: skewX(-18deg) translateX(-150%);
+    animation: sp-shine 4.5s ease-in-out infinite;
+    animation-delay: calc(1.2s + var(--i) * 2.2s);
+    mix-blend-mode: soft-light;
+  }
+
+  .sp-face-light .sp-shine {
+    mix-blend-mode: normal;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  }
+
+  @keyframes sp-shine {
+    0% {
+      transform: skewX(-18deg) translateX(-150%);
+    }
+    45%,
+    100% {
+      transform: skewX(-18deg) translateX(560%);
+    }
+  }
+
+  .sp-logo-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    animation: sp-float 5s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -2.5s);
+  }
+
+  .sp-logo {
+    width: min(100%, 22rem);
+    height: auto;
+    user-select: none;
+    filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--accent) 35%, transparent));
+  }
+
+  /* The Reckon artwork has its own white box — blend it into the card instead of glowing around it. */
+  .sp-face-light .sp-logo {
+    filter: none;
+    mix-blend-mode: multiply;
+  }
+
+  @keyframes sp-float {
+    50% {
+      transform: translateY(-8px) scale(1.02);
+    }
+  }
+
+  .sp-caption {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    opacity: 0.8;
+  }
+
+  .sp-dot {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  /* Endless logo ribbon. */
+  .sp-ribbon {
+    position: relative;
+    overflow: hidden;
+    border-top: 1px solid var(--color-ink-line);
+    padding: 0.9rem 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+
+  .sp-track {
+    display: flex;
+    width: max-content;
+    gap: 1rem;
+    animation: sp-marquee 28s linear infinite;
+  }
+
+  .sp-ribbon:hover .sp-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes sp-marquee {
+    to {
+      transform: translateX(calc(-50% - 0.5rem));
+    }
+  }
+
+  .sp-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid var(--color-ink-line);
+  }
+
+  .sp-chip-light {
+    background: #fff;
+  }
+
+  .sp-chip-dark {
+    background: #000;
+    border-color: rgba(245, 212, 106, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-head,
+  .sp-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .sp-card {
+    transform: none;
+  }
+
+  .sp-shine {
+    display: none;
+  }
+}
