@@ -375,6 +375,28 @@ class MatchDayFinalizer
     }
 
     /**
+     * The Vale's flop-of-the-week columns for this match day.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array{flop_player_id: ?int, flop_note: ?string}
+     */
+    public static function flopFields(MatchDayEvent $event, array $squadIds): array
+    {
+        $flop = self::computeFlopPlayer($event, $squadIds);
+
+        return [
+            'flop_player_id' => $flop['playerId'] ?? null,
+            'flop_note' => $flop ? sprintf(
+                'Lost %d of %d game%s (%+d goal difference) with %d goal involvement%s at %s.',
+                $flop['lost'], $flop['played'], $flop['played'] === 1 ? '' : 's',
+                $flop['gd'],
+                $flop['involvements'], $flop['involvements'] === 1 ? '' : 's',
+                $event->title,
+            ) : null,
+        ];
+    }
+
+    /**
      * The flop player of the week — the squad player who lost the most
      * games, then had the worst goal difference on the pitch, then the
      * fewest goals and assists. There is always one, even on a day of
@@ -606,17 +628,7 @@ class MatchDayFinalizer
 
         $changes['leader_bad_boys'] = PlayerStats::badBoys($stats);
 
-        $flop = self::computeFlopPlayer($event, $squadIds);
-        $changes += [
-            'flop_player_id' => $flop['playerId'] ?? null,
-            'flop_note' => $flop ? sprintf(
-                'Lost %d of %d game%s (%+d goal difference) with %d goal involvement%s at %s.',
-                $flop['lost'], $flop['played'], $flop['played'] === 1 ? '' : 's',
-                $flop['gd'],
-                $flop['involvements'], $flop['involvements'] === 1 ? '' : 's',
-                $event->title,
-            ) : null,
-        ];
+        $changes += self::flopFields($event, $squadIds);
 
         $potw = self::computePlayerOfTheDay($stats);
         if ($potw) {
