@@ -17,7 +17,7 @@ export default function MobileHero({
   imageUrl: string;
 }) {
   return (
-    <section className="relative flex min-h-[100svh] flex-col overflow-hidden border-b border-ink-line bg-ink pb-tabbar md:hidden">
+    <section className="relative flex flex-col overflow-hidden border-b border-ink-line bg-ink pb-10 md:hidden">
       {/* Photo, ending on the centre-circle arc */}
       <div className="kickoff-photo relative h-[40svh] min-h-[260px] shrink-0 overflow-hidden">
         <div className="kickoff-zoom absolute inset-0">
