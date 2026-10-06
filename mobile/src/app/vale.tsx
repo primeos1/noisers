@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useClub } from "../lib/club";
-import { potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
+import { EMPTY_VALE, potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
 import { sortEvents } from "../lib/derive";
 import type { Player } from "../lib/types";
 import { Avatar, CardPips, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
@@ -47,12 +47,17 @@ export default function ValeScreen() {
   const past = useMemo(() => sortEvents(events).filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished")), [events]);
   const [picked, setPicked] = useState<string | null>(null);
   const eventId = picked ?? past[0]?.id ?? null;
-  const { team, loading: teamLoading } = useTeamOfWeek(eventId);
+  const { team, awards: dayAwards, loading: teamLoading } = useTeamOfWeek(eventId);
+  // The saved Vale (with any committee hand-picks) belongs to the match day it
+  // was written for; any other match day shows the awards worked out for it.
+  const selected = past.find((e) => e.id === eventId);
+  const showsSaved = !selected || (content.teamOfTheWeek.week === selected.title && content.teamOfTheWeek.dateRange === selected.date);
+  const awards = showsSaved ? content : (dayAwards ?? EMPTY_VALE);
 
   const find = (id: number) => players.find((p) => p.id === id);
   const lineup = (team?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
   const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
-  const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = content;
+  const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = awards;
   const flop = find(flopOfTheWeek.playerId);
   const badBoys = w.badBoys.map((b) => ({ ...b, player: find(b.playerId) })).filter((b): b is typeof b & { player: Player } => !!b.player);
   const leagueBadBoy = badBoyOfTheLeague(players);

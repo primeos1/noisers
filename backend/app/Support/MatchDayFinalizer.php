@@ -563,16 +563,28 @@ class MatchDayFinalizer
      */
     private static function updateWeeklyAwards(MatchDayEvent $event, array $squadIds): void
     {
-        $games = array_values(array_filter(
-            $event->games ?? [],
-            fn ($g) => ($g['status'] ?? null) === 'finished',
-        ));
-        if ($games === []) {
-            return;
+        $changes = self::weeklyAwardFields($event, $squadIds);
+        if ($changes !== null) {
+            ValeContent::current()->update($changes);
+        }
+    }
+
+    /**
+     * Every weekly award this match day earns, as The Vale's columns — what
+     * finalize() writes to The Vale, and what the "pick a match day" view
+     * shows for an older one. Read-only. Null when no game finished; an
+     * award nobody earned (no goal involvement, no rating rise) is left out.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array<string, mixed>|null
+     */
+    public static function weeklyAwardFields(MatchDayEvent $event, array $squadIds): ?array
+    {
+        if (! self::hasFinishedGames($event)) {
+            return null;
         }
 
         $inSquad = fn ($id) => is_int($id) && in_array($id, $squadIds, true);
-        $awards = ValeContent::current();
         $changes = [
             'team_week_title' => $event->title,
             'team_week_date_range' => $event->date,
@@ -676,6 +688,6 @@ class MatchDayFinalizer
             ];
         }
 
-        $awards->update($changes);
+        return $changes;
     }
 }

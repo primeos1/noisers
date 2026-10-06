@@ -37,7 +37,7 @@ export interface BadBoy {
   redCards: number;
 }
 
-interface ApiValeContent {
+export interface ApiValeContent {
   teamOfTheWeek: {
     title: string | null;
     dateRange: string | null;
@@ -90,7 +90,7 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
   },
 };
 
-function fromApi(data: ApiValeContent): ValeContentData {
+export function fromApi(data: ApiValeContent): ValeContentData {
   return {
     teamOfTheWeek: {
       week: data.teamOfTheWeek.title ?? "",

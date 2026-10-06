@@ -41,6 +41,29 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $this->putJson("/api/match-day-events/{$id}", ['status' => 'ended'])->assertOk();
     }
 
+    public function test_an_older_match_day_shows_its_own_awards_not_the_latest(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $ace = Player::factory()->create(['position' => 'FWD']);
+        $rival = Player::factory()->create(['position' => 'FWD']);
+
+        $this->playMatchDay('first', $ace, $rival);
+        $this->playMatchDay('second', $rival, $ace);
+
+        $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
+
+        $this->getJson('/api/match-day-events/first/team-of-week')
+            ->assertJsonPath('data.title', 'Matchday 1')
+            ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $ace->id)
+            ->assertJsonPath('data.awards.weeklyLeaders.topScorer.playerId', $ace->id)
+            ->assertJsonPath('data.awards.weeklyLeaders.topScorer.value', 1);
+        $this->getJson('/api/match-day-events/second/team-of-week')
+            ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $rival->id);
+
+        // Looking back never rewrites the saved Vale.
+        $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
+    }
+
     public function test_the_vale_counts_how_often_the_player_of_the_week_has_won(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));

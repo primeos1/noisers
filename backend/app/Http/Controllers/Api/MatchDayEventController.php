@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MatchDayEventResource;
+use App\Http\Resources\ValeContentResource;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
+use App\Models\ValeContent;
 use App\Support\MatchDayFinalizer;
 use App\Support\MatchDaySchedule;
 use Illuminate\Http\Request;
@@ -149,6 +151,11 @@ class MatchDayEventController extends Controller
                         'note' => $flop['flop_note'],
                     ];
                 })(),
+                // Every other award as it stood after this match day, in The
+                // Vale's own shape, so an older week shows its own winners.
+                'awards' => (new ValeContentResource(
+                    (new ValeContent)->forceFill(MatchDayFinalizer::weeklyAwardFields($matchDayEvent, $squadIds) ?? [])
+                ))->resolve(),
             ] : null,
         ]);
     }

@@ -3,7 +3,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useSquad } from "../lib/SquadContext";
 import { useMatchDay } from "../lib/MatchDayContext";
-import { useValeContent } from "../lib/ValeContentContext";
+import { DEFAULT_VALE_CONTENT, fromApi as valeFromApi, useValeContent, type ApiValeContent } from "../lib/ValeContentContext";
 import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
 import { formatCards, keepsCleanSheets, positionCodes, roughestPlayer } from "../lib/clubData";
@@ -24,13 +24,14 @@ interface TeamOfWeekData {
   flopTeam: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
   /** This match day's flop player — null only when no squad player finished a game. */
   flopPlayer?: { playerId: number; note: string } | null;
+  /** Every other award as worked out for this match day. */
+  awards?: ApiValeContent;
 }
 
 export default function TheVale() {
   const { players } = useSquad();
   const { events } = useMatchDay();
   const { content } = useValeContent();
-  const { playerOfTheWeek, mostImproved: mostImprovedPlayer, flopOfTheWeek, weeklyLeaders } = content;
 
   // Every ended match day that actually finished a game — most recent first —
   // so a visitor can look back at an older week's team instead of only ever
@@ -62,6 +63,19 @@ export default function TheVale() {
       .finally(() => setTeamLoading(false));
   }, [selectedEventId]);
 
+  // The saved Vale (with any committee hand-picks) belongs to the match day
+  // it was written for; any other match day shows the awards worked out for it.
+  const selectedEvent = pastMatchDays.find((e) => e.id === selectedEventId);
+  const showsSaved =
+    !selectedEvent ||
+    (content.teamOfTheWeek.week === selectedEvent.title && content.teamOfTheWeek.dateRange === selectedEvent.date);
+  const awards = showsSaved
+    ? content
+    : team?.awards && !teamLoading
+      ? valeFromApi(team.awards)
+      : DEFAULT_VALE_CONTENT;
+  const { playerOfTheWeek, mostImproved: mostImprovedPlayer, flopOfTheWeek, weeklyLeaders } = awards;
+
   const lineup = (team?.lineupPlayerIds ?? [])
     .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
@@ -73,10 +87,8 @@ export default function TheVale() {
   const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? [])
     .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
-  // The latest match day keeps the saved (or hand-picked) flop; an older one,
-  // or a saved award left empty, uses the flop worked out for that day.
-  const savedFlop = selectedEventId === pastMatchDays[0]?.id && flopOfTheWeek.playerId ? flopOfTheWeek : null;
-  const flopPick = savedFlop ?? team?.flopPlayer ?? null;
+  // A flop award left empty falls back to the one worked out for that day.
+  const flopPick = (flopOfTheWeek.playerId ? flopOfTheWeek : null) ?? team?.flopPlayer ?? null;
   const flop = flopPick ? players.find((p) => p.id === flopPick.playerId) : undefined;
   const badBoys = weeklyLeaders.badBoys
     .map((b) => ({ ...b, player: players.find((p) => p.id === b.playerId) }))

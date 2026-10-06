@@ -228,7 +228,7 @@ interface ApiVale {
   };
 }
 
-const EMPTY_VALE: ValeContent = {
+export const EMPTY_VALE: ValeContent = {
   teamOfTheWeek: { week: "", dateRange: "", sessionsWon: 0, sessionsPlayed: 0, rivalTeam: "", score: "", photo: "", lineupPlayerIds: [] },
   playerOfTheWeek: { playerId: 0, note: "", weekRating: 0, timesWon: 0 },
   mostImproved: { playerId: 0, note: "", previousRating: 0, currentRating: 0 },
@@ -487,18 +487,19 @@ export function useNoisers() {
 // ---- Team of the week ----------------------------------------------------
 
 /** Worked out by the API from one match day's results; null if none finished. */
+/** One match day's team of the week, plus every other award as worked out for that day. */
 export function useTeamOfWeek(eventId: string | null) {
-  const [result, setResult] = useState<{ eventId: string; team: TeamOfWeek | null } | null>(null);
+  const [result, setResult] = useState<{ eventId: string; team: TeamOfWeek | null; awards: ValeContent | null } | null>(null);
   useEffect(() => {
     if (!eventId) return;
     let cancelled = false;
-    apiFetch<{ data: TeamOfWeek | null }>(`/match-day-events/${eventId}/team-of-week`)
-      .then((res) => !cancelled && setResult({ eventId, team: res.data }))
-      .catch(() => !cancelled && setResult({ eventId, team: null }));
+    apiFetch<{ data: (TeamOfWeek & { awards?: ApiVale }) | null }>(`/match-day-events/${eventId}/team-of-week`)
+      .then((res) => !cancelled && setResult({ eventId, team: res.data, awards: res.data?.awards ? valeFromApi(res.data.awards) : null }))
+      .catch(() => !cancelled && setResult({ eventId, team: null, awards: null }));
     return () => {
       cancelled = true;
     };
   }, [eventId]);
   const current = result?.eventId === eventId ? result : null;
-  return { team: current?.team ?? null, loading: !!eventId && !current };
+  return { team: current?.team ?? null, awards: current?.awards ?? null, loading: !!eventId && !current };
 }
