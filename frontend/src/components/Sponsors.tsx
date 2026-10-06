@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from "react";
-// Single-colour (white) logos, so they sit in the site's palette.
-import reckonLogo from "../assets/sponsors/reckon-mono.png";
+// Reckon keeps its brand green (black parts turned light for the dark site);
+// Pounds is a single-colour (white) logo.
+import reckonLogo from "../assets/sponsors/reckon-colour.png";
 import poundsLogo from "../assets/sponsors/pounds-mono.png";
 
 interface Sponsor {
