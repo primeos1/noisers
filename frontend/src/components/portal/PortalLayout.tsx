@@ -145,8 +145,8 @@ export default function PortalLayout() {
       <main key={location.pathname} className="screen-in pb-tabbar mx-auto max-w-3xl px-4 pt-3 md:pb-16 md:pt-8">
         <Outlet />
         <div className="mt-10 border-t border-ink-line pt-6 md:mx-auto md:max-w-sm">
+          <SponsorStrip className="mb-6" />
           <WhatsAppCard label="Player support" note="WhatsApp only" />
-          <SponsorStrip className="mt-6" />
         </div>
       </main>
 
