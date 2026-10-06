@@ -79,7 +79,6 @@ export default function MobileHero({
           </a>
         </div>
       </div>
-
     </section>
   );
 }

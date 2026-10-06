@@ -245,27 +245,7 @@
     }
   }
 
-  /* Pitch-side LED board: dot-matrix glow, scrolling results. */
-  .led-board::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: radial-gradient(circle, transparent 0.9px, rgb(19 26 43 / 0.55) 1.3px);
-    background-size: 3px 3px;
-  }
-
-  .led-text {
-    color: var(--color-paper);
-    text-shadow:
-      0 0 6px rgb(246 246 243 / 0.55),
-      0 0 18px rgb(246 246 243 / 0.25);
-  }
-
-  .led-track {
-    animation: led-scroll 28s linear infinite;
-  }
-
+  /* Endless horizontal scroll (Executives marquee). */
   @keyframes led-scroll {
     to {
       transform: translateX(-50%);

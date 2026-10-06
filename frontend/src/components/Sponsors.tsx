@@ -80,7 +80,7 @@ function SponsorCard({ sponsor, index }: { sponsor: Sponsor; index: number }) {
 }
 
 /**
- * The club's sponsors, right under the hero (desktop and tablet only): two quiet cards in the site's
+ * The club's sponsors, right under the hero: two quiet cards in the site's
  * palette (a faint light round the border, floating logo, tilt on hover)
  * and an endless logo ribbon underneath.
  */
@@ -91,7 +91,7 @@ export default function Sponsors() {
   const ribbon = [...sponsors, ...sponsors, ...sponsors];
 
   return (
-    <section ref={sectionRef} className="sp-section relative isolate hidden overflow-hidden border-b border-ink-line bg-ink md:block" aria-labelledby="sponsors-title">
+    <section ref={sectionRef} className="sp-section relative isolate overflow-hidden border-b border-ink-line bg-ink" aria-labelledby="sponsors-title">
       <div className="mx-auto max-w-3xl px-4 pt-8 pb-6 md:px-10 md:pt-12 md:pb-8">
         <div className="sp-head text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-ink-line bg-ink-raised/70 px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-paper-dim">
