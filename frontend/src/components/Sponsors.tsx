@@ -25,7 +25,7 @@ const sponsors: Sponsor[] = [
   {
     name: "Pounds Apparel Ltd",
     logo: poundsLogo,
-    tagline: "Official apparel partner",
+    tagline: "Apparel partner",
     tone: "dark",
     accent: "#f5d46a",
     accentSoft: "#a8741f",
@@ -109,21 +109,21 @@ export default function Sponsors() {
     <section ref={sectionRef} className="sp-section relative isolate overflow-hidden border-b border-ink-line bg-ink" aria-labelledby="sponsors-title">
       <div className="sp-aurora" aria-hidden="true" />
 
-      <div className="mx-auto max-w-7xl px-4 pt-12 pb-8 md:px-10 md:pt-20 md:pb-12">
+      <div className="mx-auto max-w-3xl px-4 pt-8 pb-6 md:px-10 md:pt-12 md:pb-8">
         <div className="sp-head text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-ink-line bg-ink-raised/70 px-3 py-1 text-[0.7rem] uppercase tracking-[0.22em] text-paper-dim">
+          <p className="inline-flex items-center gap-2 rounded-full border border-ink-line bg-ink-raised/70 px-3 py-1 text-[0.6rem] uppercase tracking-[0.22em] text-paper-dim">
             <span className="sp-pulse" aria-hidden="true" />
             Proudly backed by
           </p>
-          <h2 id="sponsors-title" className="mt-4 font-display text-4xl leading-[0.95] text-paper md:text-6xl">
+          <h2 id="sponsors-title" className="mt-3 font-display text-2xl leading-[0.95] text-paper md:text-4xl">
             Our <span className="sp-gradient-text">sponsors</span>
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-paper-dim md:text-base">
+          <p className="mx-auto mt-2 max-w-md text-xs text-paper-dim md:text-sm">
             The partners who keep Noisers FC playing, every match day.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-5 md:mt-14 md:grid-cols-2 md:gap-8">
+        <div className="mt-5 grid grid-cols-2 gap-3 md:mt-8 md:gap-5">
           {sponsors.map((s, i) => (
             <SponsorCard key={s.name} sponsor={s} index={i} />
           ))}
@@ -134,7 +134,7 @@ export default function Sponsors() {
         <div className="sp-track">
           {[...ribbon, ...ribbon].map((s, i) => (
             <span key={i} className={`sp-chip ${s.tone === "light" ? "sp-chip-light" : "sp-chip-dark"}`}>
-              <img src={s.logo} alt="" className="h-7 w-auto md:h-9" loading="lazy" draggable={false} />
+              <img src={s.logo} alt="" className="h-4 w-auto md:h-5" loading="lazy" draggable={false} />
             </span>
           ))}
         </div>
