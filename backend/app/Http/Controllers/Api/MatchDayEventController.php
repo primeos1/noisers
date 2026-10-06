@@ -140,6 +140,15 @@ class MatchDayEventController extends Controller
                 'score' => $team['score'],
                 'lineupPlayerIds' => $team['lineupPlayerIds'],
                 'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
+                // Worked out for this match day, so every one has a flop.
+                'flopPlayer' => (function () use ($matchDayEvent, $squadIds) {
+                    $flop = MatchDayFinalizer::flopFields($matchDayEvent, $squadIds);
+
+                    return $flop['flop_player_id'] === null ? null : [
+                        'playerId' => $flop['flop_player_id'],
+                        'note' => $flop['flop_note'],
+                    ];
+                })(),
             ] : null,
         ]);
     }

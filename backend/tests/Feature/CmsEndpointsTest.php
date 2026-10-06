@@ -194,6 +194,7 @@ class CmsEndpointsTest extends TestCase
         $this->assertSame('Team B', $team->json('data.rivalTeam'));
         $this->assertSame('Team B', $team->json('data.flopTeam.name'));
         $this->assertSame([$b->id], $team->json('data.flopTeam.lineupPlayerIds'));
+        $this->assertSame($b->id, $team->json('data.flopPlayer.playerId'));
 
         // The losing side's player is the flop of the week.
         $this->assertSame($b->id, $vale->json('data.flopOfTheWeek.playerId'));

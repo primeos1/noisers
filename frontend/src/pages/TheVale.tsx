@@ -22,6 +22,8 @@ interface TeamOfWeekData {
   lineupPlayerIds: number[];
   /** The side at the bottom of the table — null when only one side played. */
   flopTeam: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
+  /** This match day's flop player — null only when no squad player finished a game. */
+  flopPlayer?: { playerId: number; note: string } | null;
 }
 
 export default function TheVale() {
@@ -71,7 +73,11 @@ export default function TheVale() {
   const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? [])
     .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
-  const flop = players.find((p) => p.id === flopOfTheWeek.playerId);
+  // The latest match day keeps the saved (or hand-picked) flop; an older one,
+  // or a saved award left empty, uses the flop worked out for that day.
+  const savedFlop = selectedEventId === pastMatchDays[0]?.id && flopOfTheWeek.playerId ? flopOfTheWeek : null;
+  const flopPick = savedFlop ?? team?.flopPlayer ?? null;
+  const flop = flopPick ? players.find((p) => p.id === flopPick.playerId) : undefined;
   const badBoys = weeklyLeaders.badBoys
     .map((b) => ({ ...b, player: players.find((p) => p.id === b.playerId) }))
     .filter((b): b is typeof b & { player: NonNullable<typeof b.player> } => Boolean(b.player));
@@ -280,7 +286,7 @@ export default function TheVale() {
                 </p>
               )}
               <p className="mt-4 max-w-md text-sm leading-relaxed text-paper-dim">
-                {flopOfTheWeek.note}
+                {flopPick?.note}
               </p>
             </div>
           </div>
