@@ -325,13 +325,13 @@ class MatchDayFinalizer
     /**
      * The side that kept the most clean sheets this match day. A tie goes to
      * the team of the week (then on down the same wins/goal-difference order).
-     * Null when nobody kept one. Forwards are left off the player list.
+     * Null when nobody kept one. Midfielders and forwards are left off the player list.
      *
      * @param  array<int, int>  $squadIds
-     * @param  array<int, int>  $forwardIds
+     * @param  array<int, int>  $noCleanSheetIds
      * @return array{name: string, value: int, playerIds: int[]}|null
      */
-    public static function computeCleanSheetTeam(MatchDayEvent $event, array $squadIds, array $forwardIds = []): ?array
+    public static function computeCleanSheetTeam(MatchDayEvent $event, array $squadIds, array $noCleanSheetIds = []): ?array
     {
         $teams = self::teamTable($event, $squadIds);
         // uasort is stable, so teams level on clean sheets keep the
@@ -345,7 +345,7 @@ class MatchDayFinalizer
         return [
             'name' => (string) $name,
             'value' => $teams[$name]['cleanSheets'],
-            'playerIds' => array_values(array_diff($teams[$name]['players'], $forwardIds)),
+            'playerIds' => array_values(array_diff($teams[$name]['players'], $noCleanSheetIds)),
         ];
     }
 
@@ -521,7 +521,7 @@ class MatchDayFinalizer
     public static function weeklyHonours(): array
     {
         $squadIds = Player::pluck('id')->all();
-        $forwardIds = PlayerStats::forwardIds();
+        $noCleanSheetIds = PlayerStats::noCleanSheetIds();
         $vale = ValeContent::current();
 
         $honours = [];
@@ -537,7 +537,7 @@ class MatchDayFinalizer
             if ($vale->team_week_title === $event->title && $vale->team_week_date_range === $event->date) {
                 continue; // counted from The Vale below
             }
-            $stats = array_intersect_key(PlayerStats::computeAll([$event], $forwardIds), array_flip($squadIds));
+            $stats = array_intersect_key(PlayerStats::computeAll([$event], $noCleanSheetIds), array_flip($squadIds));
             $award(self::computePlayerOfTheDay($stats)['playerId'] ?? null, 'playerOfTheWeek');
             foreach (self::computeTeamOfWeek($event, $squadIds)['lineupPlayerIds'] ?? [] as $playerId) {
                 $award($playerId, 'teamOfTheWeek');
@@ -603,7 +603,7 @@ class MatchDayFinalizer
 
         // Player of the week and weekly leaders — this match day's stats only.
         $stats = array_filter(
-            PlayerStats::computeAll([$event], $forwardIds = PlayerStats::forwardIds()),
+            PlayerStats::computeAll([$event], $noCleanSheetIds = PlayerStats::noCleanSheetIds()),
             fn ($playerId) => $inSquad($playerId),
             ARRAY_FILTER_USE_KEY,
         );
@@ -631,7 +631,7 @@ class MatchDayFinalizer
             'leader_top_saves_value' => $keeper ? $stats[$keeper]['saves'] : 0,
         ];
 
-        $cleanSheetTeam = self::computeCleanSheetTeam($event, $squadIds, $forwardIds);
+        $cleanSheetTeam = self::computeCleanSheetTeam($event, $squadIds, $noCleanSheetIds);
         $changes += [
             'leader_clean_sheet_team' => $cleanSheetTeam['name'] ?? null,
             'leader_clean_sheet_value' => $cleanSheetTeam['value'] ?? 0,

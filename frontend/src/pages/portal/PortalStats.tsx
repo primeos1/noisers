@@ -235,12 +235,12 @@ export default function PortalStats() {
         <div className="md:grid md:grid-cols-2 md:gap-x-5">
           {byPosition.map((b) => (
             <Group key={b.pos} title={positionLabel[b.pos]} aside={`${b.count} player${b.count === 1 ? "" : "s"}`}>
-              {/* Forwards don't keep clean sheets; keepers' saves sit with GK. */}
-              <div className={`grid px-2 py-4 ${b.pos === "FWD" ? "grid-cols-3" : b.pos === "GK" ? "grid-cols-5" : "grid-cols-4"}`}>
+              {/* Midfielders and forwards don't keep clean sheets; keepers' saves sit with GK. */}
+              <div className={`grid px-2 py-4 ${b.pos === "MID" || b.pos === "FWD" ? "grid-cols-3" : b.pos === "GK" ? "grid-cols-5" : "grid-cols-4"}`}>
                 {[
                   { l: "Goals", v: b.goals, t: "text-win" },
                   { l: "Assists", v: b.assists, t: "text-paper" },
-                  ...(b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: "text-paper" }]),
+                  ...(b.pos === "MID" || b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: "text-paper" }]),
                   ...(b.pos === "GK" ? [{ l: "Saves", v: b.saves, t: "text-paper" }] : []),
                   { l: "Avg rating", v: b.count ? b.avg.toFixed(2) : "–", t: "text-draw" },
                 ].map((s) => (

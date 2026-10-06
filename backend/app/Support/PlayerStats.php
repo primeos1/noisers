@@ -14,14 +14,15 @@ use App\Models\Player;
 class PlayerStats
 {
     /**
-     * Forwards never keep clean sheets — it's a stat for the back of the
-     * side — so players in $forwardIds (see forwardIds()) aren't credited.
+     * Midfielders and forwards never keep clean sheets — it's a stat for the
+     * back line — so players in $noCleanSheetIds (see noCleanSheetIds())
+     * aren't credited.
      *
      * @param  iterable<\App\Models\MatchDayEvent>  $events
-     * @param  array<int, int>  $forwardIds
+     * @param  array<int, int>  $noCleanSheetIds
      * @return array<int, array{appearances: int, goals: int, assists: int, cleanSheets: int, saves: int, penaltySaves: int, yellowCards: int, redCards: int}>
      */
-    public static function computeAll(iterable $events, array $forwardIds = []): array
+    public static function computeAll(iterable $events, array $noCleanSheetIds = []): array
     {
         $stats = [];
 
@@ -98,7 +99,7 @@ class PlayerStats
                         continue;
                     }
                     foreach (($team['players'] ?? []) as $participantId) {
-                        if (! is_int($participantId) || in_array($participantId, $forwardIds, true)) {
+                        if (! is_int($participantId) || in_array($participantId, $noCleanSheetIds, true)) {
                             continue;
                         }
                         $ensure($participantId);
@@ -112,14 +113,14 @@ class PlayerStats
     }
 
     /**
-     * Ids of players whose main position is forward, as ratings go by the
-     * main position too.
+     * Ids of players whose main position is midfield or forward, as ratings
+     * go by the main position too.
      *
      * @return array<int, int>
      */
-    public static function forwardIds(): array
+    public static function noCleanSheetIds(): array
     {
-        return Player::query()->where('position', 'FWD')->pluck('id')->all();
+        return Player::query()->whereIn('position', PlayerRatings::NO_CLEAN_SHEET)->pluck('id')->all();
     }
 
     /**

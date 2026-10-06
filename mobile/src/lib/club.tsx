@@ -16,7 +16,7 @@ export const DEFAULT_RATING_WEIGHTS = {
   ratingPositions: {
     GK: { ...baseWeights, cleanSheet: 0.15 },
     DEF: { ...baseWeights, cleanSheet: 0.12 },
-    MID: { ...baseWeights, cleanSheet: 0.05 },
+    MID: { ...baseWeights, cleanSheet: 0 },
     FWD: { ...baseWeights, cleanSheet: 0 },
   },
   ratingMaxSwing: 0.5,

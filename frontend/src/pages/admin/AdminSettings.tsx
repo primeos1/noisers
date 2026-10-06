@@ -16,7 +16,7 @@ import { useCards } from "../../lib/CardsContext";
 import { useValeContent } from "../../lib/ValeContentContext";
 import { formatNaira } from "../../lib/cards";
 import type { MatchDayEvent, TeamMode } from "../../lib/matchDay";
-import { positionLabels, type Position } from "../../lib/clubData";
+import { keepsCleanSheets, positionLabels, type Position } from "../../lib/clubData";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-ink-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-paper disabled:opacity-50";
@@ -265,6 +265,14 @@ function RatingWeightsTable({
                 </th>
                 {ratingPositions.map((pos) => {
                   const value = weights[pos][row.key];
+                  // Midfielders and forwards never keep clean sheets, so aren't rated on them.
+                  if (row.key === "cleanSheet" && !keepsCleanSheets({ position: pos })) {
+                    return (
+                      <td key={pos} className="px-1 text-center text-mist" title="Only keepers and defenders keep clean sheets">
+                        —
+                      </td>
+                    );
+                  }
                   return (
                     <td key={pos} className="px-1">
                       <input

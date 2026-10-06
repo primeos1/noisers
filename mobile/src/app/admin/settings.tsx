@@ -6,7 +6,7 @@ import { useAuth } from "../../lib/auth";
 import { DEFAULT_RATING_WEIGHTS, useClub } from "../../lib/club";
 import { apiFetch, errorMessage } from "../../lib/api";
 import { SITE_URL } from "../../lib/config";
-import { formatNaira, plural, sortEvents } from "../../lib/derive";
+import { formatNaira, keepsCleanSheets, plural, sortEvents } from "../../lib/derive";
 import type { ClubSettings, Position, RatingWeightKey, TeamMode } from "../../lib/types";
 import {
   Choice,
@@ -215,7 +215,8 @@ function SettingsForm({ canEdit, passcode: initialPasscode }: { canEdit: boolean
           <View style={styles.gap} />
           {ratingWeightRows.map((row) => (
             <FieldRow key={row[0].key}>
-              {row.map((w) => (
+              {/* Midfielders and forwards never keep clean sheets, so aren't rated on them. */}
+              {row.filter((w) => w.key !== "cleanSheet" || keepsCleanSheets({ position: ratingPosition })).map((w) => (
                 <Col key={`${ratingPosition}-${w.key}`}>
                   <NumberField
                     label={w.label}

@@ -76,9 +76,9 @@ export const positionLabels: Record<Position, string> = {
   FWD: "Forward",
 };
 
-/** Forwards don't keep clean sheets; the main position decides, as for ratings. */
+/** Only the back line keeps clean sheets; the main position decides, as for ratings. */
 export function keepsCleanSheets(player: Pick<Player, "position">): boolean {
-  return player.position !== "FWD";
+  return player.position === "GK" || player.position === "DEF";
 }
 
 /** "Saves", or "Saves · 2 pens" when some of them were penalties. */

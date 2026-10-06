@@ -104,12 +104,12 @@ class NoisersFeed
     private function matchReport(MatchDayEvent $event, array $games): array
     {
         $id = "report-{$event->id}";
-        $stats = PlayerStats::computeAll([$event], $this->forwardIds());
+        $stats = PlayerStats::computeAll([$event], $this->noCleanSheetIds());
         $squadStats = array_filter($stats, fn ($pid) => isset($this->players[$pid]), ARRAY_FILTER_USE_KEY);
         $potw = MatchDayFinalizer::computePlayerOfTheDay($squadStats);
         $scorer = $this->leader($squadStats, 'goals');
         $assister = $this->leader($squadStats, 'assists');
-        $cleanSheet = MatchDayFinalizer::computeCleanSheetTeam($event, array_keys($this->players), $this->forwardIds());
+        $cleanSheet = MatchDayFinalizer::computeCleanSheetTeam($event, array_keys($this->players), $this->noCleanSheetIds());
         $team = MatchDayFinalizer::computeTeamOfWeek($event, array_keys($this->players));
         $winner = $team ? $this->winningTeamName($event, $team) : null;
 
@@ -244,7 +244,7 @@ class NoisersFeed
         $lineup = $team['lineupPlayerIds'];
 
         // The lineup's own standout — most goal involvements.
-        $stats = PlayerStats::computeAll([$event], $this->forwardIds());
+        $stats = PlayerStats::computeAll([$event], $this->noCleanSheetIds());
         usort($lineup, fn ($a, $b) => [($stats[$b]['goals'] ?? 0) + ($stats[$b]['assists'] ?? 0), $stats[$b]['goals'] ?? 0]
             <=> [($stats[$a]['goals'] ?? 0) + ($stats[$a]['assists'] ?? 0), $stats[$a]['goals'] ?? 0]);
         $star = $lineup[0];
@@ -576,7 +576,7 @@ class NoisersFeed
     /** "They've played 12 times this season, with 4 goals and 2 assists." */
     private function missing(int $playerId): ?string
     {
-        $this->seasonStats ??= PlayerStats::computeAll(MatchDayEvent::where('status', 'ended')->get(), $this->forwardIds());
+        $this->seasonStats ??= PlayerStats::computeAll(MatchDayEvent::where('status', 'ended')->get(), $this->noCleanSheetIds());
         $stats = $this->seasonStats[$playerId] ?? null;
         if (! $stats || $stats['appearances'] === 0) {
             return null;
@@ -826,13 +826,13 @@ class NoisersFeed
     }
 
     /**
-     * Squad players whose main position is forward — they don't keep clean sheets.
+     * Squad players whose main position is midfield or forward — they don't keep clean sheets.
      *
      * @return array<int, int>
      */
-    private function forwardIds(): array
+    private function noCleanSheetIds(): array
     {
-        return array_keys(array_filter($this->players, fn ($p) => $p->position === 'FWD'));
+        return array_keys(array_filter($this->players, fn ($p) => in_array($p->position, PlayerRatings::NO_CLEAN_SHEET, true)));
     }
 
     /**

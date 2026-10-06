@@ -5,7 +5,7 @@
 // follows MatchDayFinalizer::computeFlopPlayer: most games lost, then worst
 // goal difference, then fewest goal involvements — there's always one.
 
-import type { Player } from "./clubData";
+import { keepsCleanSheets, type Player } from "./clubData";
 import type { MatchDayEvent } from "./matchDay";
 
 interface Line {
@@ -50,8 +50,8 @@ function dayLines(event: MatchDayEvent, squad: Map<number, Player>): Map<number,
         if (won) l.wins++;
         if (lost) l.losses++;
         l.gd += score[i] - score[1 - i];
-        // Forwards don't keep clean sheets — main position decides.
-        if (cleanSheet && squad.get(id as number)!.position !== "FWD") l.cleanSheets++;
+        // Midfielders and forwards don't keep clean sheets — main position decides.
+        if (cleanSheet && keepsCleanSheets(squad.get(id as number)!)) l.cleanSheets++;
       }
     });
     for (const goal of game.goals) {

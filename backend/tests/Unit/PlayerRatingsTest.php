@@ -39,7 +39,7 @@ class PlayerRatingsTest extends TestCase
 
         $this->assertEqualsWithDelta(0.25, $p[1], 1e-9);   // win + GK clean sheet
         $this->assertEqualsWithDelta(0.22, $p[4], 1e-9);   // win + DEF clean sheet
-        $this->assertEqualsWithDelta(0.35, $p[7], 1e-9);   // win + MID clean sheet + goal + assist
+        $this->assertEqualsWithDelta(0.30, $p[7], 1e-9);   // win + goal + assist (MIDs aren't rated on clean sheets)
         $this->assertEqualsWithDelta(0.22, $p[9], 1e-9);   // win + goal
         $this->assertEqualsWithDelta(-0.10, $p[2], 1e-9);  // loss
         $this->assertEqualsWithDelta(-0.10, $p[10], 1e-9); // loss
@@ -72,7 +72,7 @@ class PlayerRatingsTest extends TestCase
         $p = $this->points([$game]);
 
         $this->assertEqualsWithDelta(0.12 - 0.05, $p[4], 1e-9); // draw, DEF clean sheet, yellow
-        $this->assertEqualsWithDelta(0.05 - 0.15, $p[8], 1e-9); // draw, MID clean sheet, red
+        $this->assertEqualsWithDelta(-0.15, $p[8], 1e-9);        // draw, red (MIDs aren't rated on clean sheets)
         $this->assertArrayNotHasKey('guest-1', $p);
     }
 
@@ -187,5 +187,18 @@ class PlayerRatingsTest extends TestCase
                 $this->assertLessThanOrEqual(9.5, $new);
             }
         }
+    }
+
+    public function test_midfielders_and_forwards_are_never_rated_on_clean_sheets(): void
+    {
+        // Even when an older saved setting still gives them a weight.
+        $stored = PlayerRatings::defaultPositionWeights();
+        $stored['MID']['clean_sheet'] = 0.05;
+        $stored['FWD']['clean_sheet'] = 0.2;
+        $weights = PlayerRatings::weights($stored);
+
+        $this->assertSame(0.0, $weights['positions']['MID']['clean_sheet']);
+        $this->assertSame(0.0, $weights['positions']['FWD']['clean_sheet']);
+        $this->assertSame(0.12, $weights['positions']['DEF']['clean_sheet']);
     }
 }

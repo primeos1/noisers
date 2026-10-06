@@ -14,7 +14,7 @@ use App\Models\PlayerRatingChange;
  *
  *  - every game: a win nudges the whole side up, a loss nudges it down;
  *  - goals and assists reward whoever made them (own goals cost a little);
- *  - a clean sheet rewards the side — by default the back line most;
+ *  - a clean sheet rewards the back line only — keepers and defenders;
  *  - each goal the side concedes can cost a little (off by default);
  *  - each save rewards whoever made it, a penalty save by its own weight;
  *  - each card costs the player a little, a red more than a yellow.
@@ -55,7 +55,10 @@ class PlayerRatings
         'red_card' => 0.15,
     ];
 
-    private const CLEAN_SHEET = ['GK' => 0.15, 'DEF' => 0.12, 'MID' => 0.05, 'FWD' => 0.0];
+    private const CLEAN_SHEET = ['GK' => 0.15, 'DEF' => 0.12, 'MID' => 0.0, 'FWD' => 0.0];
+
+    /** Main positions that never keep clean sheets, so they're never rated on them. */
+    public const NO_CLEAN_SHEET = ['MID', 'FWD'];
 
     /** Most a rating can move in a single match day, either way. */
     private const MAX_SWING = 0.5;
@@ -119,6 +122,9 @@ class PlayerRatings
         foreach (self::POSITIONS as $position) {
             foreach ($defaults[$position] as $key => $default) {
                 $amount = abs((float) ($positionWeights[$position][$key] ?? $default));
+                if ($key === 'clean_sheet' && in_array($position, self::NO_CLEAN_SHEET, true)) {
+                    $amount = 0.0;
+                }
                 $positions[$position][$key] = in_array($key, self::PENALTIES, true) ? -$amount : $amount;
             }
         }

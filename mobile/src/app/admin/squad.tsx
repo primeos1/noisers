@@ -4,7 +4,7 @@ import { router, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
-import { isKeeper, plural, positionLabel } from "../../lib/derive";
+import { isKeeper, keepsCleanSheets, plural, positionLabel } from "../../lib/derive";
 import type { Player } from "../../lib/types";
 import { confirm } from "../../components/form";
 import { Avatar, Button, Empty, ErrorBanner, Group, MembershipBadge, Row, Screen, Txt, text } from "../../components/ui";
@@ -20,7 +20,7 @@ function squadCsv(players: Player[]) {
   const header = ["Number", "Name", "Position", "Rating", "Appearances", "Goals", "Assists", "Clean sheets", "Saves"];
   const rows = [...players]
     .sort((a, b) => a.number - b.number)
-    .map((p) => [p.number, p.name, p.secondaryPosition ? `${p.position} / ${p.secondaryPosition}` : p.position, p.rating, p.appearances, p.goals, p.assists, p.position === "FWD" ? "" : p.cleanSheets, isKeeper(p) ? p.saves ?? 0 : ""].map(csvCell).join(","));
+    .map((p) => [p.number, p.name, p.secondaryPosition ? `${p.position} / ${p.secondaryPosition}` : p.position, p.rating, p.appearances, p.goals, p.assists, !keepsCleanSheets(p) ? "" : p.cleanSheets, isKeeper(p) ? p.saves ?? 0 : ""].map(csvCell).join(","));
   return [header.join(","), ...rows].join("\n");
 }
 
@@ -95,7 +95,7 @@ export default function SquadAdminScreen() {
                   {p.secondaryPosition ? ` / ${positionLabel[p.secondaryPosition]}` : ""} · {p.rating.toFixed(2)}
                 </Txt>
                 <Txt style={[text.small, styles.stats]} numberOfLines={1}>
-                  {p.appearances} apps · {p.goals} G · {p.assists} A{p.position === "FWD" ? "" : ` · ${p.cleanSheets} CS`}{isKeeper(p) ? ` · ${p.saves ?? 0} SV` : ""}
+                  {p.appearances} apps · {p.goals} G · {p.assists} A{!keepsCleanSheets(p) ? "" : ` · ${p.cleanSheets} CS`}{isKeeper(p) ? ` · ${p.saves ?? 0} SV` : ""}
                 </Txt>
               </View>
             </Row>

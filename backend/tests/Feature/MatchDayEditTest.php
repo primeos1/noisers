@@ -135,8 +135,8 @@ class MatchDayEditTest extends TestCase
         $this->assertSame(2, $vale->leader_clean_sheet_value);
         // The Reds' only player is a forward, and forwards don't keep clean sheets.
         $this->assertSame([], $vale->leader_clean_sheet_player_ids);
-        $this->assertSame(0, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::forwardIds())[$this->scorer->id]['cleanSheets']);
-        $this->assertSame(1, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::forwardIds())[$this->other->id]['cleanSheets']);
+        $this->assertSame(0, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::noCleanSheetIds())[$this->scorer->id]['cleanSheets']);
+        $this->assertSame(1, PlayerStats::computeAll(MatchDayEvent::all(), PlayerStats::noCleanSheetIds())[$this->other->id]['cleanSheets']);
     }
 
     public function test_the_vale_names_the_keeper_with_the_most_saves(): void

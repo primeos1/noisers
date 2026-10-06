@@ -89,7 +89,9 @@ class ClubSetting extends Model
         $weights = PlayerRatings::defaultPositionWeights();
         foreach ($weights as $position => $keys) {
             foreach ($keys as $key => $default) {
-                $weights[$position][$key] = (float) ($stored[$position][$key] ?? $default);
+                $weights[$position][$key] = $key === 'clean_sheet' && in_array($position, PlayerRatings::NO_CLEAN_SHEET, true)
+                    ? 0.0
+                    : (float) ($stored[$position][$key] ?? $default);
             }
         }
 

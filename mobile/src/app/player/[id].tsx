@@ -12,7 +12,7 @@ import { Backdrop, haptic, useParallax } from "../../components/depth";
 import { HoloCard, stockPhoto } from "../../components/PlayerCard";
 import { useClub } from "../../lib/club";
 import { useAuth } from "../../lib/auth";
-import { cardCounts, cardDate, formatNaira, isKeeper, playerGameLog, plural, positionLabel, savesLabel } from "../../lib/derive";
+import { cardCounts, cardDate, formatNaira, isKeeper, keepsCleanSheets, playerGameLog, plural, positionLabel, savesLabel } from "../../lib/derive";
 import {
   CardPips,
   Empty,
@@ -186,8 +186,8 @@ export default function PlayerScreen() {
           { label: "Games", value: player.appearances },
           { label: "Goals", value: player.goals, tone: colors.win },
           { label: "Assists", value: player.assists },
-          // Forwards don't keep clean sheets.
-          ...(player.position === "FWD" ? [] : [{ label: "Clean sheets", value: player.cleanSheets }]),
+          // Midfielders and forwards don't keep clean sheets.
+          ...(!keepsCleanSheets(player) ? [] : [{ label: "Clean sheets", value: player.cleanSheets }]),
           ...(isKeeper(player) || (player.saves ?? 0) > 0 ? [{ label: savesLabel(player.penaltySaves ?? 0), value: player.saves ?? 0 }] : []),
         ]}
       />

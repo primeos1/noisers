@@ -95,7 +95,7 @@ export default function TheVale() {
     .filter((b): b is typeof b & { player: NonNullable<typeof b.player> } => Boolean(b.player));
   const leagueBadBoy = roughestPlayer(players);
   const cleanSheetTeam = weeklyLeaders.cleanSheetTeam;
-  // Forwards don't keep clean sheets, even on the side that did.
+  // Midfielders and forwards don't keep clean sheets, even on the side that did.
   const cleanSheetLeaders = weeklyLeaders.cleanSheets
     .map((n) => players.find((p) => p.id === n))
     .filter((p): p is NonNullable<typeof p> => Boolean(p) && keepsCleanSheets(p!));

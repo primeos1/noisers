@@ -41,6 +41,11 @@ export function savesLabel(penaltySaves: number): string {
 }
 
 /** Keepers by main or second position. Saves are logged for them, or for whoever goes in goal for a side without one. */
+/** Only the back line keeps clean sheets; the main position decides, as for ratings. */
+export function keepsCleanSheets(player: Pick<Player, "position">): boolean {
+  return player.position === "GK" || player.position === "DEF";
+}
+
 export function isKeeper(player: Pick<Player, "position" | "secondaryPosition">): boolean {
   return player.position === "GK" || player.secondaryPosition === "GK";
 }

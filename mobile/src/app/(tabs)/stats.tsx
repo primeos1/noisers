@@ -284,8 +284,8 @@ export default function StatsScreen() {
                 {[
                   { l: "Goals", v: b.goals, t: colors.win },
                   { l: "Assists", v: b.assists, t: colors.paper },
-                  // Forwards don't keep clean sheets.
-                  ...(b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: colors.paper }]),
+                  // Midfielders and forwards don't keep clean sheets.
+                  ...(b.pos === "MID" || b.pos === "FWD" ? [] : [{ l: "Clean sheets", v: b.cleanSheets, t: colors.paper }]),
                   ...(b.pos === "GK" ? [{ l: "Saves", v: b.saves, t: colors.paper }] : []),
                   { l: "Avg rating", v: b.count ? b.avg.toFixed(2) : "–", t: colors.draw },
                 ].map((s) => (
