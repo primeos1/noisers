@@ -661,7 +661,7 @@ function Reigns({ race, byId, days }: { race: Race; byId: Map<number, Player>; d
 }
 
 /**
- * The rest of the field below the podium: how far each is behind No. 1, and
+ * Everyone behind the leader, from No. 2 down: how far each is behind No. 1, and
  * whether that gap shrank (closing in) or grew at the last match day.
  */
 function Chasers({ race, byId }: { race: Race; byId: Map<number, Player> }) {
@@ -669,7 +669,7 @@ function Chasers({ race, byId }: { race: Race; byId: Map<number, Player> }) {
   const now = race.frames[last] ?? [];
   const prevFrame = race.frames[last - 1] ?? [];
   const before = new Map(prevFrame.map((s, i) => [s.playerId, { rank: i, value: s.value }]));
-  const rest = now.slice(3, 15);
+  const rest = now.slice(1, 15);
   if (!rest.length) return null;
   const top = now[0].value;
   const prevTop = prevFrame[0]?.value ?? null;
@@ -683,13 +683,13 @@ function Chasers({ race, byId }: { race: Race; byId: Map<number, Player> }) {
       <p className="text-[0.68rem] uppercase tracking-[0.2em] text-justice">The chasing pack</p>
       <h3 className="mt-1 font-display text-3xl text-paper md:text-4xl">Closing in</h3>
       <p className="mt-2 max-w-md text-sm text-paper-dim">
-        Everyone below the podium, how far they are behind No. 1 — and whether they cut that gap at the last match day.
+        Everyone chasing the leader, how far they are behind No. 1 — and whether they cut that gap at the last match day.
       </p>
       <ol className="mt-4 divide-y divide-ink-line overflow-hidden rounded-3xl bg-ink-raised/60 ring-1 ring-white/5">
         {rest.map((s: Standing, i) => {
           const p = byId.get(s.playerId);
           if (!p) return null;
-          const rank = i + 3;
+          const rank = i + 1;
           const was = before.get(s.playerId);
           const move = was === undefined ? null : was.rank - rank;
           const gap = tidy(top - s.value);
