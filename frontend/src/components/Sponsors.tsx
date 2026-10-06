@@ -22,6 +22,25 @@ const sponsors: Sponsor[] = [
   },
 ];
 
+/** A quiet footer row of the sponsors' logos — for the player area. */
+export function SponsorStrip({ className = "" }: { className?: string }) {
+  return (
+    <section className={`text-center ${className}`} aria-labelledby="sponsor-strip-title">
+      <p id="sponsor-strip-title" className="text-[0.6rem] uppercase tracking-[0.22em] text-mist">
+        Our sponsors
+      </p>
+      <ul className="mt-3 grid grid-cols-2 gap-3">
+        {sponsors.map((s) => (
+          <li key={s.name} className="flex flex-col items-center gap-2 rounded-2xl bg-ink-raised px-3 py-4 ring-1 ring-ink-line">
+            <img src={s.logo} alt={s.name} className="h-8 w-auto max-w-full object-contain opacity-80" loading="lazy" draggable={false} />
+            <span className="text-[0.55rem] uppercase tracking-[0.18em] text-mist">{s.tagline}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** Adds `is-in` once the element scrolls into view, so its CSS entrance plays. */
 function useReveal<T extends HTMLElement>() {
   const ref = useRef<T>(null);

@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from "reac
 import logoWhite from "../../assets/brand/logo-white.png";
 import { useAuth } from "../../lib/AuthContext";
 import { WhatsAppCard } from "../ContactCards";
+import { SponsorStrip } from "../Sponsors";
 import TabBar from "../TabBar";
 import { publicLinks } from "../Navbar";
 import { ChevronRightIcon, LogoutIcon, MoreIcon } from "../icons";
@@ -145,6 +146,7 @@ export default function PortalLayout() {
         <Outlet />
         <div className="mt-10 border-t border-ink-line pt-6 md:mx-auto md:max-w-sm">
           <WhatsAppCard label="Player support" note="WhatsApp only" />
+          <SponsorStrip className="mt-6" />
         </div>
       </main>
 
