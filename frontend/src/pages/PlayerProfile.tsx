@@ -8,6 +8,7 @@ import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
 import { formatNaira } from "../lib/cards";
 import { isKeeper, keepsCleanSheets, positionNames } from "../lib/clubData";
 import MembershipBadge from "../components/MembershipBadge";
+import { CrownIcon, TrophyIcon } from "../components/icons";
 import AbsenceBadge from "../components/AbsenceBadge";
 import { useAbsences } from "../lib/AbsencesContext";
 import { absenceLabel, absencePeriod } from "../lib/absences";
@@ -92,7 +93,8 @@ export default function PlayerProfile() {
               )}
             </div>
 
-            <div className={`grid flex-1 grid-cols-2 gap-px self-start bg-ink-line ${isKeeper(player) ? "sm:grid-cols-5" : keepsCleanSheets(player) ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+            <div className="flex flex-1 flex-col gap-6 self-start">
+            <div className={`grid grid-cols-2 gap-px bg-ink-line ${isKeeper(player) ? "sm:grid-cols-5" : keepsCleanSheets(player) ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
               {[
                 { label: "Apps", value: player.appearances },
                 { label: "Goals", value: player.goals },
@@ -105,6 +107,25 @@ export default function PlayerProfile() {
                   <p className="mt-3 font-display text-3xl text-paper">{stat.value}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-px border border-justice/40 bg-justice/30">
+              {[
+                { label: "Player of the week", value: player.playerOfTheWeekWins ?? 0, icon: <CrownIcon className="h-5 w-5" /> },
+                { label: "Team of the week", value: player.teamOfTheWeekSelections ?? 0, icon: <TrophyIcon className="h-5 w-5" /> },
+              ].map((honour) => (
+                <div key={honour.label} className="bg-ink px-5 py-6">
+                  <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-justice">
+                    {honour.icon}
+                    {honour.label}
+                  </p>
+                  <p className="mt-3 font-display text-3xl text-paper">
+                    {honour.value}
+                    <span className="ml-2 text-sm text-mist">{honour.value === 1 ? "time" : "times"}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
             </div>
           </div>
         </div>

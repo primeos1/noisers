@@ -2,19 +2,20 @@ import { useMemo, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useClub } from "../lib/club";
-import { useTeamOfWeek, useValeContent } from "../lib/content";
+import { potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
 import { sortEvents } from "../lib/derive";
 import type { Player } from "../lib/types";
-import { Avatar, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
+import { Avatar, CardPips, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
 import { CoverFlow, Glass, Reveal, Skeleton, Tilt } from "../components/depth";
 import { CardFace, HoloCard } from "../components/PlayerCard";
 import { colors, fonts, foil, radius, shadow, space } from "../theme";
 
 // The Vale — the public awards page (frontend/src/pages/TheVale.tsx): the
 // team of the week from any finished match day, then the committee's (or
-// the auto-awarded) player of the week, most improved and stat leaders.
+// the auto-awarded) player of the week, most improved, flop of the week and
+// stat leaders, with the week's bad boys and the bad boy of the league.
 
 function Leader({ icon, label, player, value, tone, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; player?: Player; value: string; tone: string; onPress?: () => void }) {
   return (
@@ -50,7 +51,11 @@ export default function ValeScreen() {
 
   const find = (id: number) => players.find((p) => p.id === id);
   const lineup = (team?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
-  const { playerOfTheWeek: potw, mostImproved, weeklyLeaders: w } = content;
+  const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
+  const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = content;
+  const flop = find(flopOfTheWeek.playerId);
+  const badBoys = w.badBoys.map((b) => ({ ...b, player: find(b.playerId) })).filter((b): b is typeof b & { player: Player } => !!b.player);
+  const leagueBadBoy = badBoyOfTheLeague(players);
   const potwPlayer = find(potw.playerId);
   const mip = find(mostImproved.playerId);
   const delta = mostImproved.currentRating - mostImproved.previousRating;
@@ -96,6 +101,28 @@ export default function ValeScreen() {
               )}
             />
           ) : null}
+          {team.flopTeam ? (
+            <Glass style={styles.flopTeam}>
+              <LinearGradient colors={["rgba(194,59,59,0.25)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              <View style={styles.flopHead}>
+                <Ionicons name="trending-down" size={16} color={colors.loss} />
+                <Txt style={[text.eyebrow, { color: colors.loss }]}>Flop team of the week</Txt>
+              </View>
+              <Txt style={styles.flopTeamName}>{team.flopTeam.name}</Txt>
+              <Txt style={text.small}>
+                Won {team.flopTeam.won} of {team.flopTeam.played} · goal difference {team.flopTeam.gd > 0 ? `+${team.flopTeam.gd}` : team.flopTeam.gd}
+              </Txt>
+              {flopLineup.length > 0 ? (
+                <View style={styles.flopLineup}>
+                  {flopLineup.map((p) => (
+                    <Tilt key={p.id} onPress={() => router.push(`/player/${p.id}`)} accessibilityLabel={p.name}>
+                      <Avatar player={p} size={36} ring={colors.loss} />
+                    </Tilt>
+                  ))}
+                </View>
+              ) : null}
+            </Glass>
+          ) : null}
         </Reveal>
       ) : (
         <Empty icon="trophy-outline">No finished match days yet. The team of the week appears after the first one.</Empty>
@@ -110,8 +137,17 @@ export default function ValeScreen() {
           <View style={[styles.potw, shadow.glow(colors.gold)]}>
             <LinearGradient colors={foil} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.potwFrame}>
               <LinearGradient colors={["#1b2440", colors.ink]} style={styles.potwInner}>
-                <HoloCard player={potwPlayer} width={Math.min(width * 0.55, 230)} />
+                <View>
+                  <HoloCard player={potwPlayer} width={Math.min(width * 0.55, 230)} />
+                  <MaterialCommunityIcons name="crown" size={64} color={colors.goldBright} style={styles.potwCrown} pointerEvents="none" />
+                </View>
                 <Txt style={styles.potwName}>{potwPlayer.name}</Txt>
+                {potw.timesWon > 0 ? (
+                  <View style={styles.potwWins}>
+                    <MaterialCommunityIcons name="crown" size={14} color={colors.ink} />
+                    <Txt style={styles.potwWinsText}>{potwWinsLabel(potw.timesWon)}</Txt>
+                  </View>
+                ) : null}
                 {potw.weekRating ? (
                   <View style={styles.potwRatingRow}>
                     <Txt style={styles.potwRating}>{potw.weekRating.toFixed(1)}</Txt>
@@ -154,6 +190,30 @@ export default function ValeScreen() {
         </Reveal>
       ) : null}
 
+      {/* Flop player of the week */}
+      {flop ? (
+        <Reveal index={2}>
+          <SectionHeader title="Flop of the week" />
+          <Tilt onPress={open(flop)} accessibilityLabel={`Flop player of the week: ${flop.name}`}>
+            <Glass style={styles.mip}>
+              <LinearGradient colors={["rgba(194,59,59,0.3)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              <Avatar player={flop} size={64} ring={colors.loss} />
+              <View style={styles.flex}>
+                <Txt style={styles.mipName} numberOfLines={1}>
+                  {flop.name}
+                </Txt>
+                {flopOfTheWeek.note ? (
+                  <Txt style={text.small} numberOfLines={3}>
+                    {flopOfTheWeek.note}
+                  </Txt>
+                ) : null}
+              </View>
+              <Ionicons name="thumbs-down" size={22} color={colors.loss} />
+            </Glass>
+          </Tilt>
+        </Reveal>
+      ) : null}
+
       {/* Weekly leaders */}
       <Reveal index={3}>
         <SectionHeader title="This week's leaders" />
@@ -162,12 +222,12 @@ export default function ValeScreen() {
           <Leader icon="git-merge" label="Top assist" player={find(w.topAssist.playerId)} value={`${w.topAssist.value} assists`} tone={colors.travel} onPress={open(find(w.topAssist.playerId))} />
           <Leader icon="hand-left" label="Top saves" player={find(w.topSaves.playerId)} value={`${w.topSaves.value} saves`} tone={colors.gold} onPress={open(find(w.topSaves.playerId))} />
           <Leader
-            icon="alert-circle"
-            label="Roughest"
-            player={find(w.roughest.playerId)}
-            value={`${w.roughest.yellowCards}Y · ${w.roughest.redCards}R`}
+            icon="skull"
+            label="Bad boy of the league"
+            player={leagueBadBoy}
+            value={leagueBadBoy ? `${leagueBadBoy.yellowCards ?? 0}Y · ${leagueBadBoy.redCards ?? 0}R` : "No cards"}
             tone={colors.loss}
-            onPress={open(find(w.roughest.playerId))}
+            onPress={open(leagueBadBoy)}
           />
         </View>
         {w.cleanSheetTeam.name ? (
@@ -180,6 +240,27 @@ export default function ValeScreen() {
             <Txt style={styles.cleanValue}>{w.cleanSheetTeam.value}</Txt>
           </Glass>
         ) : null}
+        <Glass style={styles.badBoys}>
+          <View style={styles.flopHead}>
+            <Ionicons name="alert-circle" size={16} color={colors.loss} />
+            <Txt style={text.eyebrow}>Bad boys of the week</Txt>
+          </View>
+          {badBoys.length ? (
+            badBoys.map(({ player, yellowCards, redCards }) => (
+              <Tilt key={player.id} onPress={open(player)} accessibilityLabel={`${player.name}: ${yellowCards} yellow, ${redCards} red`}>
+                <View style={styles.badBoyRow}>
+                  <Avatar player={player} size={36} />
+                  <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
+                    {player.name}
+                  </Txt>
+                  <CardPips yellow={yellowCards} red={redCards} />
+                </View>
+              </Tilt>
+            ))
+          ) : (
+            <Txt style={text.small}>No bookings — clean week.</Txt>
+          )}
+        </Glass>
       </Reveal>
     </Screen>
   );
@@ -197,6 +278,9 @@ const styles = StyleSheet.create({
   potwFrame: { borderRadius: radius.xl, padding: 2 },
   potwInner: { borderRadius: radius.xl - 2, alignItems: "center", padding: space.xl, paddingTop: space.xxl },
   potwName: { fontFamily: fonts.displayHeavy, fontSize: 36, lineHeight: 38, color: colors.paper, textAlign: "center", marginTop: space.md },
+  potwCrown: { position: "absolute", top: -40, alignSelf: "center", transform: [{ rotate: "-10deg" }], textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 8, textShadowOffset: { width: 0, height: 3 } },
+  potwWins: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3, marginVertical: space.sm },
+  potwWinsText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.ink, letterSpacing: 0.6, textTransform: "uppercase" },
   potwRatingRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
   potwRating: { fontFamily: fonts.displayHeavy, fontSize: 44, color: colors.goldBright },
   potwNote: { textAlign: "center", lineHeight: 20, marginTop: space.sm },
@@ -218,4 +302,23 @@ const styles = StyleSheet.create({
   leaderValue: { fontFamily: fonts.display, fontSize: 20 },
   cleanSheet: { flexDirection: "row", alignItems: "center", gap: space.md, padding: space.lg, marginBottom: space.xl },
   cleanValue: { fontFamily: fonts.displayHeavy, fontSize: 32, color: colors.win },
+
+  flopTeam: { padding: space.lg, marginTop: space.md, marginBottom: space.xl, gap: 4 },
+  flopHead: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
+  flopTeamName: { fontFamily: fonts.displayHeavy, fontSize: 26, lineHeight: 28, color: colors.paper },
+  flopLineup: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
+  badBoys: { padding: space.lg, gap: space.sm, marginBottom: space.xl },
+  badBoyRow: { flexDirection: "row", alignItems: "center", gap: space.md },
 });
+
+/** Most cards this season, ties going to whoever has more reds. */
+function badBoyOfTheLeague(players: Player[]): Player | undefined {
+  let top: Player | undefined;
+  for (const p of players) {
+    const cards = (p.yellowCards ?? 0) + (p.redCards ?? 0);
+    if (!cards) continue;
+    const topCards = top ? (top.yellowCards ?? 0) + (top.redCards ?? 0) : 0;
+    if (!top || cards > topCards || (cards === topCards && (p.redCards ?? 0) > (top.redCards ?? 0))) top = p;
+  }
+  return top;
+}

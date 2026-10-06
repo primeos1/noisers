@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MatchDayFinalizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,12 +28,17 @@ class ValeContentResource extends JsonResource
                 'playerId' => $this->potw_player_id,
                 'note' => $this->potw_note,
                 'weekRating' => $this->potw_rating !== null ? (float) $this->potw_rating : null,
+                'timesWon' => $this->potw_player_id !== null ? MatchDayFinalizer::playerOfTheWeekWins($this->potw_player_id) : 0,
             ],
             'mostImproved' => [
                 'playerId' => $this->improved_player_id,
                 'note' => $this->improved_note,
                 'previousRating' => $this->improved_prev_rating !== null ? (float) $this->improved_prev_rating : null,
                 'currentRating' => $this->improved_curr_rating !== null ? (float) $this->improved_curr_rating : null,
+            ],
+            'flopOfTheWeek' => [
+                'playerId' => $this->flop_player_id,
+                'note' => $this->flop_note,
             ],
             'weeklyLeaders' => [
                 'topScorer' => [
@@ -52,11 +58,7 @@ class ValeContentResource extends JsonResource
                     'name' => $this->leader_clean_sheet_team,
                     'value' => $this->leader_clean_sheet_value,
                 ],
-                'roughest' => [
-                    'playerId' => $this->leader_roughest_player_id,
-                    'yellowCards' => $this->leader_roughest_yellow,
-                    'redCards' => $this->leader_roughest_red,
-                ],
+                'badBoys' => $this->leader_bad_boys ?? [],
             ],
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ];

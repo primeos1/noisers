@@ -193,9 +193,9 @@ class MatchDayFinalizer
             'leader_clean_sheet_player_ids' => null,
             'leader_clean_sheet_team' => null,
             'leader_clean_sheet_value' => null,
-            'leader_roughest_player_id' => null,
-            'leader_roughest_yellow' => null,
-            'leader_roughest_red' => null,
+            'leader_bad_boys' => null,
+            'flop_player_id' => null,
+            'flop_note' => null,
         ]);
     }
 
@@ -350,6 +350,80 @@ class MatchDayFinalizer
     }
 
     /**
+     * The flop team of the week — the side at the bottom of the same
+     * wins/goal-difference table the team of the week tops. Null unless at
+     * least two sides played.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array{name: string, won: int, played: int, gd: int, lineupPlayerIds: int[]}|null
+     */
+    public static function computeFlopTeam(MatchDayEvent $event, array $squadIds): ?array
+    {
+        $teams = self::teamTable($event, $squadIds);
+        if (count($teams) < 2) {
+            return null;
+        }
+        $worst = end($teams);
+
+        return [
+            'name' => (string) array_key_last($teams),
+            'won' => $worst['won'],
+            'played' => $worst['played'],
+            'gd' => $worst['gd'],
+            'lineupPlayerIds' => $worst['players'],
+        ];
+    }
+
+    /**
+     * The flop player of the week — of the squad players who lost a game,
+     * the one who lost the most, then had the worst goal difference on the
+     * pitch, then the fewest goals and assists. Null when nobody lost.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array{playerId: int, played: int, lost: int, gd: int, involvements: int}|null
+     */
+    public static function computeFlopPlayer(MatchDayEvent $event, array $squadIds): ?array
+    {
+        $rows = [];
+        foreach (($event->games ?? []) as $game) {
+            if (($game['status'] ?? null) !== 'finished') {
+                continue;
+            }
+            $score = [0, 0];
+            foreach (($game['goals'] ?? []) as $goal) {
+                $score[($goal['teamIndex'] ?? 0) === 1 ? 1 : 0]++;
+            }
+            foreach ([0, 1] as $i) {
+                foreach (($game['teams'][$i]['players'] ?? []) as $playerId) {
+                    if (! is_int($playerId) || ! in_array($playerId, $squadIds, true)) {
+                        continue;
+                    }
+                    $rows[$playerId] ??= ['played' => 0, 'lost' => 0, 'gd' => 0, 'involvements' => 0];
+                    $rows[$playerId]['played']++;
+                    $rows[$playerId]['lost'] += $score[$i] < $score[1 - $i] ? 1 : 0;
+                    $rows[$playerId]['gd'] += $score[$i] - $score[1 - $i];
+                }
+            }
+            foreach (($game['goals'] ?? []) as $goal) {
+                foreach ([($goal['ownGoal'] ?? false) ? null : ($goal['playerId'] ?? null), $goal['assistPlayerId'] ?? null] as $id) {
+                    if (is_int($id) && isset($rows[$id])) {
+                        $rows[$id]['involvements']++;
+                    }
+                }
+            }
+        }
+
+        $flop = null;
+        foreach ($rows as $playerId => $r) {
+            $key = [$r['lost'], -$r['gd'], -$r['involvements']];
+            if ($r['lost'] > 0 && ($flop === null || $key > $flop['key'])) {
+                $flop = ['playerId' => $playerId, 'key' => $key] + $r;
+            }
+        }
+        return $flop ? array_diff_key($flop, ['key' => true]) : null;
+    }
+
+    /**
      * Every side (by team name) across this event's finished games, best
      * first by wins then goal difference.
      *
@@ -410,6 +484,55 @@ class MatchDayFinalizer
         }
 
         return $best ? ['playerId' => $best['playerId'], 'stats' => $best['stats']] : null;
+    }
+
+    /**
+     * How many times each player (keyed by id) has been player of the week
+     * and been picked in the team of the week: once for every ended match
+     * day they stood out in (computePlayerOfTheDay / computeTeamOfWeek), with
+     * The Vale's current picks — automatic or set by the committee — counting
+     * for the match day it's showing.
+     *
+     * @return array<int, array{playerOfTheWeek: int, teamOfTheWeek: int}>
+     */
+    public static function weeklyHonours(): array
+    {
+        $squadIds = Player::pluck('id')->all();
+        $forwardIds = PlayerStats::forwardIds();
+        $vale = ValeContent::current();
+
+        $honours = [];
+        $award = function (?int $playerId, string $key) use (&$honours) {
+            if ($playerId !== null) {
+                $honours[$playerId] ??= ['playerOfTheWeek' => 0, 'teamOfTheWeek' => 0];
+                $honours[$playerId][$key]++;
+            }
+        };
+
+        $events = MatchDayEvent::query()->where('status', 'ended')->get();
+        foreach ($events as $event) {
+            if ($vale->team_week_title === $event->title && $vale->team_week_date_range === $event->date) {
+                continue; // counted from The Vale below
+            }
+            $stats = array_intersect_key(PlayerStats::computeAll([$event], $forwardIds), array_flip($squadIds));
+            $award(self::computePlayerOfTheDay($stats)['playerId'] ?? null, 'playerOfTheWeek');
+            foreach (self::computeTeamOfWeek($event, $squadIds)['lineupPlayerIds'] ?? [] as $playerId) {
+                $award($playerId, 'teamOfTheWeek');
+            }
+        }
+
+        $award($vale->potw_player_id, 'playerOfTheWeek');
+        foreach ($vale->team_lineup_player_ids ?? [] as $playerId) {
+            $award((int) $playerId, 'teamOfTheWeek');
+        }
+
+        return $honours;
+    }
+
+    /** How many times this player has been player of the week (see weeklyHonours()). */
+    public static function playerOfTheWeekWins(int $playerId): int
+    {
+        return self::weeklyHonours()[$playerId]['playerOfTheWeek'] ?? 0;
     }
 
     /**
@@ -480,11 +603,18 @@ class MatchDayFinalizer
             'leader_clean_sheet_player_ids' => $cleanSheetTeam['playerIds'] ?? [],
         ];
 
-        $roughest = PlayerStats::roughest($stats);
+        $changes['leader_bad_boys'] = PlayerStats::badBoys($stats);
+
+        $flop = self::computeFlopPlayer($event, $squadIds);
         $changes += [
-            'leader_roughest_player_id' => $roughest,
-            'leader_roughest_yellow' => $roughest ? $stats[$roughest]['yellowCards'] : 0,
-            'leader_roughest_red' => $roughest ? $stats[$roughest]['redCards'] : 0,
+            'flop_player_id' => $flop['playerId'] ?? null,
+            'flop_note' => $flop ? sprintf(
+                'Lost %d of %d game%s (%+d goal difference) with %d goal involvement%s at %s.',
+                $flop['lost'], $flop['played'], $flop['played'] === 1 ? '' : 's',
+                $flop['gd'],
+                $flop['involvements'], $flop['involvements'] === 1 ? '' : 's',
+                $event->title,
+            ) : null,
         ];
 
         $potw = self::computePlayerOfTheDay($stats);

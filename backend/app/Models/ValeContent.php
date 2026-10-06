@@ -24,6 +24,8 @@ class ValeContent extends Model
         'improved_note',
         'improved_prev_rating',
         'improved_curr_rating',
+        'flop_player_id',
+        'flop_note',
         'leader_top_scorer_player_id',
         'leader_top_scorer_value',
         'leader_top_assist_player_id',
@@ -33,9 +35,7 @@ class ValeContent extends Model
         'leader_clean_sheet_player_ids',
         'leader_clean_sheet_team',
         'leader_clean_sheet_value',
-        'leader_roughest_player_id',
-        'leader_roughest_yellow',
-        'leader_roughest_red',
+        'leader_bad_boys',
     ];
 
     protected function casts(): array
@@ -43,6 +43,7 @@ class ValeContent extends Model
         return [
             'team_lineup_player_ids' => 'array',
             'leader_clean_sheet_player_ids' => 'array',
+            'leader_bad_boys' => 'array',
         ];
     }
 

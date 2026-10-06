@@ -40,6 +40,32 @@ export const TrophyIcon = (p: P) => (
   </Icon>
 );
 
+export const MedalIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M7.5 3h3l1.5 5M16.5 3h-3L12 8" />
+    <circle cx="12" cy="15" r="6" />
+    <path d="m12 12 .9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2Z" />
+  </Icon>
+);
+
+/** A solid crown — worn by the player of the week. */
+export const CrownIcon = ({ className = "h-6 w-6" }: P) => (
+  <svg viewBox="0 0 24 24" className={`shrink-0 ${className}`} aria-hidden="true">
+    <path
+      d="M3 8.5 7.5 12 12 5l4.5 7L21 8.5 19.2 18H4.8L3 8.5Z"
+      fill="currentColor"
+      stroke="#8c6a2c"
+      strokeWidth={0.8}
+      strokeLinejoin="round"
+    />
+    <rect x="4.8" y="18.6" width="14.4" height="2.2" rx="0.6" fill="currentColor" stroke="#8c6a2c" strokeWidth={0.8} />
+    <circle cx="3" cy="8.5" r="1.4" fill="currentColor" />
+    <circle cx="12" cy="4.6" r="1.4" fill="currentColor" />
+    <circle cx="21" cy="8.5" r="1.4" fill="currentColor" />
+    <circle cx="12" cy="13.6" r="1.3" fill="#c23b6b" />
+  </svg>
+);
+
 export const PlayIcon = (p: P) => (
   <Icon {...p}>
     <rect x="3" y="5" width="18" height="14" rx="3" />

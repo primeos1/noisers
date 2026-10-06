@@ -12,21 +12,29 @@ export interface ValeContentData {
     photo: string;
     lineupPlayerIds: number[];
   };
-  playerOfTheWeek: { playerId: number; note: string; weekRating: number };
+  playerOfTheWeek: { playerId: number; note: string; weekRating: number; timesWon: number };
   mostImproved: {
     playerId: number;
     note: string;
     previousRating: number;
     currentRating: number;
   };
+  flopOfTheWeek: { playerId: number; note: string };
   weeklyLeaders: {
     topScorer: { playerId: number; value: number };
     topAssist: { playerId: number; value: number };
     topSaves: { playerId: number; value: number };
     cleanSheets: number[];
     cleanSheetTeam: { name: string; value: number };
-    roughest: { playerId: number; yellowCards: number; redCards: number };
+    badBoys: BadBoy[];
   };
+}
+
+/** A player booked this match day — The Vale's "bad boys of the week". */
+export interface BadBoy {
+  playerId: number;
+  yellowCards: number;
+  redCards: number;
 }
 
 interface ApiValeContent {
@@ -40,20 +48,21 @@ interface ApiValeContent {
     photoUrl: string | null;
     lineupPlayerIds: number[];
   };
-  playerOfTheWeek: { playerId: number | null; note: string | null; weekRating: number | null };
+  playerOfTheWeek: { playerId: number | null; note: string | null; weekRating: number | null; timesWon?: number };
   mostImproved: {
     playerId: number | null;
     note: string | null;
     previousRating: number | null;
     currentRating: number | null;
   };
+  flopOfTheWeek?: { playerId: number | null; note: string | null };
   weeklyLeaders: {
     topScorer: { playerId: number | null; value: number | null };
     topAssist: { playerId: number | null; value: number | null };
     topSaves?: { playerId: number | null; value: number | null };
     cleanSheets: number[];
     cleanSheetTeam?: { name: string | null; value: number | null };
-    roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
+    badBoys?: BadBoy[];
   };
 }
 
@@ -68,15 +77,16 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
     photo: "",
     lineupPlayerIds: [],
   },
-  playerOfTheWeek: { playerId: 0, note: "", weekRating: 0 },
+  playerOfTheWeek: { playerId: 0, note: "", weekRating: 0, timesWon: 0 },
   mostImproved: { playerId: 0, note: "", previousRating: 0, currentRating: 0 },
+  flopOfTheWeek: { playerId: 0, note: "" },
   weeklyLeaders: {
     topScorer: { playerId: 0, value: 0 },
     topAssist: { playerId: 0, value: 0 },
     topSaves: { playerId: 0, value: 0 },
     cleanSheets: [],
     cleanSheetTeam: { name: "", value: 0 },
-    roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
+    badBoys: [],
   },
 };
 
@@ -96,12 +106,17 @@ function fromApi(data: ApiValeContent): ValeContentData {
       playerId: data.playerOfTheWeek.playerId ?? 0,
       note: data.playerOfTheWeek.note ?? "",
       weekRating: data.playerOfTheWeek.weekRating ?? 0,
+      timesWon: data.playerOfTheWeek.timesWon ?? 0,
     },
     mostImproved: {
       playerId: data.mostImproved.playerId ?? 0,
       note: data.mostImproved.note ?? "",
       previousRating: data.mostImproved.previousRating ?? 0,
       currentRating: data.mostImproved.currentRating ?? 0,
+    },
+    flopOfTheWeek: {
+      playerId: data.flopOfTheWeek?.playerId ?? 0,
+      note: data.flopOfTheWeek?.note ?? "",
     },
     weeklyLeaders: {
       topScorer: {
@@ -121,11 +136,7 @@ function fromApi(data: ApiValeContent): ValeContentData {
         name: data.weeklyLeaders.cleanSheetTeam?.name ?? "",
         value: data.weeklyLeaders.cleanSheetTeam?.value ?? 0,
       },
-      roughest: {
-        playerId: data.weeklyLeaders.roughest?.playerId ?? 0,
-        yellowCards: data.weeklyLeaders.roughest?.yellowCards ?? 0,
-        redCards: data.weeklyLeaders.roughest?.redCards ?? 0,
-      },
+      badBoys: data.weeklyLeaders.badBoys ?? [],
     },
   };
 }
@@ -163,6 +174,11 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (m.previousRating !== undefined) body.improved_prev_rating = m.previousRating;
     if (m.currentRating !== undefined) body.improved_curr_rating = m.currentRating;
   }
+  if (patch.flopOfTheWeek) {
+    const f = patch.flopOfTheWeek;
+    if (f.playerId !== undefined) body.flop_player_id = playerIdOrNull(f.playerId);
+    if (f.note !== undefined) body.flop_note = f.note;
+  }
   if (patch.weeklyLeaders) {
     const w = patch.weeklyLeaders;
     if (w.topScorer?.playerId !== undefined) body.leader_top_scorer_player_id = playerIdOrNull(w.topScorer.playerId);
@@ -174,9 +190,8 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (w.cleanSheets !== undefined) body.leader_clean_sheet_player_ids = w.cleanSheets;
     if (w.cleanSheetTeam?.name !== undefined) body.leader_clean_sheet_team = w.cleanSheetTeam.name || null;
     if (w.cleanSheetTeam?.value !== undefined) body.leader_clean_sheet_value = w.cleanSheetTeam.value;
-    if (w.roughest?.playerId !== undefined) body.leader_roughest_player_id = playerIdOrNull(w.roughest.playerId);
-    if (w.roughest?.yellowCards !== undefined) body.leader_roughest_yellow = w.roughest.yellowCards;
-    if (w.roughest?.redCards !== undefined) body.leader_roughest_red = w.roughest.redCards;
+    // Rows left on "— None —" are dropped rather than sent as null players.
+    if (w.badBoys !== undefined) body.leader_bad_boys = w.badBoys.filter((b) => b.playerId > 0);
   }
   return body;
 }

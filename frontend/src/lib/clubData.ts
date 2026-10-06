@@ -34,6 +34,9 @@ export interface Player {
   saves: number;
   yellowCards: number;
   redCards: number;
+  /** Times named player of the week / picked in the team of the week (from the API only). */
+  playerOfTheWeekWins?: number;
+  teamOfTheWeekSelections?: number;
   /** Rating before/after each match day, oldest first (from the API only). */
   ratingHistory?: RatingPoint[];
 }
@@ -127,7 +130,7 @@ export function getSquadHonours(players: Player[]): SquadHonour[] {
 }
 
 /**
- * The "roughest player" — most cards, ties going to whoever has more reds.
+ * The "bad boy of the league" — most cards, ties going to whoever has more reds.
  * Null when nobody has been booked.
  */
 export function roughestPlayer(players: Player[]): Player | null {
@@ -199,7 +202,7 @@ export function squadLeaderboards(players: Player[], count = 5): Leaderboard[] {
     board("appearances", "Most appearances", "games", (p) => p.appearances),
     board(
       "cards",
-      "Roughest players",
+      "Bad boys of the league",
       "cards",
       (p) => p.yellowCards + p.redCards,
       (p) => p.redCards,

@@ -20,6 +20,8 @@ export interface ApiPlayer {
   saves?: number;
   yellowCards?: number;
   redCards?: number;
+  playerOfTheWeekWins?: number;
+  teamOfTheWeekSelections?: number;
   ratingHistory?: RatingPoint[];
 }
 
@@ -41,6 +43,8 @@ function fromApi(p: ApiPlayer): Player {
     saves: p.saves ?? 0,
     yellowCards: p.yellowCards ?? 0,
     redCards: p.redCards ?? 0,
+    playerOfTheWeekWins: p.playerOfTheWeekWins ?? 0,
+    teamOfTheWeekSelections: p.teamOfTheWeekSelections ?? 0,
     ratingHistory: p.ratingHistory ?? [],
   };
 }

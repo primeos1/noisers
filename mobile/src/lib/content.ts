@@ -184,16 +184,24 @@ export interface ValeContent {
     photo: string;
     lineupPlayerIds: number[];
   };
-  playerOfTheWeek: { playerId: number; note: string; weekRating: number };
+  playerOfTheWeek: { playerId: number; note: string; weekRating: number; timesWon: number };
   mostImproved: { playerId: number; note: string; previousRating: number; currentRating: number };
+  flopOfTheWeek: { playerId: number; note: string };
   weeklyLeaders: {
     topScorer: { playerId: number; value: number };
     topAssist: { playerId: number; value: number };
     topSaves: { playerId: number; value: number };
     cleanSheets: number[];
     cleanSheetTeam: { name: string; value: number };
-    roughest: { playerId: number; yellowCards: number; redCards: number };
+    badBoys: BadBoy[];
   };
+}
+
+/** A player booked this match day — The Vale's "bad boys of the week". */
+export interface BadBoy {
+  playerId: number;
+  yellowCards: number;
+  redCards: number;
 }
 
 interface ApiVale {
@@ -207,29 +215,31 @@ interface ApiVale {
     photoUrl: string | null;
     lineupPlayerIds: number[] | null;
   };
-  playerOfTheWeek: { playerId: number | null; note: string | null; weekRating: number | null };
+  playerOfTheWeek: { playerId: number | null; note: string | null; weekRating: number | null; timesWon?: number };
   mostImproved: { playerId: number | null; note: string | null; previousRating: number | null; currentRating: number | null };
+  flopOfTheWeek?: { playerId: number | null; note: string | null };
   weeklyLeaders: {
     topScorer: { playerId: number | null; value: number | null };
     topAssist: { playerId: number | null; value: number | null };
     topSaves?: { playerId: number | null; value: number | null };
     cleanSheets: number[] | null;
     cleanSheetTeam?: { name: string | null; value: number | null };
-    roughest?: { playerId: number | null; yellowCards: number | null; redCards: number | null };
+    badBoys?: BadBoy[];
   };
 }
 
 const EMPTY_VALE: ValeContent = {
   teamOfTheWeek: { week: "", dateRange: "", sessionsWon: 0, sessionsPlayed: 0, rivalTeam: "", score: "", photo: "", lineupPlayerIds: [] },
-  playerOfTheWeek: { playerId: 0, note: "", weekRating: 0 },
+  playerOfTheWeek: { playerId: 0, note: "", weekRating: 0, timesWon: 0 },
   mostImproved: { playerId: 0, note: "", previousRating: 0, currentRating: 0 },
+  flopOfTheWeek: { playerId: 0, note: "" },
   weeklyLeaders: {
     topScorer: { playerId: 0, value: 0 },
     topAssist: { playerId: 0, value: 0 },
     topSaves: { playerId: 0, value: 0 },
     cleanSheets: [],
     cleanSheetTeam: { name: "", value: 0 },
-    roughest: { playerId: 0, yellowCards: 0, redCards: 0 },
+    badBoys: [],
   },
 };
 
@@ -251,6 +261,7 @@ function valeFromApi(d: ApiVale): ValeContent {
       playerId: d.playerOfTheWeek.playerId ?? 0,
       note: d.playerOfTheWeek.note ?? "",
       weekRating: d.playerOfTheWeek.weekRating ?? 0,
+      timesWon: d.playerOfTheWeek.timesWon ?? 0,
     },
     mostImproved: {
       playerId: d.mostImproved.playerId ?? 0,
@@ -258,17 +269,14 @@ function valeFromApi(d: ApiVale): ValeContent {
       previousRating: d.mostImproved.previousRating ?? 0,
       currentRating: d.mostImproved.currentRating ?? 0,
     },
+    flopOfTheWeek: { playerId: d.flopOfTheWeek?.playerId ?? 0, note: d.flopOfTheWeek?.note ?? "" },
     weeklyLeaders: {
       topScorer: { playerId: w.topScorer.playerId ?? 0, value: w.topScorer.value ?? 0 },
       topAssist: { playerId: w.topAssist.playerId ?? 0, value: w.topAssist.value ?? 0 },
       topSaves: { playerId: w.topSaves?.playerId ?? 0, value: w.topSaves?.value ?? 0 },
       cleanSheets: w.cleanSheets ?? [],
       cleanSheetTeam: { name: w.cleanSheetTeam?.name ?? "", value: w.cleanSheetTeam?.value ?? 0 },
-      roughest: {
-        playerId: w.roughest?.playerId ?? 0,
-        yellowCards: w.roughest?.yellowCards ?? 0,
-        redCards: w.roughest?.redCards ?? 0,
-      },
+      badBoys: w.badBoys ?? [],
     },
   };
 }
@@ -294,6 +302,8 @@ function valeBody(v: ValeContent) {
     improved_note: v.mostImproved.note,
     improved_prev_rating: v.mostImproved.previousRating,
     improved_curr_rating: v.mostImproved.currentRating,
+    flop_player_id: orNull(v.flopOfTheWeek.playerId),
+    flop_note: v.flopOfTheWeek.note,
     leader_top_scorer_player_id: orNull(w.topScorer.playerId),
     leader_top_scorer_value: w.topScorer.value,
     leader_top_assist_player_id: orNull(w.topAssist.playerId),
@@ -303,11 +313,13 @@ function valeBody(v: ValeContent) {
     leader_clean_sheet_player_ids: w.cleanSheets,
     leader_clean_sheet_team: w.cleanSheetTeam.name || null,
     leader_clean_sheet_value: w.cleanSheetTeam.value,
-    leader_roughest_player_id: orNull(w.roughest.playerId),
-    leader_roughest_yellow: w.roughest.yellowCards,
-    leader_roughest_red: w.roughest.redCards,
+    // Rows left on "None" are dropped rather than sent without a player.
+    leader_bad_boys: w.badBoys.filter((b) => b.playerId > 0),
   };
 }
+
+/** "First win", "Won 3 times" — how often this player has been player of the week. */
+export const potwWinsLabel = (n: number) => (n === 1 ? "First win" : `Won ${n} times`);
 
 export function useValeContent() {
   const { data, setData, loading, error, reload } = useResource<ValeContent>("/vale-content", EMPTY_VALE, valeFromApi);

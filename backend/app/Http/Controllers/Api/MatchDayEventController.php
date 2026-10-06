@@ -119,14 +119,16 @@ class MatchDayEventController extends Controller
     }
 
     /**
-     * Public — the winning side (and its lineup/rival/score) for any single
-     * match day, computed on demand. Powers The Vale's "pick a match day"
+     * Public — the winning side (and its lineup/rival/score), plus the flop
+     * team at the bottom of the table, for any single match day, computed
+     * on demand. Powers The Vale's "pick a match day"
      * selector, which shows the latest by default but lets a visitor look
      * at an older one without that overwriting the persisted current award.
      */
     public function teamOfWeek(MatchDayEvent $matchDayEvent)
     {
-        $team = MatchDayFinalizer::computeTeamOfWeek($matchDayEvent, Player::pluck('id')->all());
+        $squadIds = Player::pluck('id')->all();
+        $team = MatchDayFinalizer::computeTeamOfWeek($matchDayEvent, $squadIds);
 
         return response()->json([
             'data' => $team ? [
@@ -137,6 +139,7 @@ class MatchDayEventController extends Controller
                 'rivalTeam' => $team['rivalTeam'],
                 'score' => $team['score'],
                 'lineupPlayerIds' => $team['lineupPlayerIds'],
+                'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
             ] : null,
         ]);
     }

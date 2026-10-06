@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useClub } from "../../lib/club";
 import { useAuth } from "../../lib/auth";
-import { useNoisers, useValeContent, KIND_ACCENT, timeAgo } from "../../lib/content";
+import { useNoisers, useValeContent, KIND_ACCENT, potwWinsLabel, timeAgo } from "../../lib/content";
 import { absenceLabel, currentAbsence, returnHint } from "../../lib/absences";
 import { cardCounts, eventGoals, eventParticipants, formatNaira, participantName, playerGameLog, plural, scoreOf, sortEvents } from "../../lib/derive";
 import { resolveMediaUrl } from "../../lib/config";
@@ -327,13 +327,15 @@ function PlayerOfTheWeek({ players }: { players: Player[] }) {
       <Tilt onPress={() => router.push("/vale")} accessibilityLabel={`Player of the week: ${potw.name}. Open The Vale`} style={[styles.potw, shadow.glow(colors.gold)]}>
         <LinearGradient colors={foil} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.potwFrame}>
           <View style={styles.potwInner}>
-            <Image source={{ uri: resolveMediaUrl(potw.photoUrl) ?? `https://i.pravatar.cc/400?img=${(potw.id % 70) + 1}` }} style={styles.potwPhoto} contentFit="cover" />
+            <Image source={{ uri: resolveMediaUrl(potw.photoUrl) ?? `https://i.pravatar.cc/400?img=${(potw.id % 70) + 1}` }} style={styles.potwPhoto} contentFit="cover" contentPosition="top" />
             <LinearGradient colors={["rgba(10,14,26,0)", "rgba(10,14,26,0.85)", colors.ink]} locations={[0, 0.55, 1]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+            <MaterialCommunityIcons name="crown" size={46} color={colors.goldBright} style={styles.potwCrown} />
             <View style={styles.potwText}>
               <View style={styles.potwBadge}>
                 <Ionicons name="trophy" size={12} color={colors.ink} />
                 <Txt style={styles.potwBadgeText}>Player of the week</Txt>
               </View>
+              {content.playerOfTheWeek.timesWon > 0 ? <Txt style={styles.potwWins}>{potwWinsLabel(content.playerOfTheWeek.timesWon)}</Txt> : null}
               <Txt style={styles.potwName} numberOfLines={2}>
                 {potw.name}
               </Txt>
@@ -578,6 +580,9 @@ const styles = StyleSheet.create({
   potwText: { position: "absolute", right: space.lg, top: space.lg, bottom: space.lg, left: "38%", justifyContent: "center", alignItems: "flex-end" },
   potwBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   potwBadgeText: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.ink, letterSpacing: 0.6, textTransform: "uppercase" },
+  potwWins: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.goldBright, marginTop: 4 },
+  // Sits on the player's head — the photo is pinned to the top, so the head is near the top centre.
+  potwCrown: { position: "absolute", top: 2, left: "27.5%", marginLeft: -23, transform: [{ rotate: "-12deg" }], textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6, textShadowOffset: { width: 0, height: 2 } },
   potwName: { fontFamily: fonts.displayHeavy, fontSize: 30, lineHeight: 30, color: colors.paper, textAlign: "right", marginTop: 8 },
   potwRating: { fontFamily: fonts.displayHeavy, fontSize: 40, lineHeight: 42, color: colors.goldBright },
   potwNote: { textAlign: "right", color: colors.paperDim, lineHeight: 16 },

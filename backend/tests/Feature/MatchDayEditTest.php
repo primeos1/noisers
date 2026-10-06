@@ -96,7 +96,10 @@ class MatchDayEditTest extends TestCase
         $this->assertTrue($kept->paid);
         $this->assertSame('Dissent (corrected)', $kept->reason);
         $this->assertSame('red', Card::where('match_day_ref', 'md:g1:c2')->first()->type);
-        $this->assertSame($this->scorer->id, ValeContent::current()->leader_roughest_player_id);
+        $this->assertSame([
+            ['playerId' => $this->scorer->id, 'yellowCards' => 0, 'redCards' => 1],
+            ['playerId' => $this->other->id, 'yellowCards' => 1, 'redCards' => 0],
+        ], ValeContent::current()->leader_bad_boys);
     }
 
     public function test_removing_a_match_day_card_takes_it_off_the_game_for_good(): void
@@ -108,7 +111,7 @@ class MatchDayEditTest extends TestCase
         $this->deleteJson('/api/cards/'.Card::first()->id)->assertNoContent();
 
         $this->assertSame([], MatchDayEvent::find('md')->games[0]['cards']);
-        $this->assertNull(ValeContent::current()->leader_roughest_player_id);
+        $this->assertSame([], ValeContent::current()->leader_bad_boys);
 
         // A later edit of the record doesn't bring the fine back.
         $this->putJson('/api/match-day-events/md', ['date' => 'Sun 5 Oct'])->assertOk();

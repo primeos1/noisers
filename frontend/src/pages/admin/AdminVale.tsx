@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useValeContent, type ValeContentData } from "../../lib/ValeContentContext";
+import { useValeContent, type BadBoy, type ValeContentData } from "../../lib/ValeContentContext";
 import { useSquad } from "../../lib/SquadContext";
 import ImageUploadField from "../../components/admin/ImageUploadField";
 
@@ -75,6 +75,7 @@ function ValeForm() {
   const [team, setTeam] = useState(content.teamOfTheWeek);
   const [potw, setPotw] = useState(content.playerOfTheWeek);
   const [improved, setImproved] = useState(content.mostImproved);
+  const [flop, setFlop] = useState(content.flopOfTheWeek);
   const [leaders, setLeaders] = useState(content.weeklyLeaders);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -89,6 +90,7 @@ function ValeForm() {
         teamOfTheWeek: team,
         playerOfTheWeek: potw,
         mostImproved: improved,
+        flopOfTheWeek: flop,
         weeklyLeaders: leaders,
       };
       await updateContent(patch);
@@ -182,6 +184,17 @@ function ValeForm() {
       </div>
 
       <div>
+        <h2 className="font-display text-2xl text-paper">Flop player of the week</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <PlayerSelect label="Player" value={flop.playerId} onChange={(n) => setFlop({ ...flop, playerId: n })} />
+        </div>
+        <label className={`${labelClass} mt-4 block`}>
+          Note
+          <textarea className={textareaClass} value={flop.note} onChange={(e) => setFlop({ ...flop, note: e.target.value })} />
+        </label>
+      </div>
+
+      <div>
         <h2 className="font-display text-2xl text-paper">Weekly leaders</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <PlayerSelect
@@ -255,33 +268,41 @@ function ValeForm() {
           value={leaders.cleanSheets}
           onChange={(ids) => setLeaders({ ...leaders, cleanSheets: ids })}
         />
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <PlayerSelect
-            label="Roughest player"
-            value={leaders.roughest.playerId}
-            onChange={(n) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, playerId: n } })}
-          />
-          <label className={labelClass}>
-            Yellow cards
-            <input
-              type="number"
-              min={0}
-              className={inputClass}
-              value={leaders.roughest.yellowCards}
-              onChange={(e) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, yellowCards: Number(e.target.value) } })}
-            />
-          </label>
-          <label className={labelClass}>
-            Red cards
-            <input
-              type="number"
-              min={0}
-              className={inputClass}
-              value={leaders.roughest.redCards}
-              onChange={(e) => setLeaders({ ...leaders, roughest: { ...leaders.roughest, redCards: Number(e.target.value) } })}
-            />
-          </label>
-        </div>
+        <fieldset className="mt-6">
+          <legend className={labelClass}>Bad boys of the week</legend>
+          {leaders.badBoys.length === 0 && <p className="mt-1 text-sm text-mist">No bookings — clean week.</p>}
+          {leaders.badBoys.map((b, i) => {
+            const setBadBoy = (patch: Partial<BadBoy>) =>
+              setLeaders({ ...leaders, badBoys: leaders.badBoys.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+            return (
+              <div key={i} className="mt-3 grid items-end gap-4 sm:grid-cols-[1fr_6rem_6rem_auto]">
+                <PlayerSelect label="Player" value={b.playerId} onChange={(playerId) => setBadBoy({ playerId })} />
+                <label className={labelClass}>
+                  Yellows
+                  <input type="number" min={0} className={inputClass} value={b.yellowCards} onChange={(e) => setBadBoy({ yellowCards: Number(e.target.value) })} />
+                </label>
+                <label className={labelClass}>
+                  Reds
+                  <input type="number" min={0} className={inputClass} value={b.redCards} onChange={(e) => setBadBoy({ redCards: Number(e.target.value) })} />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setLeaders({ ...leaders, badBoys: leaders.badBoys.filter((_, j) => j !== i) })}
+                  className="border border-ink-line px-3 py-2 text-sm text-paper-dim hover:border-loss hover:text-loss"
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setLeaders({ ...leaders, badBoys: [...leaders.badBoys, { playerId: 0, yellowCards: 1, redCards: 0 }] })}
+            className="mt-3 border border-ink-line px-3 py-2 text-sm text-paper hover:border-paper"
+          >
+            Add a bad boy
+          </button>
+        </fieldset>
       </div>
 
       {error && <p className="text-sm text-loss">{error}</p>}

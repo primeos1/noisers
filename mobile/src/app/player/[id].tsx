@@ -205,6 +205,10 @@ export default function PlayerScreen() {
 
       {tab === "overview" ? (
         <>
+          <Group title="Honours">
+            <Line label="Player of the week" value={plural(player.playerOfTheWeekWins ?? 0, "time")} tone={colors.goldBright} />
+            <Line label="Team of the week" value={plural(player.teamOfTheWeekSelections ?? 0, "time")} tone={colors.goldBright} />
+          </Group>
           <Group title="Scoring">
             <Line label="Goals" value={player.goals} tone={colors.win} />
             <Line label="Assists" value={player.assists} />

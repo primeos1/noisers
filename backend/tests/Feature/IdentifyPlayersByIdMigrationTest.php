@@ -49,7 +49,9 @@ class IdentifyPlayersByIdMigrationTest extends TestCase
             'leader_clean_sheet_player_ids' => json_encode([$keeper->id]),
         ]);
 
-        // Start from how things were before numbers became unique again.
+        // Start from how things were before numbers became unique again (and
+        // before the roughest player became bad boys, which drops its column).
+        (require database_path('migrations/2026_10_06_100000_add_flop_awards_and_bad_boys_to_vale_content_table.php'))->down();
         (require database_path('migrations/2026_09_26_120000_make_shirt_numbers_unique_again.php'))->down();
         $migration = require database_path('migrations/2026_09_26_100000_identify_players_by_id.php');
 

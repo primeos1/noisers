@@ -29,6 +29,12 @@ export interface Player {
   cleanSheets: number;
   /** Only keepers (GK as main or second position) make saves. */
   saves?: number;
+  /** Cards from match day records this season. */
+  yellowCards?: number;
+  redCards?: number;
+  /** Times named player of the week / picked in the team of the week. */
+  playerOfTheWeekWins?: number;
+  teamOfTheWeekSelections?: number;
 }
 
 export type CardType = "yellow" | "red";
@@ -278,4 +284,6 @@ export interface TeamOfWeek {
   rivalTeam: string;
   score: string;
   lineupPlayerIds: number[];
+  /** The side at the bottom of the table — null when only one side played. */
+  flopTeam?: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
 }

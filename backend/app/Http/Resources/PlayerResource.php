@@ -34,6 +34,8 @@ class PlayerResource extends JsonResource
             'saves' => $this->match_day_stats['saves'] ?? 0,
             'yellowCards' => $this->match_day_stats['yellowCards'] ?? 0,
             'redCards' => $this->match_day_stats['redCards'] ?? 0,
+            'playerOfTheWeekWins' => $this->weekly_honours['playerOfTheWeek'] ?? 0,
+            'teamOfTheWeekSelections' => $this->weekly_honours['teamOfTheWeek'] ?? 0,
             'ratingHistory' => $this->whenLoaded('ratingChanges', fn () => $this->ratingChanges->map(fn ($c) => [
                 'eventId' => (string) $c->match_day_event_id,
                 'before' => (float) $c->rating_before,

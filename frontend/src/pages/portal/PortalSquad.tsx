@@ -136,7 +136,7 @@ export default function PortalSquad() {
       )}
 
       {roughest && (
-        <Group title="Roughest player" aside="Most cards this season">
+        <Group title="Bad boy of the league" aside="Most cards this season">
           <Row to={`/portal/players/${roughest.id}`}>
             <Avatar player={roughest} className="h-12 w-12" />
             <span className="min-w-0 flex-1">

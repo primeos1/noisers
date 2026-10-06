@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import logoWhite from "../assets/brand/logo-white.png";
 import { useAuth } from "../lib/AuthContext";
 import TabBar from "./TabBar";
-import { GridIcon, HomeIcon, MegaphoneIcon, PlayIcon, ShirtIcon, TrophyIcon, UserIcon, UsersIcon } from "./icons";
+import {
+  ChevronRightIcon,
+  GridIcon,
+  HomeIcon,
+  MedalIcon,
+  MegaphoneIcon,
+  MoreIcon,
+  PlayIcon,
+  ShirtIcon,
+  TrophyIcon,
+  UserIcon,
+  UsersIcon,
+} from "./icons";
 
 /** The public site's sections, also listed under "More" in the player area. */
 export const publicLinks = [
@@ -13,10 +25,19 @@ export const publicLinks = [
   { label: "Noisers", to: "/noisers", icon: <MegaphoneIcon /> },
   { label: "Highlights", to: "/highlights", icon: <PlayIcon /> },
   { label: "Executives", to: "/executives", icon: <UsersIcon /> },
+  { label: "Awards", to: "/awards", icon: <MedalIcon /> },
 ];
 
-// Six tabs share a phone's width, so the longest label is shortened there.
-const tabLinks = publicLinks.map((l) => (l.to === "/executives" ? { ...l, label: "Execs" } : l));
+// Phones keep four sections in the dock; the rest sit behind "More".
+const moreRoutes = ["/highlights", "/executives", "/awards"];
+const tabLinks = publicLinks.filter((l) => !moreRoutes.includes(l.to));
+const moreLinks = publicLinks.filter((l) => moreRoutes.includes(l.to));
+
+const moreNotes: Record<string, string> = {
+  "/highlights": "Goals, saves and match day clips",
+  "/executives": "The committee that runs the club",
+  "/awards": "The race for every honour",
+};
 
 /**
  * Public site chrome. Desktop keeps the classic top nav; phones get a slim
@@ -24,7 +45,20 @@ const tabLinks = publicLinks.map((l) => (l.to === "/executives" ? { ...l, label:
  */
 export default function Navbar() {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const onMorePage = moreRoutes.some((to) => pathname.startsWith(to));
+
+  useEffect(() => setMoreOpen(false), [pathname]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -48,7 +82,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <ul className="hidden items-center gap-8 md:flex">
+          <ul className="hidden items-center gap-5 md:flex lg:gap-8">
             {publicLinks.map((link) => (
               <li key={link.to}>
                 <NavLink
@@ -97,7 +131,50 @@ export default function Navbar() {
         </nav>
       </header>
 
-      <TabBar tabs={tabLinks} label="Main" />
+      <TabBar
+        tabs={tabLinks}
+        label="Main"
+        extra={{ label: "More", icon: <MoreIcon />, active: moreOpen || onMorePage, onClick: () => setMoreOpen(true) }}
+      />
+
+      {moreOpen && (
+        <div className="sheet-backdrop md:hidden" onClick={() => setMoreOpen(false)}>
+          <div className="sheet" role="dialog" aria-label="More" onClick={(e) => e.stopPropagation()}>
+            <p className="px-1 text-xs text-mist">More from Noisers FC</p>
+            <ul className="mt-3 divide-y divide-ink-line overflow-hidden rounded-2xl bg-ink">
+              {moreLinks.map((link) => {
+                const awards = link.to === "/awards";
+                return (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className={`flex w-full items-center gap-3.5 px-4 py-3.5 text-left ${awards ? "aw-more-row" : ""}`}
+                    >
+                      <span
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                          awards ? "bg-justice text-ink" : "bg-ink-raised text-paper"
+                        }`}
+                      >
+                        {link.icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[0.95rem] text-paper">{link.label}</span>
+                        <span className="block truncate text-xs text-mist">{moreNotes[link.to]}</span>
+                      </span>
+                      {awards && (
+                        <span className="rounded-full bg-justice/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-justice">
+                          New
+                        </span>
+                      )}
+                      <ChevronRightIcon className="h-4 w-4 text-mist" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -11,6 +11,7 @@ use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
 use App\Models\Media;
 use App\Models\Player;
+use App\Support\MatchDayFinalizer;
 use App\Support\PlayerStats;
 use App\Support\ShirtNumbers;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -226,6 +227,7 @@ class PlayerController extends Controller
         (new EloquentCollection($players->all()))->load(['ratingChanges' => fn ($q) => $q->orderBy('id')]);
 
         $stats = PlayerStats::computeAll(MatchDayEvent::query()->get(), PlayerStats::forwardIds());
+        $honours = MatchDayFinalizer::weeklyHonours();
 
         // Cards logged by hand (fixtures, not match days) count towards the
         // season's discipline too. Match-day cards are already in $stats, so
@@ -245,6 +247,7 @@ class PlayerController extends Controller
                 $row[$count->type === 'red' ? 'redCards' : 'yellowCards'] += (int) $count->total;
             }
             $player->setAttribute('match_day_stats', $row);
+            $player->setAttribute('weekly_honours', $honours[$player->id] ?? null);
         }
     }
 }

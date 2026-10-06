@@ -192,5 +192,12 @@ class CmsEndpointsTest extends TestCase
         $this->assertSame('Matchday 1', $team->json('data.title'));
         $this->assertSame([$a->id], $team->json('data.lineupPlayerIds'));
         $this->assertSame('Team B', $team->json('data.rivalTeam'));
+        $this->assertSame('Team B', $team->json('data.flopTeam.name'));
+        $this->assertSame([$b->id], $team->json('data.flopTeam.lineupPlayerIds'));
+
+        // The losing side's player is the flop of the week.
+        $this->assertSame($b->id, $vale->json('data.flopOfTheWeek.playerId'));
+        $this->assertSame('Lost 1 of 1 game (-1 goal difference) with 0 goal involvements at Matchday 1.', $vale->json('data.flopOfTheWeek.note'));
+        $this->assertSame([], $vale->json('data.weeklyLeaders.badBoys'));
     }
 }

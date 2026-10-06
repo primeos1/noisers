@@ -134,6 +134,7 @@ class PlayerRatingsTest extends TestCase
         $this->assertSame(2, $stats[9]['yellowCards']);
         $this->assertSame(1, $stats[7]['redCards']);
         $this->assertSame(9, PlayerStats::roughest($stats));
+        $this->assertSame([9, 7, 4], array_column(PlayerStats::badBoys($stats), 'playerId'));
 
         unset($stats[9]);
         $this->assertSame(7, PlayerStats::roughest($stats)); // 1 red beats 1 yellow

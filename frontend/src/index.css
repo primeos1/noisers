@@ -3752,3 +3752,388 @@
     animation: none;
   }
 }
+
+/* ── Awards race ─────────────────────────────────────────────────────── */
+.aw-hero {
+  background:
+    radial-gradient(60% 55% at 50% 30%, rgb(216 181 106 / 0.22), transparent 70%),
+    radial-gradient(40% 40% at 15% 90%, rgb(91 155 213 / 0.12), transparent 70%),
+    var(--color-ink);
+}
+
+/* Slow-turning stadium light rays behind the trophy. */
+.aw-rays {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 160vmax;
+  height: 160vmax;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(from 0deg, rgb(216 181 106 / 0.09) 0deg 6deg, transparent 6deg 18deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 38%);
+  mask-image: radial-gradient(circle, #000 0%, transparent 38%);
+  animation: aw-spin 60s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes aw-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Gold dust drifting up through the hero. */
+.aw-spark {
+  position: absolute;
+  bottom: -10px;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 999px;
+  background: #f3d98f;
+  box-shadow: 0 0 8px 2px rgb(233 196 106 / 0.6);
+  opacity: 0;
+  animation: aw-drift 7s linear var(--d) infinite;
+}
+
+@keyframes aw-drift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(24px, -110vh);
+    opacity: 0;
+  }
+}
+
+.aw-trophy {
+  background: radial-gradient(circle at 35% 30%, #fbe7a8, #d8b56a 45%, #8c6a2c);
+  box-shadow:
+    0 0 0 6px rgb(216 181 106 / 0.15),
+    0 0 60px 10px rgb(216 181 106 / 0.35);
+  animation:
+    aw-trophy-in 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    aw-glow 3.2s ease-in-out 0.9s infinite;
+}
+
+@keyframes aw-trophy-in {
+  from {
+    transform: scale(0.2) rotate(-25deg);
+    opacity: 0;
+  }
+}
+
+@keyframes aw-glow {
+  50% {
+    box-shadow:
+      0 0 0 12px rgb(216 181 106 / 0.08),
+      0 0 90px 20px rgb(216 181 106 / 0.45);
+  }
+}
+
+.aw-rise {
+  animation: aw-rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms) both;
+}
+
+@keyframes aw-rise {
+  from {
+    transform: translateY(18px);
+    opacity: 0;
+  }
+}
+
+/* Gold foil text with a light sweeping across it. */
+.aw-gold-text {
+  background: linear-gradient(100deg, #b98b3e 0%, #f6e1a1 25%, #d8b56a 45%, #fff4cf 52%, #d8b56a 60%, #a97c35 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aw-foil 5s ease-in-out infinite;
+}
+
+@keyframes aw-foil {
+  0%,
+  100% {
+    background-position: 100% 0;
+  }
+  50% {
+    background-position: 0 0;
+  }
+}
+
+/* Cabinet cards deal in one after another, with a light catching them. */
+.aw-card {
+  background: linear-gradient(160deg, rgb(216 181 106 / 0.09), transparent 45%), var(--color-ink-raised);
+  animation: aw-deal 0.6s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 60ms) both;
+}
+
+.aw-card[aria-pressed="true"] {
+  box-shadow: 0 18px 50px -18px rgb(216 181 106 / 0.55);
+  transform: translateY(-3px);
+}
+
+@keyframes aw-deal {
+  from {
+    transform: translateY(26px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+.aw-card-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgb(255 244 207 / 0.12) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: aw-shine 6s ease-in-out calc(var(--i) * 0.4s + 1s) infinite;
+  pointer-events: none;
+}
+
+@keyframes aw-shine {
+  0%,
+  70% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* Switching award: the race swaps in. */
+.aw-swap {
+  animation: aw-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.aw-glyph-spin {
+  animation: aw-flip 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes aw-flip {
+  from {
+    transform: rotateY(180deg) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Podium: players drop onto their blocks, the winner wears a bobbing crown. */
+.aw-pod-player {
+  animation: aw-land 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--d, 0ms) + 350ms) both;
+}
+
+@keyframes aw-land {
+  from {
+    transform: translateY(-40px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+.aw-block {
+  background: linear-gradient(180deg, var(--medal), color-mix(in srgb, var(--medal) 45%, var(--color-ink)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+.aw-crown {
+  filter: drop-shadow(0 0 10px rgb(233 196 106 / 0.7));
+  animation: aw-bob 2.4s ease-in-out infinite;
+}
+
+.aw-crown.absolute {
+  animation-name: aw-bob-centred;
+}
+
+@keyframes aw-bob {
+  50% {
+    transform: translateY(-5px) rotate(-4deg);
+  }
+}
+
+@keyframes aw-bob-centred {
+  0%,
+  100% {
+    transform: translateX(-50%);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px) rotate(-4deg);
+  }
+}
+
+.aw-halo {
+  animation: aw-halo 2.6s ease-in-out infinite;
+}
+
+@keyframes aw-halo {
+  50% {
+    filter: drop-shadow(0 0 18px rgb(233 196 106 / 0.6));
+  }
+}
+
+/* Race replay lanes glide to their new place. */
+.aw-lane {
+  top: 16px;
+  transition:
+    transform 0.7s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.4s ease;
+}
+
+.aw-bar {
+  transition: width 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+  box-shadow: 0 4px 18px -6px rgb(0 0 0 / 0.6);
+}
+
+.aw-tick {
+  animation: aw-tick 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes aw-tick {
+  from {
+    transform: translateY(60%);
+    opacity: 0;
+  }
+}
+
+.aw-pop {
+  animation: aw-pop 0.6s cubic-bezier(0.34, 1.8, 0.64, 1) both;
+}
+
+@keyframes aw-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+.aw-scrub {
+  accent-color: var(--color-justice);
+}
+
+/* Scroll-in reveals. */
+.aw-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s ease var(--d, 0ms),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms);
+}
+
+.aw-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.aw-reveal.is-in .aw-seg {
+  transform-origin: left;
+  animation: aw-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 90ms) both;
+}
+
+@keyframes aw-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.aw-reveal.is-in .aw-slide {
+  animation: aw-slide 0.6s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 70ms + 150ms) both;
+}
+
+@keyframes aw-slide {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+}
+
+.aw-live-dot {
+  box-shadow: 0 0 0 0 rgb(47 158 138 / 0.6);
+  animation: aw-ping 1.8s ease-out infinite;
+}
+
+@keyframes aw-ping {
+  to {
+    box-shadow: 0 0 0 10px rgb(47 158 138 / 0);
+  }
+}
+
+/* Player of the week wall. */
+.aw-potw {
+  background:
+    radial-gradient(50% 40% at 50% 0%, rgb(216 181 106 / 0.16), transparent 70%),
+    var(--color-ink);
+}
+
+.aw-honour {
+  background: var(--color-ink-raised);
+  transition: transform 0.25s ease;
+}
+
+.aw-honour-top {
+  background: linear-gradient(135deg, rgb(216 181 106 / 0.2), rgb(216 181 106 / 0.03) 60%), var(--color-ink-raised);
+}
+
+.aw-reveal.is-in .aw-star {
+  animation: aw-pop 0.5s cubic-bezier(0.34, 1.8, 0.64, 1) calc(var(--i) * 80ms + 300ms) both;
+}
+
+.aw-week {
+  animation: aw-deal 0.6s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 70ms) both;
+}
+
+.aw-week img {
+  transition: transform 0.6s ease;
+}
+
+@media (hover: hover) {
+  .aw-card:hover,
+  .aw-honour:hover {
+    transform: translateY(-3px);
+  }
+
+  .aw-week:hover img {
+    transform: scale(1.06);
+  }
+}
+
+/* The Awards row in the "More" sheet carries a little gold. */
+.aw-more-row {
+  background: linear-gradient(100deg, rgb(216 181 106 / 0.12), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aw-rays,
+  .aw-spark,
+  .aw-trophy,
+  .aw-rise,
+  .aw-gold-text,
+  .aw-card,
+  .aw-card-shine,
+  .aw-swap,
+  .aw-glyph-spin,
+  .aw-pod-player,
+  .aw-crown,
+  .aw-halo,
+  .aw-tick,
+  .aw-pop,
+  .aw-live-dot,
+  .aw-week,
+  .aw-reveal.is-in .aw-seg,
+  .aw-reveal.is-in .aw-slide,
+  .aw-reveal.is-in .aw-star {
+    animation: none;
+  }
+
+  .aw-spark {
+    display: none;
+  }
+
+  .aw-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .aw-lane,
+  .aw-bar {
+    transition: none;
+  }
+}

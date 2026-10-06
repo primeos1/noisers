@@ -147,7 +147,7 @@ export default function Performance() {
               <p className="mt-4 font-display text-4xl text-paper">{formatNaira(fines)}</p>
             </div>
             <div className="bg-ink p-8">
-              <p className="text-xs uppercase tracking-wide text-mist">Roughest player</p>
+              <p className="text-xs uppercase tracking-wide text-mist">Bad boy of the league</p>
               <p className="mt-4 font-display text-4xl text-paper">{roughest?.name ?? "—"}</p>
               <p className="mt-2 text-sm text-paper-dim">
                 {roughest

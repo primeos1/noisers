@@ -49,6 +49,9 @@ class ValeContentController extends Controller
             'improved_prev_rating' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:10'],
             'improved_curr_rating' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:10'],
 
+            'flop_player_id' => ['sometimes', 'nullable', 'integer', 'exists:players,id'],
+            'flop_note' => ['sometimes', 'nullable', 'string'],
+
             'leader_top_scorer_player_id' => ['sometimes', 'nullable', 'integer', 'exists:players,id'],
             'leader_top_scorer_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'leader_top_assist_player_id' => ['sometimes', 'nullable', 'integer', 'exists:players,id'],
@@ -59,9 +62,10 @@ class ValeContentController extends Controller
             'leader_clean_sheet_player_ids.*' => ['integer'],
             'leader_clean_sheet_team' => ['sometimes', 'nullable', 'string', 'max:255'],
             'leader_clean_sheet_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'leader_roughest_player_id' => ['sometimes', 'nullable', 'integer', 'exists:players,id'],
-            'leader_roughest_yellow' => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'leader_roughest_red' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'leader_bad_boys' => ['sometimes', 'nullable', 'array'],
+            'leader_bad_boys.*.playerId' => ['required', 'integer', 'exists:players,id'],
+            'leader_bad_boys.*.yellowCards' => ['required', 'integer', 'min:0'],
+            'leader_bad_boys.*.redCards' => ['required', 'integer', 'min:0'],
         ]);
 
         $content->update($validated);
