@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useSquad } from "../lib/SquadContext";
@@ -8,6 +8,7 @@ import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
 import { formatCards, keepsCleanSheets, positionCodes, roughestPlayer, type Player } from "../lib/clubData";
 import { CrownIcon } from "../components/icons";
+import type { MatchDayEvent } from "../lib/matchDay";
 
 /** "First win", "Won 3 times" — how often this player has been player of the week. */
 const winsLabel = (n: number) => (n === 1 ? "First win" : `Won ${n} times`);
@@ -70,6 +71,97 @@ interface TeamOfWeekData {
   flopPlayer?: { playerId: number; note: string } | null;
   /** Every other award as worked out for this match day. */
   awards?: ApiValeContent;
+}
+
+const SHAPE: { row: string[] }[] = [{ row: ["FWD", "FWD"] }, { row: ["MID"] }, { row: ["DEF", "DEF"] }, { row: ["GK"] }];
+
+/**
+ * In place of the team of the week until both its match days have ended —
+ * like a gameweek still being played: a stamped headline, a ticker, the
+ * two-day tracker and six empty shirts on the pitch.
+ */
+function WeekInProgress({ week, events }: { week: number; events: MatchDayEvent[] }) {
+  const days = events
+    .filter((e) => e.week === week)
+    .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
+  const slots = [0, 1].map((i) => {
+    const day = days[i];
+    const title = day?.title ?? `Matchday ${(week - 1) * 2 + i + 1}`;
+    const state = !day ? "next" : day.status === "ended" ? "done" : day.status === "live" ? "live" : "next";
+    return { title, state, date: day?.date };
+  });
+  const played = slots.filter((d) => d.state === "done").length;
+  const next = slots.find((d) => d.state !== "done");
+  const live = next?.state === "live";
+
+  // A different line each week, the same one on every visit.
+  const lines = [
+    `Half the story's written. ${next?.title ?? "The next match day"} decides who makes the six.`,
+    "One match day down, one to go — every shirt is still up for grabs.",
+    `The bibs are still in the wash. Nobody's in until ${next?.title ?? "the next match day"} is done.`,
+    `Six places, a whole squad chasing them. ${next?.title ?? "The next match day"} settles it.`,
+  ];
+  const line = live
+    ? `${next!.title} is being played right now — every goal, save and clean sheet can change the six.`
+    : lines[week % lines.length];
+  const tick = ["Not complete yet", `Week ${week}`, `${played} of 2 match days done`, "Team of the week loading", "Player of the week TBC"];
+
+  return (
+    <div className="vw-wip mt-8" role="status" aria-label={`Week ${week}: team of the week not complete yet, ${played} of 2 match days done`}>
+      <div className="vw-ticker" aria-hidden="true">
+        {[0, 1].map((k) => (
+          <div key={k} className="vw-ticker-track">
+            {[...tick, ...tick].map((t, i) => (
+              <span key={i}>{t} ★</span>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="px-4 py-8 sm:px-8 md:py-12">
+        <h3 className="vw-title">
+          <span style={{ "--i": 0 } as CSSProperties}>Team of</span>
+          <span style={{ "--i": 1 } as CSSProperties}>the week</span>
+        </h3>
+        <p className="vw-stamp mt-5">Not complete yet</p>
+
+        <p className="mt-6 max-w-xl text-lg font-semibold leading-snug text-paper md:text-xl">{line}</p>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {slots.map((d) => (
+            <div key={d.title} className="vw-day" data-state={d.state}>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-paper-dim">
+                {d.state === "done" ? "✓ Done" : d.state === "live" ? (
+                  <>
+                    <span className="vw-dot" aria-hidden="true" /> Live now
+                  </>
+                ) : "Still to play"}
+              </p>
+              <p className="mt-1 font-display text-2xl font-extrabold leading-none text-paper md:text-3xl">{d.title}</p>
+              {d.date && <p className="mt-1 text-xs text-mist">{d.date}</p>}
+            </div>
+          ))}
+        </div>
+
+        <div className="vw-pitch mt-6" aria-hidden="true">
+          {SHAPE.map(({ row }, r) => (
+            <div key={r} className="vw-row">
+              {row.map((pos, i) => (
+                <div key={i} className="vw-slot" style={{ "--i": r * 2 + i } as CSSProperties}>
+                  <span className="vw-shirt">?</span>
+                  <span className="text-[0.65rem] font-bold tracking-widest text-mist">{pos}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-4 text-sm text-paper-dim">
+          The team and player of the week are picked the moment both of the week's match days have ended.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 /** A match day's team and player of the match day, under the week's six. */
@@ -233,11 +325,13 @@ export default function TheVale() {
 
           {team && !teamLoading && (
             <>
-              <p className="mt-4 max-w-xl text-paper-dim">
-                {team.complete === false
-                  ? `${team.dateRange} · The team and player of the week are picked once both of the week's match days have ended.`
-                  : `${team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards, rated across both match days.`}
-              </p>
+              {team.complete === false && selectedEvent?.week ? (
+                <WeekInProgress week={selectedEvent.week} events={events} />
+              ) : (
+                <p className="mt-4 max-w-xl text-paper-dim">
+                  {team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards, rated across both match days.
+                </p>
+              )}
 
               {lineup.length > 0 && (
                 <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-3 lg:grid-cols-6">
