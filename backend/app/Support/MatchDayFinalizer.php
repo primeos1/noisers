@@ -407,6 +407,20 @@ class MatchDayFinalizer
     public const TEAM_SLOTS = ['GK', 'DEF', 'DEF', 'MID', 'MID', 'FWD'];
 
     /**
+     * Weeks 1 and 2 were awarded before ratings picked the player, so their
+     * player of the match day and of the week stay the ones with the most
+     * goals and assists (see topPlayer()). The teams are picked on ratings
+     * in every week.
+     */
+    public const GOALS_RULE_LAST_WEEK = 2;
+
+    /** Whether this match day's week picks its players on goals and assists (see GOALS_RULE_LAST_WEEK). */
+    public static function picksPlayerOnGoals(MatchDayEvent $event): bool
+    {
+        return self::weekNumber($event) <= self::GOALS_RULE_LAST_WEEK;
+    }
+
+    /**
      * The side with the most wins across this event's finished games (ties
      * broken by goal difference), with its lineup, rival and score — the
      * winners of a single match day. Pure and read-only.
@@ -434,7 +448,8 @@ class MatchDayFinalizer
     /**
      * The team of the match day and the player of the match day: the day's
      * six best players by position (see TEAM_SLOTS), and its single
-     * highest-rated player, from that day's finished games alone. Null when
+     * highest-rated player (most goals and assists in weeks 1 and 2 — see
+     * GOALS_RULE_LAST_WEEK), from that day's finished games alone. Null when
      * no game finished. Pure and read-only.
      *
      * @param  array<int, int>  $squadIds
@@ -451,7 +466,7 @@ class MatchDayFinalizer
         return [
             'lineup' => $lineup,
             'lineupPlayerIds' => array_column($lineup, 'playerId'),
-            'playerOfMatchDay' => self::topPlayer($ranking),
+            'playerOfMatchDay' => self::topPlayer($ranking, self::picksPlayerOnGoals($event)),
         ];
     }
 
@@ -479,7 +494,7 @@ class MatchDayFinalizer
         return [
             'lineup' => $lineup,
             'lineupPlayerIds' => array_column($lineup, 'playerId'),
-            'playerOfWeek' => self::topPlayer($ranking),
+            'playerOfWeek' => self::topPlayer($ranking, self::picksPlayerOnGoals($event)),
             'weekMatchDays' => $days->all(),
         ];
     }
@@ -553,14 +568,26 @@ class MatchDayFinalizer
     }
 
     /**
-     * The highest-rated player in the ranking, whatever their position.
+     * The highest-rated player in the ranking, whatever their position — or,
+     * with $byGoals, the one with the most goals and assists, then goals,
+     * then clean sheets (ties going to the higher rating).
      *
      * @param  array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}  $ranking  as rankPlayers()
      * @return array{playerId: int, position: string, points: float, stats: array<string, int>}|null
      */
-    private static function topPlayer(array $ranking): ?array
+    private static function topPlayer(array $ranking, bool $byGoals = false): ?array
     {
-        $id = $ranking['ranked'][0] ?? null;
+        $ids = $ranking['ranked'];
+        if ($byGoals) {
+            $s = $ranking['stats'];
+            $key = fn ($id) => [
+                ($s[$id]['goals'] ?? 0) + ($s[$id]['assists'] ?? 0),
+                $s[$id]['goals'] ?? 0,
+                $s[$id]['cleanSheets'] ?? 0,
+            ];
+            usort($ids, fn ($a, $b) => $key($b) <=> $key($a)); // stable, so rating order breaks ties
+        }
+        $id = $ids[0] ?? null;
 
         return $id === null ? null : self::pick($ranking, $id, (string) $ranking['players'][$id]->position);
     }
@@ -897,17 +924,19 @@ class MatchDayFinalizer
 
         $changes += self::flopFields($event, $squadIds);
 
-        // Player of the week — the highest-rated player across the week.
+        // Player of the week — the highest-rated player across the week (most
+        // goals and assists in weeks 1 and 2).
         $potw = $team['playerOfWeek'] ?? null;
         if ($potw) {
             $s = $potw['stats'] + ['goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'appearances' => 0];
             $changes += [
                 'potw_player_id' => $potw['playerId'],
                 'potw_note' => sprintf(
-                    '%d goal%s and %d assist%s across %d game%s — the top rating of the week at %s.',
+                    '%d goal%s and %d assist%s across %d game%s — %s of the week at %s.',
                     $s['goals'], $s['goals'] === 1 ? '' : 's',
                     $s['assists'], $s['assists'] === 1 ? '' : 's',
                     $s['appearances'], $s['appearances'] === 1 ? '' : 's',
+                    self::picksPlayerOnGoals($event) ? 'the most goals and assists' : 'the top rating',
                     $event->title,
                 ),
                 'potw_rating' => min(10, round(6 + $s['goals'] + 0.5 * $s['assists'] + 0.5 * $s['cleanSheets'], 1)),

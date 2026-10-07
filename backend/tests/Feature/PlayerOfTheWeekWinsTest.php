@@ -218,4 +218,32 @@ class PlayerOfTheWeekWinsTest extends TestCase
             ->assertJsonPath('data.teamOfTheWeek.title', 'Matchday 3')
             ->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
     }
+
+    public function test_weeks_1_and_2_pick_the_player_on_goals_and_assists_and_later_weeks_on_ratings(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $keeper = Player::factory()->create(['position' => 'GK', 'secondary_position' => null])->id;
+        $striker = Player::factory()->create(['position' => 'FWD', 'secondary_position' => null])->id;
+        $other = Player::factory()->create(['position' => 'DEF', 'secondary_position' => null])->id;
+
+        // Every match day the same 1–0: the keeper's win and clean sheet
+        // (0.25) out-rate the striker's win and goal (0.22).
+        foreach (['md1', 'md2', 'md3', 'md4', 'md5'] as $id) {
+            $this->playWeekDay($id, 'Sun 28 Sept', [$keeper, $striker], [$other], [[$striker, null]]);
+        }
+
+        foreach (['md1', 'md3'] as $id) {
+            $this->getJson("/api/match-day-events/{$id}/team-of-week")
+                ->assertJsonPath('data.playerOfWeek.playerId', $striker)
+                ->assertJsonPath('data.matchDays.0.playerOfMatchDay.playerId', $striker);
+        }
+        $this->getJson('/api/match-day-events/md5/team-of-week')
+            ->assertJsonPath('data.week', 3)
+            ->assertJsonPath('data.playerOfWeek.playerId', $keeper)
+            ->assertJsonPath('data.matchDays.0.playerOfMatchDay.playerId', $keeper);
+        $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $keeper);
+
+        $this->getJson("/api/players/{$striker}")->assertJsonPath('data.playerOfTheWeekWins', 2);
+        $this->getJson("/api/players/{$keeper}")->assertJsonPath('data.playerOfTheWeekWins', 1);
+    }
 }

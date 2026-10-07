@@ -282,8 +282,8 @@ class NoisersFeed
         if ($star) {
             $did = $this->contribution($star['stats'], saves: true);
             $body[] = $this->pick("$id-star", [
-                "Top of the ratings: {$this->name($star['playerId'])}, our player of the match day".($did ? " with {$did}" : '').'.',
-                "The player of the match day is {$this->name($star['playerId'])}".($did ? " — {$did} to rate higher than anyone" : ', the highest-rated player on the pitch').'.',
+                "Our player of the match day: {$this->name($star['playerId'])}".($did ? ", with {$did}" : '').'.',
+                "The player of the match day is {$this->name($star['playerId'])}".($did ? " — {$did}, better than anyone" : ', the standout on the pitch').'.',
             ]);
         }
         $body[] = $this->pick("$id-close", [

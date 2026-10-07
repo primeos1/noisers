@@ -3,7 +3,8 @@
 // of the week follows the server's rule (MatchDayFinalizer::computeTeamOfWeek):
 // the highest-rated player of the week, with the club's rating weights added
 // up across its match days; ties go to more goal involvements, then saves,
-// then games. The flop of the week follows MatchDayFinalizer::computeFlopPlayer:
+// then games. Weeks 1 and 2 (MatchDayFinalizer::GOALS_RULE_LAST_WEEK) go to
+// the most goals and assists instead, then goals, then clean sheets. The flop of the week follows MatchDayFinalizer::computeFlopPlayer:
 // most games lost, then worst goal difference, then fewest goal involvements —
 // there's always one.
 
@@ -114,11 +115,19 @@ function dayPoints(event: MatchDayEvent, squad: Map<number, Player>, weights: Re
   return points;
 }
 
-/** The highest-rated player — ties go to more goal involvements, then saves, then games, then the lower id. */
-function topRated(points: Map<number, number>, lines: Map<number, Line>): number | null {
+/** Weeks up to this one pick their player on goals and assists, as on the server. */
+const GOALS_RULE_LAST_WEEK = 2;
+
+/**
+ * The highest-rated player — ties go to more goal involvements, then saves,
+ * then games, then the lower id. With `byGoals`, the most goals and assists
+ * comes first, then goals, then clean sheets, then the rating order.
+ */
+function topRated(points: Map<number, number>, lines: Map<number, Line>, byGoals = false): number | null {
   const key = (id: number) => {
     const l = lines.get(id) ?? emptyLine();
-    return [Math.round(points.get(id)! * 1e4) / 1e4, l.goals + l.assists, l.saves, l.games];
+    const rated = [Math.round(points.get(id)! * 1e4) / 1e4, l.goals + l.assists, l.saves, l.games];
+    return byGoals ? [l.goals + l.assists, l.goals, l.cleanSheets, ...rated] : rated;
   };
   let best: number | null = null;
   for (const id of points.keys()) {
@@ -310,7 +319,7 @@ export function buildAwards(players: Player[], events: MatchDayEvent[], weights:
       for (const k of Object.keys(l) as (keyof Line)[]) sum[k] += l[k];
       week.lines.set(id, sum);
     }
-    const leader = topRated(week.points, week.lines);
+    const leader = topRated(week.points, week.lines, (event.week ?? Infinity) <= GOALS_RULE_LAST_WEEK);
     if (week.winner) {
       totals.get(week.winner.playerId)!.potw--;
       winners.splice(winners.indexOf(week.winner), 1);
