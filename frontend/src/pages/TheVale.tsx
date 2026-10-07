@@ -12,9 +12,20 @@ import { CrownIcon } from "../components/icons";
 /** "First win", "Won 3 times" — how often this player has been player of the week. */
 const winsLabel = (n: number) => (n === 1 ? "First win" : `Won ${n} times`);
 
+/** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
+function weekLabel(weekOf?: string) {
+  if (!weekOf) return null;
+  const [y, m, d] = weekOf.split("-").map(Number);
+  return `Week of ${new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+}
+
 interface TeamOfWeekData {
+  /** The match day the week's best side played on. */
   title: string;
   dateRange: string;
+  teamName?: string;
+  /** Every match day of the week that was compared (Wednesday and Sunday). */
+  weekMatchDays?: { id: string; title: string; date: string }[];
   sessionsWon: number;
   sessionsPlayed: number;
   rivalTeam: string;
@@ -33,16 +44,21 @@ export default function TheVale() {
   const { events } = useMatchDay();
   const { content } = useValeContent();
 
-  // Every ended match day that actually finished a game — most recent first —
-  // so a visitor can look back at an older week's team instead of only ever
-  // seeing the latest.
-  const pastMatchDays = useMemo(
-    () =>
-      [...events]
-        .filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished"))
-        .reverse(),
-    [events],
-  );
+  // Every ended match day that actually finished a game, one per week (the
+  // latest of its Wednesday and Sunday) — most recent first — so a visitor
+  // can look back at an older week's team instead of only ever seeing the latest.
+  const pastMatchDays = useMemo(() => {
+    const seen = new Set<string>();
+    return [...events]
+      .filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished"))
+      .reverse()
+      .filter((e) => {
+        const week = e.weekOf ?? e.id;
+        if (seen.has(week)) return false;
+        seen.add(week);
+        return true;
+      });
+  }, [events]);
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [team, setTeam] = useState<TeamOfWeekData | null>(null);
@@ -129,7 +145,7 @@ export default function TheVale() {
 
             {pastMatchDays.length > 1 && (
               <label className="text-sm text-paper-dim">
-                Match day
+                Week
                 <select
                   value={selectedEventId ?? ""}
                   onChange={(e) => setSelectedEventId(e.target.value)}
@@ -137,7 +153,7 @@ export default function TheVale() {
                 >
                   {pastMatchDays.map((e) => (
                     <option key={e.id} value={e.id}>
-                      {e.title} — {e.date}
+                      {weekLabel(e.weekOf) ?? `${e.title} — ${e.date}`}
                     </option>
                   ))}
                 </select>
@@ -148,8 +164,11 @@ export default function TheVale() {
           {team && !teamLoading && (
             <>
               <p className="mt-4 max-w-xl text-paper-dim">
-                {team.dateRange} · {team.sessionsWon} of {team.sessionsPlayed} match
-                days won, capped by a {team.score} win over {team.rivalTeam}.
+                {team.teamName ? `${team.teamName} · ` : ""}
+                {team.dateRange} · {team.sessionsWon} of {team.sessionsPlayed} games won, capped by a{" "}
+                {team.score} win over {team.rivalTeam}.
+                {(team.weekMatchDays?.length ?? 0) > 1 &&
+                  ` The best side across ${team.weekMatchDays!.map((d) => d.date).join(" and ")}.`}
               </p>
 
               {lineup.length > 0 && (

@@ -78,6 +78,8 @@ export interface MatchDayEvent {
   venue: string;
   date: string;
   createdAt: string;
+  /** Monday of the week it was played ("YYYY-MM-DD"), set by the server. */
+  weekOf?: string;
   presentPlayers: number[];
   guests: Guest[];
   groups: MatchDayTeam[];

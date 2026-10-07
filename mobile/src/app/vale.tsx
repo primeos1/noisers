@@ -13,7 +13,8 @@ import { CardFace, HoloCard } from "../components/PlayerCard";
 import { colors, fonts, foil, radius, shadow, space } from "../theme";
 
 // The Vale — the public awards page (frontend/src/pages/TheVale.tsx): the
-// team of the week from any finished match day, then the committee's (or
+// team of the week (the best side across that week's Wednesday and Sunday)
+// for any finished week, then the committee's (or
 // the auto-awarded) player of the week, most improved, flop of the week and
 // stat leaders, with the week's bad boys and the bad boy of the league.
 
@@ -38,13 +39,31 @@ function Leader({ icon, label, player, value, tone, onPress }: { icon: keyof typ
   );
 }
 
+/** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
+function weekLabel(weekOf?: string) {
+  if (!weekOf) return null;
+  const [y, m, d] = weekOf.split("-").map(Number);
+  return `Week of ${new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+}
+
 export default function ValeScreen() {
   const { players, events, refresh } = useClub();
   const { content, loading, error, reload } = useValeContent();
   const { width } = useWindowDimensions();
 
-  // Every ended match day that finished a game, newest first.
-  const past = useMemo(() => sortEvents(events).filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished")), [events]);
+  // Every ended match day that finished a game, newest first, one per week
+  // (the latest of its Wednesday and Sunday).
+  const past = useMemo(() => {
+    const seen = new Set<string>();
+    return sortEvents(events)
+      .filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished"))
+      .filter((e) => {
+        const week = e.weekOf ?? e.id;
+        if (seen.has(week)) return false;
+        seen.add(week);
+        return true;
+      });
+  }, [events]);
   const [picked, setPicked] = useState<string | null>(null);
   const eventId = picked ?? past[0]?.id ?? null;
   const { team, awards: dayAwards, loading: teamLoading } = useTeamOfWeek(eventId);
@@ -81,7 +100,7 @@ export default function ValeScreen() {
       {/* Team of the week */}
       <SectionHeader title="Team of the week" />
       {past.length > 1 ? (
-        <Chips value={eventId ?? ""} onChange={setPicked} options={past.slice(0, 12).map((e) => ({ value: e.id, label: e.title }))} />
+        <Chips value={eventId ?? ""} onChange={setPicked} options={past.slice(0, 12).map((e) => ({ value: e.id, label: weekLabel(e.weekOf) ?? e.title }))} />
       ) : null}
       {teamLoading ? (
         <Skeleton style={styles.teamSkeleton} />
@@ -91,7 +110,9 @@ export default function ValeScreen() {
             <LinearGradient colors={["rgba(216,181,106,0.3)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Txt style={styles.teamTitle}>{team.title}</Txt>
             <Txt style={[text.dim, styles.teamBody]}>
+              {team.teamName ? `${team.teamName} · ` : ""}
               {team.dateRange} · {team.sessionsWon} of {team.sessionsPlayed} won, capped by a {team.score} win over {team.rivalTeam}.
+              {(team.weekMatchDays?.length ?? 0) > 1 ? ` The best side across ${team.weekMatchDays!.map((d) => d.date).join(" and ")}.` : ""}
             </Txt>
           </Glass>
           {lineup.length > 0 ? (

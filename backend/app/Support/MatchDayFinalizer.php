@@ -8,6 +8,9 @@ use App\Models\MatchDayEvent;
 use App\Models\Player;
 use App\Models\PlayerRatingChange;
 use App\Models\ValeContent;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 
 /**
  * Runs once when the admin presses "End match day": turns the cards logged
@@ -46,12 +49,18 @@ class MatchDayFinalizer
         self::rollBackRatings($event);
 
         // With automatic awards off, The Vale is maintained by hand — leave it.
-        if (! ClubSetting::current()->vale_auto_awards || ! self::valeShows($event)) {
+        if (! ClubSetting::current()->vale_auto_awards) {
             return;
         }
 
-        self::clearWeeklyAwards();
-        self::awardLatestExcept($event->id);
+        if (self::valeShows($event)) {
+            self::clearWeeklyAwards();
+            self::awardLatestExcept($event->id);
+        } elseif ($shown = self::valeShownWeekMate($event)) {
+            // The Vale shows the other match day of this week, whose team of
+            // the week may have come from this one.
+            self::updateWeeklyAwards($shown, Player::pluck('id')->all(), $event->id);
+        }
     }
 
     /**
@@ -83,6 +92,8 @@ class MatchDayFinalizer
             } else {
                 self::awardLatestExcept($event->id);
             }
+        } elseif ($settings->vale_auto_awards && ($shown = self::valeShownWeekMate($event))) {
+            self::updateWeeklyAwards($shown, $squadIds);
         }
     }
 
@@ -122,6 +133,59 @@ class MatchDayFinalizer
     private static function retitle(?string $note, string $from, string $to): ?string
     {
         return $note === null ? null : preg_replace('/'.preg_quote($from, '/').'\.$/', "{$to}.", $note);
+    }
+
+    /** The other match day of this one's week that The Vale is showing, if any. */
+    private static function valeShownWeekMate(MatchDayEvent $event): ?MatchDayEvent
+    {
+        return self::weekEvents($event)->first(fn ($e) => $e->id !== $event->id && self::valeShows($e));
+    }
+
+    /**
+     * Monday of the week this match day was played in. The stored date is a
+     * label like "Sun 28 Sept" with no year, so the year comes from when the
+     * match day was created; a label that can't be read falls back to that.
+     */
+    public static function weekOf(MatchDayEvent $event): CarbonImmutable
+    {
+        $created = CarbonImmutable::parse($event->created_at ?? now());
+        $day = $created;
+        if (preg_match('/(\d{1,2})\s+([A-Za-z]{3})/', (string) $event->date, $m)) {
+            try {
+                $parsed = CarbonImmutable::createFromFormat('!j M Y', "{$m[1]} ".ucfirst(strtolower($m[2]))." {$created->year}");
+                // A late-December match day logged in early January, or the reverse.
+                if ($parsed->diffInDays($created, true) > 180) {
+                    $parsed = $parsed->addYears($parsed->lt($created) ? 1 : -1);
+                }
+                $day = $parsed;
+            } catch (\Throwable) {
+                // keep the created date
+            }
+        }
+
+        return $day->startOfWeek(CarbonInterface::MONDAY)->startOfDay();
+    }
+
+    /**
+     * Every ended match day with a finished game in the same week as this one
+     * (the Wednesday and Sunday sessions), always including this one, oldest
+     * first.
+     *
+     * @return Collection<int, MatchDayEvent>
+     */
+    public static function weekEvents(MatchDayEvent $event, ?string $exceptId = null): Collection
+    {
+        $week = self::weekOf($event);
+
+        return MatchDayEvent::query()
+            ->where('status', 'ended')
+            ->where('id', '!=', $event->id)
+            ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
+            ->get()
+            ->filter(fn ($e) => self::hasFinishedGames($e) && self::weekOf($e)->equalTo($week))
+            ->push($event)
+            ->sortBy(fn ($e) => $e->created_at?->getTimestamp() ?? PHP_INT_MAX)
+            ->values();
     }
 
     /** Whether The Vale's weekly awards currently come from this match day. */
@@ -209,7 +273,7 @@ class MatchDayFinalizer
             ->get()
             ->first(fn ($e) => self::hasFinishedGames($e));
         if ($previous) {
-            self::updateWeeklyAwards($previous, Player::pluck('id')->all());
+            self::updateWeeklyAwards($previous, Player::pluck('id')->all(), $eventId);
         }
     }
 
@@ -297,23 +361,37 @@ class MatchDayFinalizer
     }
 
     /**
-     * The side with the most wins across this event's finished games (ties
-     * broken by goal difference), with its lineup, rival and score. Pure and
-     * read-only — used both to rewrite The Vale on finalize() and to answer
-     * "what was the team of the week for match day X" for any past event.
+     * The best side of this match day's week: each match day of the week
+     * (Wednesday and Sunday) puts forward its top side — most wins, ties
+     * broken by goal difference — and the better of those is the team of the
+     * week, a tie going to the later match day. Comes with its lineup, rival,
+     * score and the match day it played on. Pure and read-only — used both
+     * to rewrite The Vale on finalize() and to answer "what was the team of
+     * the week for match day X" for any past event.
      *
      * @param  array<int, int>  $squadIds
-     * @return array{sessionsWon: int, sessionsPlayed: int, rivalTeam: string, score: string, lineupPlayerIds: int[]}|null
+     * @param  ?string  $exceptId  a match day of the same week to leave out
+     * @return array{teamName: string, sessionsWon: int, sessionsPlayed: int, rivalTeam: string, score: string, lineupPlayerIds: int[], matchDay: MatchDayEvent, weekMatchDays: MatchDayEvent[]}|null
      */
-    public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds): ?array
+    public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
-        $teams = self::teamTable($event, $squadIds);
-        if ($teams === []) {
+        $days = self::weekEvents($event, $exceptId)->filter(fn ($e) => self::hasFinishedGames($e))->values();
+        $best = null;
+        foreach ($days as $day) {
+            $teams = self::teamTable($day, $squadIds);
+            $top = reset($teams);
+            if ($top && ($best === null || [$top['won'], $top['gd']] >= [$best['won'], $best['gd']])) {
+                $best = $top + ['name' => (string) array_key_first($teams), 'event' => $day];
+            }
+        }
+        if ($best === null) {
             return null;
         }
-        $best = reset($teams);
 
         return [
+            'teamName' => $best['name'],
+            'matchDay' => $best['event'],
+            'weekMatchDays' => $days->all(),
             'sessionsWon' => $best['won'],
             'sessionsPlayed' => $best['played'],
             'rivalTeam' => $best['rival'],
@@ -350,23 +428,32 @@ class MatchDayFinalizer
     }
 
     /**
-     * The flop team of the week — the side at the bottom of the same
-     * wins/goal-difference table the team of the week tops. Null unless at
-     * least two sides played.
+     * The flop team of the week — of each match day's bottom side (on the
+     * same wins/goal-difference table the team of the week tops), the worst
+     * across the week. Null unless two sides played on one of its match days.
      *
      * @param  array<int, int>  $squadIds
      * @return array{name: string, won: int, played: int, gd: int, lineupPlayerIds: int[]}|null
      */
     public static function computeFlopTeam(MatchDayEvent $event, array $squadIds): ?array
     {
-        $teams = self::teamTable($event, $squadIds);
-        if (count($teams) < 2) {
+        $worst = null;
+        foreach (self::weekEvents($event) as $day) {
+            $teams = self::teamTable($day, $squadIds);
+            if (count($teams) < 2) {
+                continue;
+            }
+            $bottom = end($teams);
+            if ($worst === null || [$bottom['won'], $bottom['gd']] <= [$worst['won'], $worst['gd']]) {
+                $worst = $bottom + ['name' => (string) array_key_last($teams)];
+            }
+        }
+        if ($worst === null) {
             return null;
         }
-        $worst = end($teams);
 
         return [
-            'name' => (string) array_key_last($teams),
+            'name' => $worst['name'],
             'won' => $worst['won'],
             'played' => $worst['played'],
             'gd' => $worst['gd'],
@@ -533,12 +620,25 @@ class MatchDayFinalizer
         };
 
         $events = MatchDayEvent::query()->where('status', 'ended')->get();
+        $valeWeek = null;
         foreach ($events as $event) {
             if ($vale->team_week_title === $event->title && $vale->team_week_date_range === $event->date) {
+                $valeWeek = self::weekOf($event)->toDateString();
+
                 continue; // counted from The Vale below
             }
             $stats = array_intersect_key(PlayerStats::computeAll([$event], $noCleanSheetIds), array_flip($squadIds));
             $award(self::computePlayerOfTheDay($stats)['playerId'] ?? null, 'playerOfTheWeek');
+        }
+
+        // The team of the week is picked once a week, across both its match days.
+        $weeksCounted = $valeWeek === null ? [] : [$valeWeek => true];
+        foreach ($events as $event) {
+            $week = self::weekOf($event)->toDateString();
+            if (isset($weeksCounted[$week]) || ! self::hasFinishedGames($event)) {
+                continue;
+            }
+            $weeksCounted[$week] = true;
             foreach (self::computeTeamOfWeek($event, $squadIds)['lineupPlayerIds'] ?? [] as $playerId) {
                 $award($playerId, 'teamOfTheWeek');
             }
@@ -561,9 +661,9 @@ class MatchDayFinalizer
     /**
      * @param  array<int, int>  $squadIds
      */
-    private static function updateWeeklyAwards(MatchDayEvent $event, array $squadIds): void
+    private static function updateWeeklyAwards(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): void
     {
-        $changes = self::weeklyAwardFields($event, $squadIds);
+        $changes = self::weeklyAwardFields($event, $squadIds, $exceptId);
         if ($changes !== null) {
             ValeContent::current()->update($changes);
         }
@@ -576,9 +676,11 @@ class MatchDayFinalizer
      * award nobody earned (no goal involvement, no rating rise) is left out.
      *
      * @param  array<int, int>  $squadIds
+     * @param  ?string  $exceptId  a match day of the same week to leave out of
+     *                             the team of the week (one being deleted)
      * @return array<string, mixed>|null
      */
-    public static function weeklyAwardFields(MatchDayEvent $event, array $squadIds): ?array
+    public static function weeklyAwardFields(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
         if (! self::hasFinishedGames($event)) {
             return null;
@@ -590,7 +692,7 @@ class MatchDayFinalizer
             'team_week_date_range' => $event->date,
         ];
 
-        $team = self::computeTeamOfWeek($event, $squadIds);
+        $team = self::computeTeamOfWeek($event, $squadIds, $exceptId);
         if ($team) {
             $changes += [
                 'team_sessions_won' => $team['sessionsWon'],

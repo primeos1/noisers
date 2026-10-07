@@ -8,6 +8,7 @@ interface ApiMatchDayEvent {
   venue: string | null;
   date: string;
   createdAt: string | null;
+  weekOf?: string;
   presentPlayers: number[];
   guests: MatchDayEvent["guests"];
   groups: MatchDayEvent["groups"];
@@ -23,6 +24,7 @@ function fromApi(e: ApiMatchDayEvent): MatchDayEvent {
     venue: e.venue ?? "",
     date: e.date,
     createdAt: e.createdAt ?? "",
+    weekOf: e.weekOf,
     presentPlayers: e.presentPlayers ?? [],
     guests: e.guests ?? [],
     groups: e.groups ?? [],

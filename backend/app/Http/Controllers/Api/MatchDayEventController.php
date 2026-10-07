@@ -121,11 +121,11 @@ class MatchDayEventController extends Controller
     }
 
     /**
-     * Public — the winning side (and its lineup/rival/score), plus the flop
-     * team at the bottom of the table, for any single match day, computed
-     * on demand. Powers The Vale's "pick a match day"
-     * selector, which shows the latest by default but lets a visitor look
-     * at an older one without that overwriting the persisted current award.
+     * Public — the best side of this match day's week (Wednesday and Sunday
+     * compared, with its lineup/rival/score), plus the week's flop team,
+     * computed on demand. Powers The Vale's "pick a week" selector, which
+     * shows the latest by default but lets a visitor look at an older one
+     * without that overwriting the persisted current award.
      */
     public function teamOfWeek(MatchDayEvent $matchDayEvent)
     {
@@ -134,8 +134,12 @@ class MatchDayEventController extends Controller
 
         return response()->json([
             'data' => $team ? [
-                'title' => $matchDayEvent->title,
-                'dateRange' => $matchDayEvent->date,
+                // The match day the week's best side played on.
+                'title' => $team['matchDay']->title,
+                'dateRange' => $team['matchDay']->date,
+                'teamName' => $team['teamName'],
+                'weekOf' => MatchDayFinalizer::weekOf($matchDayEvent)->toDateString(),
+                'weekMatchDays' => array_map(fn ($e) => ['id' => $e->id, 'title' => $e->title, 'date' => $e->date], $team['weekMatchDays']),
                 'sessionsWon' => $team['sessionsWon'],
                 'sessionsPlayed' => $team['sessionsPlayed'],
                 'rivalTeam' => $team['rivalTeam'],

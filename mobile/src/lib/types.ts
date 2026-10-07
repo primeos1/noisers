@@ -149,6 +149,8 @@ export interface MatchDayEvent {
   venue: string | null;
   date: string;
   createdAt: string | null;
+  /** Monday of the week it was played ("YYYY-MM-DD"), set by the server. */
+  weekOf?: string;
   presentPlayers: number[];
   guests: Guest[];
   groups: MatchDayTeam[];
@@ -282,8 +284,12 @@ export interface Story {
 
 /** /match-day-events/{id}/team-of-week */
 export interface TeamOfWeek {
+  /** The match day the week's best side played on. */
   title: string;
   dateRange: string;
+  teamName?: string;
+  /** Every match day of the week that was compared (Wednesday and Sunday). */
+  weekMatchDays?: { id: string; title: string; date: string }[];
   sessionsWon: number;
   sessionsPlayed: number;
   rivalTeam: string;
