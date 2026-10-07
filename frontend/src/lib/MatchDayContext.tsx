@@ -14,6 +14,7 @@ interface ApiMatchDayEvent {
   groups: MatchDayEvent["groups"];
   games: MatchDayEvent["games"];
   status: MatchDayEvent["status"];
+  teamMode?: MatchDayEvent["teamMode"];
   version?: number;
 }
 
@@ -30,6 +31,7 @@ function fromApi(e: ApiMatchDayEvent): MatchDayEvent {
     groups: e.groups ?? [],
     games: e.games ?? [],
     status: e.status,
+    teamMode: e.teamMode ?? null,
     version: e.version ?? 0,
   };
 }
@@ -43,6 +45,7 @@ function toApiBody(patch: Partial<MatchDayEvent>) {
   if (patch.guests !== undefined) body.guests = patch.guests;
   if (patch.groups !== undefined) body.groups = patch.groups;
   if (patch.games !== undefined) body.games = patch.games;
+  if (patch.teamMode !== undefined) body.team_mode = patch.teamMode;
   return body;
 }
 

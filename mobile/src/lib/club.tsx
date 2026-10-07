@@ -73,7 +73,7 @@ export interface AbsenceInput {
 
 /** Match day fields the API accepts in a patch (camelCase here, snake_case on the wire). */
 export type EventPatch = Partial<
-  Pick<MatchDayEvent, "title" | "venue" | "date" | "status" | "presentPlayers" | "guests" | "groups" | "games">
+  Pick<MatchDayEvent, "title" | "venue" | "date" | "status" | "presentPlayers" | "guests" | "groups" | "games" | "teamMode">
 >;
 
 /**
@@ -473,6 +473,7 @@ function eventBody(patch: EventPatch) {
   if (patch.guests !== undefined) body.guests = patch.guests;
   if (patch.groups !== undefined) body.groups = patch.groups;
   if (patch.games !== undefined) body.games = patch.games;
+  if (patch.teamMode !== undefined) body.team_mode = patch.teamMode;
   return body;
 }
 

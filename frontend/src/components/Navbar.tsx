@@ -11,6 +11,7 @@ import {
   MegaphoneIcon,
   MoreIcon,
   PlayIcon,
+  PulseIcon,
   ShirtIcon,
   TrophyIcon,
   UserIcon,
@@ -26,10 +27,11 @@ export const publicLinks = [
   { label: "Highlights", to: "/highlights", icon: <PlayIcon /> },
   { label: "Executives", to: "/executives", icon: <UsersIcon /> },
   { label: "Awards", to: "/awards", icon: <MedalIcon /> },
+  { label: "Live Match", to: "/live", icon: <PulseIcon /> },
 ];
 
 // Phones keep four sections in the dock; the rest sit behind "More".
-const moreRoutes = ["/highlights", "/executives", "/awards"];
+const moreRoutes = ["/highlights", "/executives", "/awards", "/live"];
 const tabLinks = publicLinks.filter((l) => !moreRoutes.includes(l.to));
 const moreLinks = publicLinks.filter((l) => moreRoutes.includes(l.to));
 
@@ -37,6 +39,7 @@ const moreNotes: Record<string, string> = {
   "/highlights": "Goals, saves and match day clips",
   "/executives": "The committee that runs the club",
   "/awards": "The race for every honour",
+  "/live": "Today's teams, the draw and live stats",
 };
 
 /**

@@ -179,7 +179,7 @@ export default function MatchDay() {
   function handleRandomize() {
     if (!activeEvent) return;
     const groups = buildTeams(players, activeEvent.presentPlayers, activeEvent.guests, mode, TEAM_SIZE);
-    patch({ groups });
+    patch({ groups, teamMode: mode });
     setPlayA(0);
     setPlayB(groups.length > 1 ? 1 : 0);
   }

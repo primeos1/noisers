@@ -6,6 +6,7 @@ import TheVale from "./pages/TheVale";
 import Highlights from "./pages/Highlights";
 import Executives from "./pages/Executives";
 import Awards from "./pages/Awards";
+import LiveMatch from "./pages/LiveMatch";
 import Performance from "./pages/Performance";
 import Login from "./pages/Login";
 import PlayerLogin from "./pages/PlayerLogin";
@@ -58,6 +59,7 @@ export default function App() {
       <Route path="/highlights" element={<Highlights />} />
       <Route path="/executives" element={<Executives />} />
       <Route path="/awards" element={<Awards />} />
+      <Route path="/live" element={<LiveMatch />} />
       <Route path="/noisers/:storyId?" element={<Noisers />} />
       <Route path="/performance" element={<Performance />} />
       <Route path="/login" element={<Login />} />

@@ -226,7 +226,7 @@ function Setup({
 
   function randomize() {
     const groups = buildTeams(players, event.presentPlayers, event.guests, mode, teamSize);
-    setGroups(groups);
+    patch({ groups, teamMode: mode });
     setSides([0, groups.length > 1 ? 1 : 0]);
   }
 

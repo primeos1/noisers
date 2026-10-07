@@ -22,6 +22,7 @@ class MatchDayEvent extends Model
         'guests',
         'groups',
         'games',
+        'team_mode',
     ];
 
     protected function casts(): array

@@ -85,6 +85,8 @@ export interface MatchDayEvent {
   groups: MatchDayTeam[];
   games: MatchDayGame[];
   status: MatchDayStatus;
+  /** How the teams were last drawn; missing until they are. */
+  teamMode?: TeamMode | null;
   /** The server's save counter — see MatchDayContext's save queue. */
   version?: number;
 }

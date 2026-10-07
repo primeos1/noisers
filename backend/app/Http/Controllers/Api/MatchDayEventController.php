@@ -48,6 +48,7 @@ class MatchDayEventController extends Controller
             'guests' => ['array'],
             'groups' => ['array'],
             'games' => ['array'],
+            'team_mode' => ['nullable', 'in:random,rating,position'],
         ]);
 
         $event = DB::transaction(function () use ($validated) {
@@ -82,6 +83,7 @@ class MatchDayEventController extends Controller
             'guests' => ['sometimes', 'array'],
             'groups' => ['sometimes', 'array'],
             'games' => ['sometimes', 'array'],
+            'team_mode' => ['nullable', 'in:random,rating,position'],
         ]);
         $expectedVersion = $validated['version'] ?? null;
         unset($validated['version']);

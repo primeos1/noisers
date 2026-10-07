@@ -25,6 +25,8 @@ class MatchDayEventResource extends JsonResource
             'guests' => $this->guests,
             'groups' => $this->groups,
             'games' => $this->games,
+            // How the teams were drawn: random, rating or position.
+            'teamMode' => $this->team_mode,
             'status' => $this->status,
             'version' => $this->version ?? 0,
         ];

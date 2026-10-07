@@ -8,7 +8,7 @@ import { eventContributions, eventGoals, eventParticipants } from "../../lib/por
 import { participantName, scoreOf, type MatchDayGame, type MatchDayTeam, type ParticipantId } from "../../lib/matchDay";
 import { CardPips, Empty, Figures, Group, LiveTag, PageTitle, PositionTag, Row } from "../../components/portal/ui";
 
-function GameCard({ game, number, name }: { game: MatchDayGame; number: number; name: (id: ParticipantId) => string }) {
+export function GameCard({ game, number, name }: { game: MatchDayGame; number: number; name: (id: ParticipantId) => string }) {
   const [open, setOpen] = useState(false);
   const [a, b] = [scoreOf(game, 0), scoreOf(game, 1)];
   const timeline = [

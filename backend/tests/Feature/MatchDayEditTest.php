@@ -60,6 +60,24 @@ class MatchDayEditTest extends TestCase
         $this->putJson('/api/match-day-events/md', ['status' => 'ended'])->assertOk();
     }
 
+    public function test_the_team_draw_method_is_saved_and_shown_publicly(): void
+    {
+        $this->postJson('/api/match-day-events', [
+            'id' => 'md',
+            'date' => 'Sun 28 Sept',
+            'status' => 'live',
+            'present_players' => [],
+            'guests' => [],
+            'groups' => [],
+            'games' => [],
+        ])->assertCreated()->assertJsonPath('data.teamMode', null);
+
+        $this->putJson('/api/match-day-events/md', ['team_mode' => 'position'])->assertOk();
+        $this->putJson('/api/match-day-events/md', ['team_mode' => 'coin-toss'])->assertUnprocessable();
+
+        $this->getJson('/api/match-day-events')->assertJsonPath('data.0.teamMode', 'position');
+    }
+
     public function test_deleting_a_game_removes_its_cards_and_rolls_its_rating_moves_back(): void
     {
         $goal = ['id' => 'goal1', 'teamIndex' => 0, 'playerId' => $this->scorer->id];
