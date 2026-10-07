@@ -4560,3 +4560,68 @@
     animation-delay: calc(var(--i, 0) * 0.2s);
   }
 }
+
+/* ---- The Vale: a finished week ----------------------------------------
+   The same panel once both match days are in: a gold "complete" stamp and
+   the real six on the pitch, the player of the week crowned. */
+@layer components {
+  .vw-done .vw-stamp {
+    border-color: var(--color-win);
+    color: var(--color-win);
+    background: rgba(47, 158, 138, 0.14);
+    animation: vw-stamp 0.55s 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+  .vw-pick {
+    position: relative;
+    max-width: 7.5rem;
+    text-align: center;
+  }
+  .vw-pick .vw-shirt {
+    height: clamp(3.6rem, 18vw, 5rem);
+    width: clamp(3.6rem, 18vw, 5rem);
+    border: 3px solid var(--color-justice);
+    transition: transform 0.2s ease;
+  }
+  .vw-pick:hover .vw-shirt,
+  .vw-pick:focus-visible .vw-shirt {
+    transform: scale(1.08);
+  }
+  .vw-pick .vw-shirt img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+  .vw-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(0.95rem, 4.2vw, 1.15rem);
+    line-height: 1;
+    color: var(--color-paper);
+  }
+  .vw-crowned .vw-shirt {
+    border-color: #f2d48a;
+    box-shadow: 0 0 0 3px rgba(216, 181, 106, 0.35), 0 0 28px rgba(216, 181, 106, 0.55);
+  }
+  .vw-crown {
+    position: absolute;
+    top: -1.15rem;
+    left: 50%;
+    z-index: 1;
+    height: 1.7rem;
+    width: 1.7rem;
+    color: #f2d48a;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    transform: translateX(-50%) rotate(-12deg);
+    animation: vw-crown 2.2s ease-in-out infinite;
+  }
+  @keyframes vw-crown {
+    50% {
+      transform: translateX(-50%) translateY(-3px) rotate(8deg);
+    }
+  }
+}

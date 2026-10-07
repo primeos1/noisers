@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useSquad } from "../lib/SquadContext";
@@ -161,6 +162,119 @@ function WeekInProgress({ week, events }: { week: number; events: MatchDayEvent[
         <p className="mt-4 text-sm text-paper-dim">
           The team and player of the week are picked the moment both of the week's match days have ended.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A finished week's team of the week, in the same style as WeekInProgress:
+ * the headline, a "complete" stamp, both match days ticked off and the six
+ * on the pitch in formation, the player of the week crowned.
+ */
+function WeekComplete({
+  week,
+  events,
+  lineup,
+  playerOfWeek,
+  players,
+}: {
+  week: number;
+  events: MatchDayEvent[];
+  lineup: { pick: TeamOfWeekPick; player: Player }[];
+  playerOfWeek: Player | undefined;
+  players: Player[];
+}) {
+  const days = events
+    .filter((e) => e.week === week && e.status === "ended")
+    .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
+  const rows = SHAPE.map(({ row }) => lineup.filter(({ pick }) => pick.position === row[0]));
+  const star = playerOfWeek && players.find((p) => p.id === playerOfWeek.id);
+
+  // A different line each week, the same one on every visit.
+  const lines = [
+    "Both match days done, the ratings are in — these six earned their place.",
+    "Full time on the week. Six names, no arguments.",
+    "The bibs are washed and the verdict is final. Here's the week's best six.",
+    "Two match days, one team. Frame it, screenshot it, send it to the group chat.",
+  ];
+  const tick = [
+    "Complete",
+    `Week ${week}`,
+    "Team of the week",
+    ...(star ? [`Player of the week: ${star.name}`] : []),
+    ...lineup.map(({ pick, player }) => `${pick.position} ${player.name}`),
+  ];
+
+  return (
+    <div className="vw-wip vw-done mt-8" aria-label={`Week ${week}: team of the week`}>
+      <div className="vw-ticker" aria-hidden="true">
+        {[0, 1].map((k) => (
+          <div key={k} className="vw-ticker-track">
+            {[...tick, ...tick].map((t, i) => (
+              <span key={i}>{t} ★</span>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="px-4 py-8 sm:px-8 md:py-12">
+        <h3 className="vw-title">
+          <span style={{ "--i": 0 } as CSSProperties}>Team of</span>
+          <span style={{ "--i": 1 } as CSSProperties}>the week</span>
+        </h3>
+        <p className="vw-stamp mt-5">Week {week} · Complete</p>
+
+        <p className="mt-6 max-w-xl text-lg font-semibold leading-snug text-paper md:text-xl">{lines[week % lines.length]}</p>
+
+        {days.length > 0 && (
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {days.slice(0, 2).map((d) => (
+              <div key={d.id} className="vw-day" data-state="done">
+                <p className="text-xs font-bold uppercase tracking-wider text-paper-dim">✓ Done</p>
+                <p className="mt-1 font-display text-2xl font-extrabold leading-none text-paper md:text-3xl">{d.title}</p>
+                <p className="mt-1 text-xs text-mist">{d.date}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {lineup.length > 0 && (
+          <div className="vw-pitch mt-6">
+            {rows.map((row, r) => (
+              <div key={r} className="vw-row">
+                {row.map(({ pick, player }, i) => {
+                  const crowned = star?.id === player.id;
+                  return (
+                    <Link
+                      key={player.id}
+                      to={`/squad/${player.id}`}
+                      className={`vw-slot vw-pick ${crowned ? "vw-crowned" : ""}`}
+                      style={{ "--i": r * 2 + i } as CSSProperties}
+                      aria-label={`${pick.position}: ${player.name}${crowned ? ", player of the week" : ""}, ${pickLine(pick)}`}
+                    >
+                      {crowned && <CrownIcon className="vw-crown" />}
+                      <span className="vw-shirt">
+                        <img src={player.photo} alt="" loading="lazy" />
+                      </span>
+                      <span className="vw-name">{player.name}</span>
+                      <span className="text-[0.6rem] font-bold tracking-widest text-mist">
+                        {pick.position} · {pickLine(pick)}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {star && (
+          <p className="mt-4 text-sm text-paper-dim">
+            <CrownIcon className="mr-1 inline h-4 w-4 -translate-y-px text-justice" />
+            Player of the week: <span className="font-semibold text-paper">{star.name}</span>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -350,33 +464,18 @@ export default function TheVale() {
             <>
               {team.complete === false && selectedEvent?.week ? (
                 <WeekInProgress week={selectedEvent.week} events={events} />
+              ) : selectedEvent?.week ? (
+                <WeekComplete
+                  week={selectedEvent.week}
+                  events={events}
+                  lineup={lineup}
+                  playerOfWeek={players.find((p) => p.id === team.playerOfWeek?.playerId)}
+                  players={players}
+                />
               ) : (
                 <p className="mt-4 max-w-xl text-paper-dim">
                   {team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards, rated across both match days.
                 </p>
-              )}
-
-              {lineup.length > 0 && (
-                <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-3 lg:grid-cols-6">
-                  {lineup.map(({ pick, player }) => (
-                    <div key={player.id} className="bg-ink/70 p-4 backdrop-blur">
-                      <p className="mb-2 text-xs text-mist">{pick.position}</p>
-                      <div className="relative aspect-square overflow-hidden border border-ink-line">
-                        <img
-                          src={player.photo}
-                          alt={player.name}
-                          className="duotone h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                      <p className="mt-3 font-display text-lg leading-none text-paper">
-                        {player.number}
-                      </p>
-                      <p className="mt-1 text-xs text-paper-dim">{player.name}</p>
-                      <p className="mt-1 text-xs text-mist">{pickLine(pick)}</p>
-                    </div>
-                  ))}
-                </div>
               )}
 
               {(team.matchDays?.length ?? 0) > 0 && (
