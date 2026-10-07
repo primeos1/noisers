@@ -264,4 +264,35 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $this->getJson("/api/players/{$striker}")->assertJsonPath('data.playerOfTheWeekWins', 2);
         $this->getJson("/api/players/{$keeper}")->assertJsonPath('data.playerOfTheWeekWins', 1);
     }
+
+    public function test_each_match_day_names_its_bad_boy(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $hothead = Player::factory()->create(['position' => 'DEF']);
+        $sentOff = Player::factory()->create(['position' => 'FWD']);
+        $card = fn ($id, $playerId, $type) => ['id' => $id, 'teamIndex' => 0, 'playerId' => $playerId, 'type' => $type, 'reason' => 'Foul', 'minute' => 3];
+
+        $this->postJson('/api/match-day-events', [
+            'id' => 'md1', 'venue' => 'Pitch 2', 'date' => 'Sun 4 Oct', 'status' => 'live',
+            'present_players' => [], 'guests' => [['id' => 'guest-1', 'name' => 'Kola']], 'groups' => [], 'games' => [],
+        ])->assertCreated();
+        $this->putJson('/api/match-day-events/md1', [
+            'status' => 'ended',
+            'games' => [[
+                'id' => 'g1', 'status' => 'finished',
+                'teams' => [['name' => 'Reds', 'players' => [$hothead->id, 'guest-1']], ['name' => 'Blues', 'players' => [$sentOff->id]]],
+                'goals' => [],
+                // Two yellows beat one red; the guest's three reds don't count.
+                'cards' => [
+                    $card('c1', $hothead->id, 'yellow'), $card('c2', $hothead->id, 'yellow'), $card('c3', $sentOff->id, 'red'),
+                    $card('c4', 'guest-1', 'red'), $card('c5', 'guest-1', 'red'), $card('c6', 'guest-1', 'red'),
+                ],
+            ]],
+        ])->assertOk();
+        $this->playMatchDay('md2', $hothead, $sentOff);
+
+        $this->getJson('/api/match-day-events/md1/team-of-week')
+            ->assertJsonPath('data.matchDays.0.badBoy', ['playerId' => $hothead->id, 'yellowCards' => 2, 'redCards' => 0])
+            ->assertJsonPath('data.matchDays.1.badBoy', null);
+    }
 }

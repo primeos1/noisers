@@ -183,7 +183,8 @@ class MatchDayFinalizer
             ->get()
             ->filter(fn ($e) => self::hasFinishedGames($e) && ($numbers[$e->id] ?? null) === $week)
             ->push($event)
-            ->sortBy(fn ($e) => $e->created_at?->getTimestamp() ?? PHP_INT_MAX)
+            // The same order the match days are numbered in (see renumber()).
+            ->sort(fn ($a, $b) => [$a->created_at?->getTimestamp() ?? PHP_INT_MAX, $a->id] <=> [$b->created_at?->getTimestamp() ?? PHP_INT_MAX, $b->id])
             ->values();
     }
 
@@ -449,11 +450,12 @@ class MatchDayFinalizer
      * The team of the match day and the player of the match day: the day's
      * six best players by position (see TEAM_SLOTS), and its single
      * highest-rated player (most goals and assists in weeks 1 and 2 — see
-     * GOALS_RULE_LAST_WEEK), from that day's finished games alone. Null when
-     * no game finished. Pure and read-only.
+     * GOALS_RULE_LAST_WEEK), from that day's finished games alone — plus the
+     * bad boy of the day, whoever was booked most (ties going to more reds).
+     * Null when no game finished. Pure and read-only.
      *
      * @param  array<int, int>  $squadIds
-     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfMatchDay: array{playerId: int, position: string, points: float, stats: array<string, int>}|null}|null
+     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfMatchDay: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, badBoy: array{playerId: int, yellowCards: int, redCards: int}|null}|null
      */
     public static function computeTeamOfMatchDay(MatchDayEvent $event, array $squadIds): ?array
     {
@@ -462,11 +464,19 @@ class MatchDayFinalizer
         }
         $ranking = self::rankPlayers(collect([$event]), $squadIds);
         $lineup = self::pickTeam($ranking);
+        // Guests carry no awards.
+        $squadStats = array_intersect_key($ranking['stats'], $ranking['players']->all());
+        $badBoy = PlayerStats::roughest($squadStats);
 
         return [
             'lineup' => $lineup,
             'lineupPlayerIds' => array_column($lineup, 'playerId'),
             'playerOfMatchDay' => self::topPlayer($ranking, self::picksPlayerOnGoals($event)),
+            'badBoy' => $badBoy === null ? null : [
+                'playerId' => $badBoy,
+                'yellowCards' => $squadStats[$badBoy]['yellowCards'],
+                'redCards' => $squadStats[$badBoy]['redCards'],
+            ],
         ];
     }
 

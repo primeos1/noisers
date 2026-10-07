@@ -47,6 +47,8 @@ interface MatchDayAwards {
   /** The day's best keeper, two defenders, midfielder and two forwards, in that order. */
   lineup: TeamOfWeekPick[];
   playerOfMatchDay: TeamOfWeekPick | null;
+  /** Most cards that day, ties going to more reds — null when nobody was booked. */
+  badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
 }
 
 interface TeamOfWeekData {
@@ -167,6 +169,7 @@ function WeekInProgress({ week, events }: { week: number; events: MatchDayEvent[
 /** A match day's team and player of the match day, under the week's six. */
 function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[] }) {
   const star = day.playerOfMatchDay ? players.find((p) => p.id === day.playerOfMatchDay!.playerId) : undefined;
+  const bad = day.badBoy ? players.find((p) => p.id === day.badBoy!.playerId) : undefined;
   const picks = day.lineup
     .map((pick) => ({ pick, player: players.find((p) => p.id === pick.playerId) }))
     .filter((x): x is typeof x & { player: Player } => Boolean(x.player));
@@ -185,6 +188,26 @@ function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[]
             <p className="text-xs text-mist">{pickLine(day.playerOfMatchDay!)}</p>
           </div>
         </div>
+      )}
+      {bad && day.badBoy ? (
+        <div className="mt-4 flex items-center gap-4">
+          <img src={bad.photo} alt="" className="duotone h-14 w-14 shrink-0 border border-loss object-cover object-top grayscale" loading="lazy" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-loss">Bad boy of the day</p>
+            <p className="truncate font-display text-2xl leading-tight text-paper">{bad.name}</p>
+            <p className="text-xs text-mist">{formatCards(day.badBoy.yellowCards, day.badBoy.redCards)}</p>
+          </div>
+          <span className="flex shrink-0 gap-1" aria-hidden="true">
+            {Array.from({ length: day.badBoy.yellowCards }, (_, i) => (
+              <span key={`y${i}`} className="h-5 w-3.5 bg-draw" />
+            ))}
+            {Array.from({ length: day.badBoy.redCards }, (_, i) => (
+              <span key={`r${i}`} className="h-5 w-3.5 bg-loss" />
+            ))}
+          </span>
+        </div>
+      ) : (
+        <p className="mt-4 text-xs text-mist">Bad boy of the day: nobody booked — angels, the lot of them.</p>
       )}
       {picks.length > 0 && (
         <>

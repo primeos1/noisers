@@ -304,6 +304,8 @@ export interface MatchDayAwards {
   /** The day's best keeper, two defenders, midfielder and two forwards, in that order. */
   lineup: TeamOfWeekPick[];
   playerOfMatchDay: TeamOfWeekPick | null;
+  /** Most cards that day, ties going to more reds — null when nobody was booked. */
+  badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
 }
 
 export interface TeamOfWeek {

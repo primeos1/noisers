@@ -7,7 +7,7 @@ import { useClub } from "../lib/club";
 import { EMPTY_VALE, potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
 import { sortEvents } from "../lib/derive";
 import type { MatchDayAwards, Player, TeamOfWeekPick } from "../lib/types";
-import { Avatar, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
+import { Avatar, CardPips, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
 import { CoverFlow, Glass, Reveal, Skeleton, Tilt } from "../components/depth";
 import { CardFace, HoloCard } from "../components/PlayerCard";
 import { colors, fonts, foil, radius, shadow, space } from "../theme";
@@ -56,6 +56,7 @@ function pickLine(p: TeamOfWeekPick) {
 /** A match day's player and team of the match day, under the week's six. */
 function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) => Player | undefined }) {
   const star = day.playerOfMatchDay ? find(day.playerOfMatchDay.playerId) : undefined;
+  const bad = day.badBoy ? find(day.badBoy.playerId) : undefined;
   const picks = day.lineup.map((pick) => ({ pick, player: find(pick.playerId) })).filter((x): x is { pick: TeamOfWeekPick; player: Player } => !!x.player);
   return (
     <Glass style={styles.dayCard}>
@@ -78,6 +79,22 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
           </View>
         </Tilt>
       ) : null}
+      {bad && day.badBoy ? (
+        <Tilt onPress={() => router.push(`/player/${bad.id}`)} accessibilityLabel={`Bad boy of the day: ${bad.name}, ${day.badBoy.yellowCards} yellow, ${day.badBoy.redCards} red`}>
+          <View style={styles.dayStar}>
+            <Avatar player={bad} size={48} ring={colors.loss} />
+            <View style={styles.flex}>
+              <Txt style={[text.small, { color: colors.loss }]}>Bad boy of the day</Txt>
+              <Txt style={styles.dayStarName} numberOfLines={1}>
+                {bad.name}
+              </Txt>
+            </View>
+            <CardPips yellow={day.badBoy.yellowCards} red={day.badBoy.redCards} />
+          </View>
+        </Tilt>
+      ) : (
+        <Txt style={text.small}>Bad boy of the day: nobody booked — angels, the lot of them.</Txt>
+      )}
       {picks.length > 0 ? (
         <>
           <Txt style={[text.small, styles.dayTeamLabel]}>Team of the match day</Txt>

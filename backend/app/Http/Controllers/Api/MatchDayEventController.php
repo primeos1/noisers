@@ -171,6 +171,8 @@ class MatchDayEventController extends Controller
                         'date' => $e->date,
                         'lineup' => array_map($pick, $day['lineup'] ?? []),
                         'playerOfMatchDay' => $pick($day['playerOfMatchDay'] ?? null),
+                        // Most cards that day, ties going to more reds; null when nobody was booked.
+                        'badBoy' => $day['badBoy'] ?? null,
                     ];
                 }, $team['weekMatchDays']),
                 'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
