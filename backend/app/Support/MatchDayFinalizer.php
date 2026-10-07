@@ -854,8 +854,6 @@ class MatchDayFinalizer
             'leader_clean_sheet_player_ids' => $cleanSheetTeam['playerIds'] ?? [],
         ];
 
-        $changes['leader_bad_boys'] = PlayerStats::badBoys($stats);
-
         $changes += self::flopFields($event, $squadIds);
 
         // Player of the week — the highest-rated player across the week.

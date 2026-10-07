@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useValeContent, type BadBoy, type ValeContentData } from "../../lib/ValeContentContext";
+import { useValeContent, type ValeContentData } from "../../lib/ValeContentContext";
 import { useSquad } from "../../lib/SquadContext";
 import ImageUploadField from "../../components/admin/ImageUploadField";
 
@@ -268,41 +268,6 @@ function ValeForm() {
           value={leaders.cleanSheets}
           onChange={(ids) => setLeaders({ ...leaders, cleanSheets: ids })}
         />
-        <fieldset className="mt-6">
-          <legend className={labelClass}>Bad boys of the week</legend>
-          {leaders.badBoys.length === 0 && <p className="mt-1 text-sm text-mist">No bookings — clean week.</p>}
-          {leaders.badBoys.map((b, i) => {
-            const setBadBoy = (patch: Partial<BadBoy>) =>
-              setLeaders({ ...leaders, badBoys: leaders.badBoys.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
-            return (
-              <div key={i} className="mt-3 grid items-end gap-4 sm:grid-cols-[1fr_6rem_6rem_auto]">
-                <PlayerSelect label="Player" value={b.playerId} onChange={(playerId) => setBadBoy({ playerId })} />
-                <label className={labelClass}>
-                  Yellows
-                  <input type="number" min={0} className={inputClass} value={b.yellowCards} onChange={(e) => setBadBoy({ yellowCards: Number(e.target.value) })} />
-                </label>
-                <label className={labelClass}>
-                  Reds
-                  <input type="number" min={0} className={inputClass} value={b.redCards} onChange={(e) => setBadBoy({ redCards: Number(e.target.value) })} />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setLeaders({ ...leaders, badBoys: leaders.badBoys.filter((_, j) => j !== i) })}
-                  className="border border-ink-line px-3 py-2 text-sm text-paper-dim hover:border-loss hover:text-loss"
-                >
-                  Remove
-                </button>
-              </div>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setLeaders({ ...leaders, badBoys: [...leaders.badBoys, { playerId: 0, yellowCards: 1, redCards: 0 }] })}
-            className="mt-3 border border-ink-line px-3 py-2 text-sm text-paper hover:border-paper"
-          >
-            Add a bad boy
-          </button>
-        </fieldset>
       </div>
 
       {error && <p className="text-sm text-loss">{error}</p>}

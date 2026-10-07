@@ -142,25 +142,4 @@ class PlayerStats
 
         return $top;
     }
-
-    /**
-     * The "bad boys" — everyone who was booked, most cards first, ties going
-     * to the one with more reds (so the first is roughest()).
-     *
-     * @param  array<int, array{yellowCards: int, redCards: int}>  $stats  as computeAll()
-     * @return array<int, array{playerId: int, yellowCards: int, redCards: int}>
-     */
-    public static function badBoys(array $stats): array
-    {
-        $booked = [];
-        foreach ($stats as $playerId => $s) {
-            if ($s['yellowCards'] + $s['redCards'] > 0) {
-                $booked[] = ['playerId' => $playerId, 'yellowCards' => $s['yellowCards'], 'redCards' => $s['redCards']];
-            }
-        }
-        usort($booked, fn ($a, $b) => [$b['yellowCards'] + $b['redCards'], $b['redCards']]
-            <=> [$a['yellowCards'] + $a['redCards'], $a['redCards']]);
-
-        return $booked;
-    }
 }

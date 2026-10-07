@@ -58,7 +58,6 @@ class ValeContentResource extends JsonResource
                     'name' => $this->leader_clean_sheet_team,
                     'value' => $this->leader_clean_sheet_value,
                 ],
-                'badBoys' => $this->leader_bad_boys ?? [],
             ],
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ];

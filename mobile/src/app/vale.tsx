@@ -7,7 +7,7 @@ import { useClub } from "../lib/club";
 import { EMPTY_VALE, potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
 import { sortEvents } from "../lib/derive";
 import type { MatchDayAwards, Player, TeamOfWeekPick } from "../lib/types";
-import { Avatar, CardPips, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
+import { Avatar, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
 import { CoverFlow, Glass, Reveal, Skeleton, Tilt } from "../components/depth";
 import { CardFace, HoloCard } from "../components/PlayerCard";
 import { colors, fonts, foil, radius, shadow, space } from "../theme";
@@ -17,7 +17,7 @@ import { colors, fonts, foil, radius, shadow, space } from "../theme";
 // and each match day's team and player for any finished week, then the
 // committee's (or
 // the auto-awarded) player of the week, most improved, flop of the week and
-// stat leaders, with the week's bad boys and the bad boy of the league.
+// stat leaders, with the bad boy of the league.
 
 function Leader({ icon, label, player, value, tone, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; player?: Player; value: string; tone: string; onPress?: () => void }) {
   return (
@@ -137,7 +137,6 @@ export default function ValeScreen() {
   const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
   const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = awards;
   const flop = find(flopOfTheWeek.playerId);
-  const badBoys = w.badBoys.map((b) => ({ ...b, player: find(b.playerId) })).filter((b): b is typeof b & { player: Player } => !!b.player);
   const leagueBadBoy = badBoyOfTheLeague(players);
   const potwPlayer = find(potw.playerId);
   const mip = find(mostImproved.playerId);
@@ -329,27 +328,6 @@ export default function ValeScreen() {
             <Txt style={styles.cleanValue}>{w.cleanSheetTeam.value}</Txt>
           </Glass>
         ) : null}
-        <Glass style={styles.badBoys}>
-          <View style={styles.flopHead}>
-            <Ionicons name="alert-circle" size={16} color={colors.loss} />
-            <Txt style={text.eyebrow}>Bad boys of the week</Txt>
-          </View>
-          {badBoys.length ? (
-            badBoys.map(({ player, yellowCards, redCards }) => (
-              <Tilt key={player.id} onPress={open(player)} accessibilityLabel={`${player.name}: ${yellowCards} yellow, ${redCards} red`}>
-                <View style={styles.badBoyRow}>
-                  <Avatar player={player} size={36} />
-                  <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
-                    {player.name}
-                  </Txt>
-                  <CardPips yellow={yellowCards} red={redCards} />
-                </View>
-              </Tilt>
-            ))
-          ) : (
-            <Txt style={text.small}>No bookings — clean week.</Txt>
-          )}
-        </Glass>
       </Reveal>
     </Screen>
   );
@@ -403,8 +381,6 @@ const styles = StyleSheet.create({
   flopHead: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
   flopTeamName: { fontFamily: fonts.displayHeavy, fontSize: 26, lineHeight: 28, color: colors.paper },
   flopLineup: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
-  badBoys: { padding: space.lg, gap: space.sm, marginBottom: space.xl },
-  badBoyRow: { flexDirection: "row", alignItems: "center", gap: space.md },
 });
 
 /** Most cards this season, ties going to whoever has more reds. */

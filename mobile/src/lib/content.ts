@@ -193,15 +193,7 @@ export interface ValeContent {
     topSaves: { playerId: number; value: number };
     cleanSheets: number[];
     cleanSheetTeam: { name: string; value: number };
-    badBoys: BadBoy[];
   };
-}
-
-/** A player booked this match day — The Vale's "bad boys of the week". */
-export interface BadBoy {
-  playerId: number;
-  yellowCards: number;
-  redCards: number;
 }
 
 interface ApiVale {
@@ -224,7 +216,6 @@ interface ApiVale {
     topSaves?: { playerId: number | null; value: number | null };
     cleanSheets: number[] | null;
     cleanSheetTeam?: { name: string | null; value: number | null };
-    badBoys?: BadBoy[];
   };
 }
 
@@ -239,7 +230,6 @@ export const EMPTY_VALE: ValeContent = {
     topSaves: { playerId: 0, value: 0 },
     cleanSheets: [],
     cleanSheetTeam: { name: "", value: 0 },
-    badBoys: [],
   },
 };
 
@@ -276,7 +266,6 @@ function valeFromApi(d: ApiVale): ValeContent {
       topSaves: { playerId: w.topSaves?.playerId ?? 0, value: w.topSaves?.value ?? 0 },
       cleanSheets: w.cleanSheets ?? [],
       cleanSheetTeam: { name: w.cleanSheetTeam?.name ?? "", value: w.cleanSheetTeam?.value ?? 0 },
-      badBoys: w.badBoys ?? [],
     },
   };
 }
@@ -313,8 +302,6 @@ function valeBody(v: ValeContent) {
     leader_clean_sheet_player_ids: w.cleanSheets,
     leader_clean_sheet_team: w.cleanSheetTeam.name || null,
     leader_clean_sheet_value: w.cleanSheetTeam.value,
-    // Rows left on "None" are dropped rather than sent without a player.
-    leader_bad_boys: w.badBoys.filter((b) => b.playerId > 0),
   };
 }
 

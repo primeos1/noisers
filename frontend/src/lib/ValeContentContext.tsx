@@ -26,15 +26,7 @@ export interface ValeContentData {
     topSaves: { playerId: number; value: number };
     cleanSheets: number[];
     cleanSheetTeam: { name: string; value: number };
-    badBoys: BadBoy[];
   };
-}
-
-/** A player booked this match day — The Vale's "bad boys of the week". */
-export interface BadBoy {
-  playerId: number;
-  yellowCards: number;
-  redCards: number;
 }
 
 export interface ApiValeContent {
@@ -62,7 +54,6 @@ export interface ApiValeContent {
     topSaves?: { playerId: number | null; value: number | null };
     cleanSheets: number[];
     cleanSheetTeam?: { name: string | null; value: number | null };
-    badBoys?: BadBoy[];
   };
 }
 
@@ -86,7 +77,6 @@ export const DEFAULT_VALE_CONTENT: ValeContentData = {
     topSaves: { playerId: 0, value: 0 },
     cleanSheets: [],
     cleanSheetTeam: { name: "", value: 0 },
-    badBoys: [],
   },
 };
 
@@ -136,7 +126,6 @@ export function fromApi(data: ApiValeContent): ValeContentData {
         name: data.weeklyLeaders.cleanSheetTeam?.name ?? "",
         value: data.weeklyLeaders.cleanSheetTeam?.value ?? 0,
       },
-      badBoys: data.weeklyLeaders.badBoys ?? [],
     },
   };
 }
@@ -190,8 +179,6 @@ function toApiBody(patch: Partial<ValeContentData>) {
     if (w.cleanSheets !== undefined) body.leader_clean_sheet_player_ids = w.cleanSheets;
     if (w.cleanSheetTeam?.name !== undefined) body.leader_clean_sheet_team = w.cleanSheetTeam.name || null;
     if (w.cleanSheetTeam?.value !== undefined) body.leader_clean_sheet_value = w.cleanSheetTeam.value;
-    // Rows left on "— None —" are dropped rather than sent as null players.
-    if (w.badBoys !== undefined) body.leader_bad_boys = w.badBoys.filter((b) => b.playerId > 0);
   }
   return body;
 }

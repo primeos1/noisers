@@ -2,7 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
-import { useValeContent, type BadBoy, type ValeContent } from "../../lib/content";
+import { useValeContent, type ValeContent } from "../../lib/content";
 import { Col, FieldRow, ImageField, NumberField, SaveBar, Section, ShirtMultiPicker, ShirtPicker, TextField, Intro } from "../../components/form";
 import { Button, ErrorBanner, Loading, Screen } from "../../components/ui";
 
@@ -19,13 +19,6 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
   const improved = draft.mostImproved;
   const flop = draft.flopOfTheWeek;
   const leaders = draft.weeklyLeaders;
-
-  function editBadBoy(index: number, patch: Partial<BadBoy>) {
-    editLeader(
-      "badBoys",
-      leaders.badBoys.map((b, i) => (i === index ? { ...b, ...patch } : b)),
-    );
-  }
 
   function edit<K extends keyof ValeContent>(key: K, patch: Partial<ValeContent[K]>) {
     setDraft((d) => ({ ...d, [key]: { ...d[key], ...patch } }));
@@ -149,33 +142,6 @@ function ValeForm({ initial, save }: { initial: ValeContent; save: (next: ValeCo
           <ShirtMultiPicker label="Clean sheet team players" players={players} value={leaders.cleanSheets} onChange={(cleanSheets) => editLeader("cleanSheets", cleanSheets)} />
         </Section>
 
-        <Section title="Bad boys of the week" description="Everyone booked this match day.">
-          {leaders.badBoys.map((b, i) => (
-            <View key={i} style={styles.badBoy}>
-              <ShirtPicker label={`Bad boy ${i + 1}`} players={players} value={b.playerId} onChange={(playerId) => editBadBoy(i, { playerId })} />
-              <FieldRow>
-                <Col>
-                  <NumberField label="Yellow cards" value={b.yellowCards} onChange={(yellowCards) => editBadBoy(i, { yellowCards })} />
-                </Col>
-                <Col>
-                  <NumberField label="Red cards" value={b.redCards} onChange={(redCards) => editBadBoy(i, { redCards })} />
-                </Col>
-              </FieldRow>
-              <Button
-                label="Remove"
-                variant="danger"
-                icon="trash-outline"
-                onPress={() =>
-                  editLeader(
-                    "badBoys",
-                    leaders.badBoys.filter((_, j) => j !== i),
-                  )
-                }
-              />
-            </View>
-          ))}
-          <Button label="Add a bad boy" variant="secondary" icon="add" onPress={() => editLeader("badBoys", [...leaders.badBoys, { playerId: 0, yellowCards: 1, redCards: 0 }])} />
-        </Section>
       </Screen>
 
       {dirty || saved || error ? (
@@ -224,5 +190,4 @@ export default function ValeScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  badBoy: { gap: 8, paddingBottom: 12, marginBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.12)" },
 });

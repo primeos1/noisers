@@ -181,9 +181,6 @@ export default function TheVale() {
   // A flop award left empty falls back to the one worked out for that day.
   const flopPick = (flopOfTheWeek.playerId ? flopOfTheWeek : null) ?? team?.flopPlayer ?? null;
   const flop = flopPick ? players.find((p) => p.id === flopPick.playerId) : undefined;
-  const badBoys = weeklyLeaders.badBoys
-    .map((b) => ({ ...b, player: players.find((p) => p.id === b.playerId) }))
-    .filter((b): b is typeof b & { player: NonNullable<typeof b.player> } => Boolean(b.player));
   const leagueBadBoy = roughestPlayer(players);
   const cleanSheetTeam = weeklyLeaders.cleanSheetTeam;
   // Midfielders and forwards don't keep clean sheets, even on the side that did.
@@ -465,40 +462,6 @@ export default function TheVale() {
                 <p className="mt-1 text-sm text-paper-dim">
                   {cleanSheetLeaders.map((p) => p.name).join(", ")}
                 </p>
-              )}
-            </div>
-
-            <div className="bg-ink p-8">
-              <p className="text-xs uppercase tracking-wide text-mist">
-                Bad boys of the week
-              </p>
-              {badBoys.length > 0 ? (
-                <ul className="mt-4 space-y-3">
-                  {badBoys.map(({ player, yellowCards, redCards }) => (
-                    <li key={player.id} className="flex items-center gap-3">
-                      <img
-                        src={player.photo}
-                        alt=""
-                        className="duotone h-10 w-10 shrink-0 border border-ink-line object-cover"
-                        loading="lazy"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-paper">{player.name}</span>
-                        <span className="block text-xs text-paper-dim">{formatCards(yellowCards, redCards)}</span>
-                      </span>
-                      <span className="flex gap-1" aria-hidden="true">
-                        {Array.from({ length: yellowCards }, (_, i) => (
-                          <span key={`y${i}`} className="h-4 w-3 bg-draw" />
-                        ))}
-                        {Array.from({ length: redCards }, (_, i) => (
-                          <span key={`r${i}`} className="h-4 w-3 bg-loss" />
-                        ))}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-4 text-sm text-paper-dim">No bookings — clean week</p>
               )}
             </div>
 

@@ -62,10 +62,6 @@ class ValeContentController extends Controller
             'leader_clean_sheet_player_ids.*' => ['integer'],
             'leader_clean_sheet_team' => ['sometimes', 'nullable', 'string', 'max:255'],
             'leader_clean_sheet_value' => ['sometimes', 'nullable', 'integer', 'min:0'],
-            'leader_bad_boys' => ['sometimes', 'nullable', 'array'],
-            'leader_bad_boys.*.playerId' => ['required', 'integer', 'exists:players,id'],
-            'leader_bad_boys.*.yellowCards' => ['required', 'integer', 'min:0'],
-            'leader_bad_boys.*.redCards' => ['required', 'integer', 'min:0'],
         ]);
 
         $content->update($validated);
