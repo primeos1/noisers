@@ -1,12 +1,15 @@
 // The Awards race — every honour replayed match day by match day, worked out
 // from the ended match days and squad ratings the app already loads. Player
-// of the week follows the server's rule (MatchDayFinalizer::computePlayerOfTheDay):
-// most goal involvements, then goals, then clean sheets. The flop of the week
-// follows MatchDayFinalizer::computeFlopPlayer: most games lost, then worst
-// goal difference, then fewest goal involvements — there's always one.
+// of the week follows the server's rule (MatchDayFinalizer::computeTeamOfWeek):
+// the highest-rated player of the week, with the club's rating weights added
+// up across its match days; ties go to more goal involvements, then saves,
+// then games. The flop of the week follows MatchDayFinalizer::computeFlopPlayer:
+// most games lost, then worst goal difference, then fewest goal involvements —
+// there's always one.
 
-import { keepsCleanSheets, type Player } from "./clubData";
+import { keepsCleanSheets, type Player, type Position } from "./clubData";
 import type { MatchDayEvent } from "./matchDay";
+import { RATING_PENALTIES, type PositionWeights, type RatingWeightKey } from "./SettingsContext";
 
 interface Line {
   games: number;
@@ -72,7 +75,67 @@ function dayLines(event: MatchDayEvent, squad: Map<number, Player>): Map<number,
   return lines;
 }
 
+/**
+ * Raw rating points per squad player for one match day's finished games —
+ * mirrors PlayerRatings::points(): the main position picks the weights,
+ * penalties count against, and midfielders and forwards never score clean
+ * sheets. Everyone who played has an entry, even on zero.
+ */
+function dayPoints(event: MatchDayEvent, squad: Map<number, Player>, weights: Record<Position, PositionWeights>): Map<number, number> {
+  const points = new Map<number, number>();
+  const add = (id: unknown, key: RatingWeightKey | null, times = 1) => {
+    const position = typeof id === "number" ? squad.get(id)?.position : undefined;
+    if (!position || !weights[position]) return;
+    let amount = key === null ? 0 : Math.abs(weights[position][key] ?? 0);
+    if (key === "cleanSheet" && !keepsCleanSheets({ position })) amount = 0;
+    if (key && RATING_PENALTIES.includes(key)) amount = -amount;
+    points.set(id as number, (points.get(id as number) ?? 0) + amount * times);
+  };
+
+  for (const game of event.games) {
+    if (game.status !== "finished") continue;
+    const score = [0, 0];
+    for (const goal of game.goals) score[goal.teamIndex === 1 ? 1 : 0]++;
+    game.teams.slice(0, 2).forEach((team, i) => {
+      const against = score[1 - i];
+      const result = score[i] > against ? "win" : score[i] < against ? "loss" : null;
+      for (const id of team.players) {
+        add(id, result);
+        add(id, against === 0 ? "cleanSheet" : "goalConceded", Math.max(1, against));
+      }
+    });
+    for (const goal of game.goals) {
+      add(goal.playerId, goal.ownGoal ? "ownGoal" : "goal");
+      add(goal.assistPlayerId, "assist");
+    }
+    for (const card of game.cards) add(card.playerId, card.type === "red" ? "redCard" : "yellowCard");
+    for (const save of game.saves ?? []) add(save.playerId, save.penalty ? "penaltySave" : "save");
+  }
+  return points;
+}
+
+/** The highest-rated player — ties go to more goal involvements, then saves, then games, then the lower id. */
+function topRated(points: Map<number, number>, lines: Map<number, Line>): number | null {
+  const key = (id: number) => {
+    const l = lines.get(id) ?? emptyLine();
+    return [Math.round(points.get(id)! * 1e4) / 1e4, l.goals + l.assists, l.saves, l.games];
+  };
+  let best: number | null = null;
+  for (const id of points.keys()) {
+    if (best === null) {
+      best = id;
+      continue;
+    }
+    const a = key(id);
+    const b = key(best);
+    const i = a.findIndex((v, k) => v !== b[k]);
+    if ((i !== -1 && a[i] > b[i]) || (i === -1 && id < best)) best = id;
+  }
+  return best;
+}
+
 export interface WeeklyWinner {
+  /** The week's latest match day so far. */
   day: number;
   event: MatchDayEvent;
   playerId: number;
@@ -106,22 +169,6 @@ function flopOfTheDay(lines: Map<number, Line>): [number, Line] | null {
     if (k[0] > w[0] || (k[0] === w[0] && (k[1] > w[1] || (k[1] === w[1] && k[2] > w[2])))) worst = entry;
   }
   return worst;
-}
-
-function playerOfTheDay(lines: Map<number, Line>): [number, Line] | null {
-  let best: [number, Line] | null = null;
-  const key = (l: Line) => [l.goals + l.assists, l.goals, l.cleanSheets];
-  for (const entry of lines) {
-    const k = key(entry[1]);
-    if (k[0] + k[2] === 0) continue;
-    if (!best) {
-      best = entry;
-      continue;
-    }
-    const b = key(best[1]);
-    if (k[0] > b[0] || (k[0] === b[0] && (k[1] > b[1] || (k[1] === b[1] && k[2] > b[2])))) best = entry;
-  }
-  return best;
 }
 
 /** What a race's value function sees for one player after a given match day. */
@@ -168,7 +215,7 @@ const whole = (v: number) => String(v);
 export const categories: Category[] = [
   { id: "golden-boot", award: "Golden Boot", stat: "Goals", blurb: "The squad's deadliest finisher.", unit: "goals", value: (t) => t.goals, format: whole },
   { id: "top-rated", award: "Top Rated", stat: "Rating", blurb: "Highest player rating, moved by every match day.", unit: "rating", value: (t) => t.rating, format: (v) => v.toFixed(2), spread: true },
-  { id: "potw", award: "Player of the Week", stat: "Weekly wins", blurb: "Most match days as the standout performer.", unit: "wins", value: (t) => t.potw, format: whole },
+  { id: "potw", award: "Player of the Week", stat: "Weekly wins", blurb: "Most weeks as the top-rated player.", unit: "wins", value: (t) => t.potw, format: whole },
   { id: "playmaker", award: "Playmaker", stat: "Assists", blurb: "The one who makes everyone else look good.", unit: "assists", value: (t) => t.assists, format: whole },
   { id: "talisman", award: "Talisman", stat: "Goals + assists", blurb: "Most goal involvements, scored or set up.", unit: "G+A", value: (t) => t.goals + t.assists, format: whole },
   { id: "golden-glove", award: "Golden Glove", stat: "Saves", blurb: "The safest pair of hands between the sticks.", unit: "saves", value: (t) => t.saves, format: whole },
@@ -216,11 +263,13 @@ export function awardDays(events: MatchDayEvent[]) {
     .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
 }
 
-export function buildAwards(players: Player[], events: MatchDayEvent[]): AwardsData {
+export function buildAwards(players: Player[], events: MatchDayEvent[], weights: Record<Position, PositionWeights>): AwardsData {
   const squad = new Map(players.map((p) => [p.id, p]));
   const days = awardDays(events);
   const totals = new Map<number, Tally>();
   const winners: WeeklyWinner[] = [];
+  // Each week's points and numbers so far, and who leads it.
+  const weeks = new Map<string, { points: Map<number, number>; lines: Map<number, Line>; winner: WeeklyWinner | null }>();
   const flops: WeeklyFlop[] = [];
   const frames = new Map<CategoryId, Standing[][]>(categories.map((c) => [c.id, []]));
 
@@ -250,11 +299,28 @@ export function buildAwards(players: Player[], events: MatchDayEvent[]): AwardsD
       t.climb = Math.round((after - first) * 100) / 100;
     }
 
-    const best = playerOfTheDay(lines);
-    if (best) {
-      const [playerId, l] = best;
-      totals.get(playerId)!.potw++;
-      winners.push({ day, event, playerId, goals: l.goals, assists: l.assists, cleanSheets: l.cleanSheets, games: l.games });
+    // Player of the week: the week's leader so far, which a later match day
+    // of the same week can overturn.
+    const weekKey = event.weekOf ?? event.id;
+    let week = weeks.get(weekKey);
+    if (!week) weeks.set(weekKey, (week = { points: new Map(), lines: new Map(), winner: null }));
+    for (const [id, p] of dayPoints(event, squad, weights)) week.points.set(id, (week.points.get(id) ?? 0) + p);
+    for (const [id, l] of lines) {
+      const sum = week.lines.get(id) ?? emptyLine();
+      for (const k of Object.keys(l) as (keyof Line)[]) sum[k] += l[k];
+      week.lines.set(id, sum);
+    }
+    const leader = topRated(week.points, week.lines);
+    if (week.winner) {
+      totals.get(week.winner.playerId)!.potw--;
+      winners.splice(winners.indexOf(week.winner), 1);
+      week.winner = null;
+    }
+    if (leader !== null && totals.has(leader)) {
+      const l = week.lines.get(leader) ?? emptyLine();
+      week.winner = { day, event, playerId: leader, goals: l.goals, assists: l.assists, cleanSheets: l.cleanSheets, games: l.games };
+      totals.get(leader)!.potw++;
+      winners.push(week.winner);
     }
 
     const worst = flopOfTheDay(lines);

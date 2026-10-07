@@ -6,15 +6,16 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useClub } from "../lib/club";
 import { EMPTY_VALE, potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
 import { sortEvents } from "../lib/derive";
-import type { Player, TeamOfWeekPick } from "../lib/types";
+import type { MatchDayAwards, Player, TeamOfWeekPick } from "../lib/types";
 import { Avatar, CardPips, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
 import { CoverFlow, Glass, Reveal, Skeleton, Tilt } from "../components/depth";
 import { CardFace, HoloCard } from "../components/PlayerCard";
 import { colors, fonts, foil, radius, shadow, space } from "../theme";
 
 // The Vale — the public awards page (frontend/src/pages/TheVale.tsx): the
-// team of the week (the best side across that week's Wednesday and Sunday)
-// for any finished week, then the committee's (or
+// team of the week (the best six across that week's Wednesday and Sunday)
+// and each match day's team and player for any finished week, then the
+// committee's (or
 // the auto-awarded) player of the week, most improved, flop of the week and
 // stat leaders, with the week's bad boys and the bad boy of the league.
 
@@ -50,6 +51,51 @@ function pickLine(p: TeamOfWeekPick) {
     p.saves > 0 && plural(p.saves, "save"),
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : plural(p.appearances, "game");
+}
+
+/** A match day's player and team of the match day, under the week's six. */
+function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) => Player | undefined }) {
+  const star = day.playerOfMatchDay ? find(day.playerOfMatchDay.playerId) : undefined;
+  const picks = day.lineup.map((pick) => ({ pick, player: find(pick.playerId) })).filter((x): x is { pick: TeamOfWeekPick; player: Player } => !!x.player);
+  return (
+    <Glass style={styles.dayCard}>
+      <Txt style={text.eyebrow}>
+        {day.title} · {day.date}
+      </Txt>
+      {star && day.playerOfMatchDay ? (
+        <Tilt onPress={() => router.push(`/player/${star.id}`)} accessibilityLabel={`Player of the match day: ${star.name}, ${pickLine(day.playerOfMatchDay)}`}>
+          <View style={styles.dayStar}>
+            <Avatar player={star} size={48} ring={colors.gold} />
+            <View style={styles.flex}>
+              <Txt style={[text.small, { color: colors.gold }]}>Player of the match day</Txt>
+              <Txt style={styles.dayStarName} numberOfLines={1}>
+                {star.name}
+              </Txt>
+              <Txt style={text.small} numberOfLines={1}>
+                {pickLine(day.playerOfMatchDay)}
+              </Txt>
+            </View>
+          </View>
+        </Tilt>
+      ) : null}
+      {picks.length > 0 ? (
+        <>
+          <Txt style={[text.small, styles.dayTeamLabel]}>Team of the match day</Txt>
+          {picks.map(({ pick, player }) => (
+            <Tilt key={player.id} onPress={() => router.push(`/player/${player.id}`)} accessibilityLabel={`${pick.position}: ${player.name}`}>
+              <View style={styles.dayPick}>
+                <Txt style={[text.small, styles.dayPosition]}>{pick.position}</Txt>
+                <Avatar player={player} size={28} />
+                <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
+                  {player.name}
+                </Txt>
+              </View>
+            </Tilt>
+          ))}
+        </>
+      ) : null}
+    </Glass>
+  );
 }
 
 /** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
@@ -106,7 +152,7 @@ export default function ValeScreen() {
       topInset="header"
     >
       <Reveal>
-        <PageTitle eyebrow="Updated every match day" title="The Vale" sub="Team of the week, player honours and the stat leaders." />
+        <PageTitle eyebrow="Updated every match day" title="The Vale" sub="Team and player of the week and of every match day, player honours and the stat leaders." />
       </Reveal>
       <ErrorBanner message={error} onRetry={reload} />
 
@@ -123,7 +169,7 @@ export default function ValeScreen() {
             <LinearGradient colors={["rgba(216,181,106,0.3)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Txt style={styles.teamTitle}>{team.title}</Txt>
             <Txt style={[text.dim, styles.teamBody]}>
-              {team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards across {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
+              {team.dateRange} · The week's best keeper, two defenders, two midfielders and forward, rated across {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
             </Txt>
           </Glass>
           {lineup.length > 0 ? (
@@ -141,6 +187,9 @@ export default function ValeScreen() {
               )}
             />
           ) : null}
+          {(team.matchDays ?? []).map((day) => (
+            <MatchDayCard key={day.id} day={day} find={find} />
+          ))}
           {team.flopTeam ? (
             <Glass style={styles.flopTeam}>
               <LinearGradient colors={["rgba(194,59,59,0.25)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
@@ -313,6 +362,12 @@ const styles = StyleSheet.create({
   teamTitle: { fontFamily: fonts.displayHeavy, fontSize: 32, lineHeight: 34, color: colors.paper },
   teamBody: { marginTop: 6, lineHeight: 20 },
   pickLine: { marginTop: 8, textAlign: "center" },
+  dayCard: { padding: space.lg, marginTop: space.md, gap: space.sm },
+  dayStar: { flexDirection: "row", alignItems: "center", gap: space.md, marginTop: 4 },
+  dayStarName: { fontFamily: fonts.display, fontSize: 22, color: colors.paper },
+  dayTeamLabel: { marginTop: space.sm },
+  dayPick: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  dayPosition: { width: 32 },
 
   potwSkeleton: { height: 420, borderRadius: radius.lg, marginVertical: space.xl },
   potw: { borderRadius: radius.xl, marginBottom: space.xl, marginTop: space.sm },

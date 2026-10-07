@@ -104,9 +104,9 @@ export function StoryMedia({ story, lookup, lead = false }: { story: Story; look
   const hero = leadPlayer(story, lookup);
   const hasRed = story.cards?.some((c) => c.type === "red");
 
-  // Team of the week: the lineup fanned out like trading cards, over the side's name.
+  // Team of the match day: the six fanned out like trading cards, over the title.
   if (story.kind === "team_of_week" && story.lineup) {
-    const faces = story.lineup.playerIds.slice(0, 5);
+    const faces = story.lineup.playerIds.slice(0, 6);
     return (
       <div className="nz-media nz-media-totw">
         <span className="nz-totw-name" aria-hidden="true">

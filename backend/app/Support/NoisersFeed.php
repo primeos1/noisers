@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * Writes Noisers, the club blog, from what's already recorded: a report and
- * a team-of-the-week piece for every finished match day, a disciplinary
+ * a team-of-the-match-day piece for every finished match day, a disciplinary
  * write-up for its cards (and for cards logged outside a match day), and a
  * story for every injury, trip or suspension — plus a welcome-back once it's
  * over. Written on read like PlayerStats, so an edited or deleted match day,
@@ -31,6 +31,9 @@ class NoisersFeed
 
     /** @var array<int, array<string, int>>|null season stats by player id, computed on first use */
     private ?array $seasonStats = null;
+
+    /** @var array<string, array<string, mixed>|null> team and player of the match day by event id, worked out on first use */
+    private array $matchDayAwards = [];
 
     /** @var array<int, int>|null disciplinary cards by player id, counted on first use */
     private ?array $cardCounts = null;
@@ -66,7 +69,7 @@ class NoisersFeed
                 continue;
             }
             $stories[] = $this->matchReport($event, $games);
-            if ($totw = $this->teamOfTheWeek($event)) {
+            if ($totw = $this->teamOfTheMatchDay($event)) {
                 $stories[] = $totw;
             }
             if ($book = $this->matchDayDiscipline($event, $games)) {
@@ -106,7 +109,7 @@ class NoisersFeed
         $id = "report-{$event->id}";
         $stats = PlayerStats::computeAll([$event], $this->noCleanSheetIds());
         $squadStats = array_filter($stats, fn ($pid) => isset($this->players[$pid]), ARRAY_FILTER_USE_KEY);
-        $potw = MatchDayFinalizer::computePlayerOfTheDay($squadStats);
+        $potw = $this->matchDayAwards($event)['playerOfMatchDay'] ?? null;
         $scorer = $this->leader($squadStats, 'goals');
         $assister = $this->leader($squadStats, 'assists');
         $cleanSheet = MatchDayFinalizer::computeCleanSheetTeam($event, array_keys($this->players), $this->noCleanSheetIds());
@@ -174,10 +177,10 @@ class NoisersFeed
 
         if ($potw) {
             $s = $potw['stats'];
-            $did = $this->contribution($s);
-            $played = $this->plural($s['appearances'], 'game');
+            $did = $this->contribution($s, saves: true) ?: 'the best rating on the pitch';
+            $played = $this->plural($s['appearances'] ?? 0, 'game');
             $body[] = $this->pick("$id-potd", [
-                "Our player of the day is {$this->name($potw['playerId'])}: {$did} across {$played}. Take a bow.",
+                "Our player of the match day is {$this->name($potw['playerId'])}: {$did} across {$played}. Take a bow.",
                 "If you only watched one player, it should have been {$this->name($potw['playerId'])} — {$did} in {$played}. Different class.",
                 "The day belonged to {$this->name($potw['playerId'])}. ".ucfirst($did)." in {$played}, and a walk off the pitch like they owned it.",
             ]);
@@ -229,65 +232,72 @@ class NoisersFeed
         ]);
     }
 
-    /* ---- Match day: team of the week -------------------------------------- */
+    /* ---- Match day: team of the match day ---------------------------------- */
 
-    private function teamOfTheWeek(MatchDayEvent $event): ?array
+    /**
+     * The day's six best players by position and its top-rated player (see
+     * MatchDayFinalizer::computeTeamOfMatchDay()), worked out once per event.
+     */
+    private function matchDayAwards(MatchDayEvent $event): ?array
     {
-        $team = MatchDayFinalizer::computeBestSide($event, array_keys($this->players));
-        if (! $team || $team['lineupPlayerIds'] === []) {
+        return $this->matchDayAwards[$event->id] ??= MatchDayFinalizer::computeTeamOfMatchDay($event, array_keys($this->players));
+    }
+
+    private function teamOfTheMatchDay(MatchDayEvent $event): ?array
+    {
+        $awards = $this->matchDayAwards($event);
+        if (! $awards || $awards['lineup'] === []) {
             return null;
         }
         $id = "totw-{$event->id}";
-        $name = $this->winningTeamName($event, $team) ?? 'The winners';
-        $won = $team['sessionsWon'];
-        $played = $team['sessionsPlayed'];
-        $lineup = $team['lineupPlayerIds'];
-
-        // The lineup's own standout — most goal involvements.
-        $stats = PlayerStats::computeAll([$event], $this->noCleanSheetIds());
-        usort($lineup, fn ($a, $b) => [($stats[$b]['goals'] ?? 0) + ($stats[$b]['assists'] ?? 0), $stats[$b]['goals'] ?? 0]
-            <=> [($stats[$a]['goals'] ?? 0) + ($stats[$a]['assists'] ?? 0), $stats[$a]['goals'] ?? 0]);
-        $star = $lineup[0];
-        $starStats = $stats[$star] ?? ['goals' => 0, 'assists' => 0];
+        $lineup = $awards['lineupPlayerIds'];
+        $star = $awards['playerOfMatchDay'];
 
         $headline = $this->pick("$id-h", [
-            "Team of the week: {$name} take the crown",
-            "All hail {$name}, the team of the week",
-            "{$name} — the side nobody could stop at {$event->title}",
+            "Team of the match day: {$this->name($star['playerId'])} leads the {$event->title} six",
+            "The best six at {$event->title}, picked on the day's ratings",
+            "Who made the team of the match day at {$event->title}?",
         ]);
-        $standfirst = "{$won} ".($won === 1 ? 'win' : 'wins')." from {$this->plural($played, 'game')} at {$event->title}. ".(count($lineup) === 1 ? 'One player' : count($lineup).' players').', one shared bragging right.';
+        $standfirst = "The day's best keeper, two defenders, two midfielders and forward — picked on how they rated at {$event->title}.";
 
         $body = [];
         $body[] = $this->pick("$id-open", [
-            "Every match day has a team everyone else wants to be on. At {$event->title}, that was {$name}.",
-            "Bibs in the wash, trophies in the cabinet. {$name} are our team of the week after {$event->title}.",
-            "{$name} turned up at {$event->title} and simply out-played everybody.",
+            "Every match day has six players who did it better than anyone else in their position. At {$event->title}, these were them.",
+            "Bibs in the wash, ratings in the book. Here's the team of the match day from {$event->title}.",
+            "Wins, goals, assists, clean sheets, saves — it all counts. This is the six who rated best at {$event->title}.",
         ]);
-        $body[] = $won === $played
-            ? "A perfect record: {$this->plural($played, 'game')}, {$this->plural($won, 'win')}. Their last game finished {$team['score']} against {$team['rivalTeam']}."
-            : "They won {$won} of their {$this->plural($played, 'game')}, signing off {$team['score']} against {$team['rivalTeam']}.";
-        $body[] = 'The lineup: '.$this->listOf(array_map(fn ($p) => $this->name($p), $lineup)).'.';
-        if ($starStats['goals'] + $starStats['assists'] > 0) {
+
+        $byPosition = [];
+        foreach ($awards['lineup'] as $p) {
+            $byPosition[$p['position']][] = $this->name($p['playerId']);
+        }
+        $lines = array_filter([
+            isset($byPosition['GK']) ? 'In goal, '.$this->listOf($byPosition['GK']) : null,
+            isset($byPosition['DEF']) ? 'at the back, '.$this->listOf($byPosition['DEF']) : null,
+            isset($byPosition['MID']) ? 'in midfield, '.$this->listOf($byPosition['MID']) : null,
+            isset($byPosition['FWD']) ? 'up top, '.$this->listOf($byPosition['FWD']) : null,
+        ]);
+        $body[] = ucfirst(implode('; ', $lines)).'.';
+
+        if ($star) {
+            $did = $this->contribution($star['stats'], saves: true);
             $body[] = $this->pick("$id-star", [
-                "The engine room? {$this->name($star)}, with {$this->contribution($starStats)}.",
-                "Special mention to {$this->name($star)} — {$this->contribution($starStats)} to carry the team.",
+                "Top of the ratings: {$this->name($star['playerId'])}, our player of the match day".($did ? " with {$did}" : '').'.',
+                "The player of the match day is {$this->name($star['playerId'])}".($did ? " — {$did} to rate higher than anyone" : ', the highest-rated player on the pitch').'.',
             ]);
         }
         $body[] = $this->pick("$id-close", [
-            'Enjoy it while it lasts — the bibs get reshuffled next week.',
+            'The best of these make the team of the week once both match days are in.',
             'Screenshot this. The group chat will need proof.',
             'Frame it. It might be a while before it happens again.',
         ]);
 
-        return $this->story($id, 'team_of_week', 'Team of the week', $this->eventTime($event)->addSecond(), $headline, $standfirst, $body, $lineup, [
+        return $this->story($id, 'team_of_week', 'Team of the match day', $this->eventTime($event)->addSecond(), $headline, $standfirst, $body, $lineup, [
             'matchDay' => $this->matchDayInfo($event),
             'lineup' => [
-                'team' => $name,
+                'team' => 'Team of the match day',
                 'playerIds' => $lineup,
-                'won' => $won,
-                'played' => $played,
-                'score' => $team['score'],
-                'rival' => $team['rivalTeam'],
+                'positions' => array_column($awards['lineup'], 'position'),
             ],
         ]);
     }
@@ -840,12 +850,13 @@ class NoisersFeed
      *
      * @param  array<string, int>  $s
      */
-    private function contribution(array $s, bool $cleanSheets = true): string
+    private function contribution(array $s, bool $cleanSheets = true, bool $saves = false): string
     {
         $parts = array_filter([
             ($s['goals'] ?? 0) ? $this->plural($s['goals'], 'goal') : null,
             ($s['assists'] ?? 0) ? $this->plural($s['assists'], 'assist') : null,
             $cleanSheets && ($s['cleanSheets'] ?? 0) ? $this->plural($s['cleanSheets'], 'clean sheet') : null,
+            $saves && ($s['saves'] ?? 0) ? $this->plural($s['saves'], 'save') : null,
         ]);
 
         return $this->listOf($parts);

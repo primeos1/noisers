@@ -360,8 +360,11 @@ class MatchDayFinalizer
         }
     }
 
-    /** The team of the week's shape: one keeper, two defenders, a midfielder and two forwards. */
-    public const TEAM_OF_WEEK_SLOTS = ['GK', 'DEF', 'DEF', 'MID', 'FWD', 'FWD'];
+    /**
+     * The shape of the team of the match day and the team of the week: one
+     * keeper, two defenders, two midfielders and a forward.
+     */
+    public const TEAM_SLOTS = ['GK', 'DEF', 'DEF', 'MID', 'MID', 'FWD'];
 
     /**
      * The side with the most wins across this event's finished games (ties
@@ -389,20 +392,40 @@ class MatchDayFinalizer
     }
 
     /**
-     * The team of the week for this match day's week: the best keeper, two
-     * defenders, midfielder and two forwards across all of the week's match
-     * days (Wednesday and Sunday). Every squad player who played is scored
-     * with the club's rating weights (wins, goals, assists, clean sheets,
-     * saves, cards — see PlayerRatings::points()) summed over the week; ties
-     * go to more goal involvements, then saves, then games played. A slot
-     * goes to the player's main position first, then to someone whose second
-     * position it is; it stays empty if nobody fits. Pure and read-only —
-     * used both to rewrite The Vale on finalize() and to answer "what was the
-     * team of the week for match day X" for any past event.
+     * The team of the match day and the player of the match day: the day's
+     * six best players by position (see TEAM_SLOTS), and its single
+     * highest-rated player, from that day's finished games alone. Null when
+     * no game finished. Pure and read-only.
+     *
+     * @param  array<int, int>  $squadIds
+     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfMatchDay: array{playerId: int, position: string, points: float, stats: array<string, int>}|null}|null
+     */
+    public static function computeTeamOfMatchDay(MatchDayEvent $event, array $squadIds): ?array
+    {
+        if (! self::hasFinishedGames($event)) {
+            return null;
+        }
+        $ranking = self::rankPlayers(collect([$event]), $squadIds);
+        $lineup = self::pickTeam($ranking);
+
+        return [
+            'lineup' => $lineup,
+            'lineupPlayerIds' => array_column($lineup, 'playerId'),
+            'playerOfMatchDay' => self::topPlayer($ranking),
+        ];
+    }
+
+    /**
+     * The team of the week and the player of the week for this match day's
+     * week: the same picks as computeTeamOfMatchDay(), but with each player's
+     * points added up across all of the week's match days (Wednesday and
+     * Sunday), so playing both counts. Pure and read-only — used both to
+     * rewrite The Vale on finalize() and to answer "what was the team of the
+     * week for match day X" for any past event.
      *
      * @param  array<int, int>  $squadIds
      * @param  ?string  $exceptId  a match day of the same week to leave out
-     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], weekMatchDays: MatchDayEvent[]}|null
+     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfWeek: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, weekMatchDays: MatchDayEvent[]}|null
      */
     public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
@@ -410,7 +433,29 @@ class MatchDayFinalizer
         if ($days->isEmpty()) {
             return null;
         }
+        $ranking = self::rankPlayers($days, $squadIds);
+        $lineup = self::pickTeam($ranking);
 
+        return [
+            'lineup' => $lineup,
+            'lineupPlayerIds' => array_column($lineup, 'playerId'),
+            'playerOfWeek' => self::topPlayer($ranking),
+            'weekMatchDays' => $days->all(),
+        ];
+    }
+
+    /**
+     * Every squad player who played on these match days, best first. Each is
+     * scored with the club's rating weights (wins, goals, assists, clean
+     * sheets, saves, cards — see PlayerRatings::points()) added up over the
+     * days; ties go to more goal involvements, then saves, then games played.
+     *
+     * @param  Collection<int, MatchDayEvent>  $days
+     * @param  array<int, int>  $squadIds
+     * @return array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}
+     */
+    private static function rankPlayers(Collection $days, array $squadIds): array
+    {
         $players = Player::query()->whereIn('id', $squadIds)->get()->keyBy('id');
         $weights = ClubSetting::current()->ratingWeights();
         $points = [];
@@ -433,13 +478,26 @@ class MatchDayFinalizer
             return $key($b) <=> $key($a) ?: $a <=> $b;
         });
 
+        return ['ranked' => $ranked, 'points' => $points, 'stats' => $stats, 'players' => $players];
+    }
+
+    /**
+     * The best player for each of TEAM_SLOTS, in that order. A slot goes to
+     * the player's main position first, then to someone whose second
+     * position it is; it stays empty if nobody fits.
+     *
+     * @param  array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}  $ranking  as rankPlayers()
+     * @return array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>
+     */
+    private static function pickTeam(array $ranking): array
+    {
         $picked = [];
         $lineup = [];
-        foreach (self::TEAM_OF_WEEK_SLOTS as $slot) {
+        foreach (self::TEAM_SLOTS as $slot) {
             $choice = null;
             foreach (['position', 'secondary_position'] as $field) {
-                foreach ($ranked as $id) {
-                    if (! isset($picked[$id]) && ($players[$id]->{$field} ?? null) === $slot) {
+                foreach ($ranking['ranked'] as $id) {
+                    if (! isset($picked[$id]) && ($ranking['players'][$id]->{$field} ?? null) === $slot) {
                         $choice = $id;
                         break 2;
                     }
@@ -447,19 +505,37 @@ class MatchDayFinalizer
             }
             if ($choice !== null) {
                 $picked[$choice] = true;
-                $lineup[] = [
-                    'playerId' => $choice,
-                    'position' => $slot,
-                    'points' => round($points[$choice], 2),
-                    'stats' => $stats[$choice] ?? [],
-                ];
+                $lineup[] = self::pick($ranking, $choice, $slot);
             }
         }
 
+        return $lineup;
+    }
+
+    /**
+     * The highest-rated player in the ranking, whatever their position.
+     *
+     * @param  array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}  $ranking  as rankPlayers()
+     * @return array{playerId: int, position: string, points: float, stats: array<string, int>}|null
+     */
+    private static function topPlayer(array $ranking): ?array
+    {
+        $id = $ranking['ranked'][0] ?? null;
+
+        return $id === null ? null : self::pick($ranking, $id, (string) $ranking['players'][$id]->position);
+    }
+
+    /**
+     * @param  array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}  $ranking  as rankPlayers()
+     * @return array{playerId: int, position: string, points: float, stats: array<string, int>}
+     */
+    private static function pick(array $ranking, int $id, string $position): array
+    {
         return [
-            'lineup' => $lineup,
-            'lineupPlayerIds' => array_column($lineup, 'playerId'),
-            'weekMatchDays' => $days->all(),
+            'playerId' => $id,
+            'position' => $position,
+            'points' => round($ranking['points'][$id], 2),
+            'stats' => $ranking['stats'][$id] ?? [],
         ];
     }
 
@@ -639,39 +715,16 @@ class MatchDayFinalizer
     }
 
     /**
-     * The standout player from one match day's stats — most goal
-     * involvements, then goals, then clean sheets. Null when nobody scored,
-     * assisted or kept a clean sheet.
-     *
-     * @param  array<int, array{goals: int, assists: int, cleanSheets: int}>  $stats  keyed by player id
-     * @return array{playerId: int, stats: array<string, int>}|null
-     */
-    public static function computePlayerOfTheDay(array $stats): ?array
-    {
-        $best = null;
-        foreach ($stats as $playerId => $s) {
-            $key = [$s['goals'] + $s['assists'], $s['goals'], $s['cleanSheets']];
-            if ($key[0] + $key[2] > 0 && ($best === null || $key > $best['key'])) {
-                $best = ['playerId' => $playerId, 'key' => $key, 'stats' => $s];
-            }
-        }
-
-        return $best ? ['playerId' => $best['playerId'], 'stats' => $best['stats']] : null;
-    }
-
-    /**
      * How many times each player (keyed by id) has been player of the week
-     * and been picked in the team of the week: once for every ended match
-     * day they stood out in (computePlayerOfTheDay / computeTeamOfWeek), with
-     * The Vale's current picks — automatic or set by the committee — counting
-     * for the match day it's showing.
+     * and been picked in the team of the week: once for every week they
+     * stood out in (computeTeamOfWeek), with The Vale's current picks —
+     * automatic or set by the committee — counting for the week it's showing.
      *
      * @return array<int, array{playerOfTheWeek: int, teamOfTheWeek: int}>
      */
     public static function weeklyHonours(): array
     {
         $squadIds = Player::pluck('id')->all();
-        $noCleanSheetIds = PlayerStats::noCleanSheetIds();
         $vale = ValeContent::current();
 
         $honours = [];
@@ -683,26 +736,23 @@ class MatchDayFinalizer
         };
 
         $events = MatchDayEvent::query()->where('status', 'ended')->get();
-        $valeWeek = null;
+        $weeksCounted = [];
         foreach ($events as $event) {
             if ($vale->team_week_title === $event->title && $vale->team_week_date_range === $event->date) {
-                $valeWeek = self::weekOf($event)->toDateString();
-
-                continue; // counted from The Vale below
+                $weeksCounted[self::weekOf($event)->toDateString()] = true; // counted from The Vale below
             }
-            $stats = array_intersect_key(PlayerStats::computeAll([$event], $noCleanSheetIds), array_flip($squadIds));
-            $award(self::computePlayerOfTheDay($stats)['playerId'] ?? null, 'playerOfTheWeek');
         }
 
-        // The team of the week is picked once a week, across both its match days.
-        $weeksCounted = $valeWeek === null ? [] : [$valeWeek => true];
+        // Both awards are picked once a week, across both its match days.
         foreach ($events as $event) {
             $week = self::weekOf($event)->toDateString();
             if (isset($weeksCounted[$week]) || ! self::hasFinishedGames($event)) {
                 continue;
             }
             $weeksCounted[$week] = true;
-            foreach (self::computeTeamOfWeek($event, $squadIds)['lineupPlayerIds'] ?? [] as $playerId) {
+            $team = self::computeTeamOfWeek($event, $squadIds);
+            $award($team['playerOfWeek']['playerId'] ?? null, 'playerOfTheWeek');
+            foreach ($team['lineupPlayerIds'] ?? [] as $playerId) {
                 $award($playerId, 'teamOfTheWeek');
             }
         }
@@ -736,7 +786,7 @@ class MatchDayFinalizer
      * Every weekly award this match day earns, as The Vale's columns — what
      * finalize() writes to The Vale, and what the "pick a match day" view
      * shows for an older one. Read-only. Null when no game finished; an
-     * award nobody earned (no goal involvement, no rating rise) is left out.
+     * award nobody earned (no rating rise, no squad player in a game) is left out.
      *
      * @param  array<int, int>  $squadIds
      * @param  ?string  $exceptId  a match day of the same week to leave out of
@@ -767,7 +817,7 @@ class MatchDayFinalizer
             ];
         }
 
-        // Player of the week and weekly leaders — this match day's stats only.
+        // The weekly leaders — this match day's stats only.
         $stats = array_filter(
             PlayerStats::computeAll([$event], $noCleanSheetIds = PlayerStats::noCleanSheetIds()),
             fn ($playerId) => $inSquad($playerId),
@@ -808,13 +858,14 @@ class MatchDayFinalizer
 
         $changes += self::flopFields($event, $squadIds);
 
-        $potw = self::computePlayerOfTheDay($stats);
+        // Player of the week — the highest-rated player across the week.
+        $potw = $team['playerOfWeek'] ?? null;
         if ($potw) {
-            $s = $potw['stats'];
+            $s = $potw['stats'] + ['goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'appearances' => 0];
             $changes += [
                 'potw_player_id' => $potw['playerId'],
                 'potw_note' => sprintf(
-                    '%d goal%s and %d assist%s across %d game%s at %s.',
+                    '%d goal%s and %d assist%s across %d game%s — the top rating of the week at %s.',
                     $s['goals'], $s['goals'] === 1 ? '' : 's',
                     $s['assists'], $s['assists'] === 1 ? '' : 's',
                     $s['appearances'], $s['appearances'] === 1 ? '' : 's',

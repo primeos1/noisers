@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { useSquad } from "../lib/SquadContext";
 import { useMatchDay } from "../lib/MatchDayContext";
+import { useSettings } from "../lib/SettingsContext";
 import { positionCodes, type Player } from "../lib/clubData";
 import type { MatchDayEvent } from "../lib/matchDay";
 import { buildAwards, reignSummary, type CategoryId, type Race, type Standing } from "../lib/awards";
@@ -149,7 +150,8 @@ function Avatar({ player, size, ring, className = "" }: { player: Player; size: 
 export default function Awards() {
   const { players, loading } = useSquad();
   const { events } = useMatchDay();
-  const data = useMemo(() => buildAwards(players, events), [players, events]);
+  const { settings } = useSettings();
+  const data = useMemo(() => buildAwards(players, events, settings.ratingPositions), [players, events, settings.ratingPositions]);
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const [active, setActive] = useState<CategoryId>("golden-boot");
   const raceRef = useRef<HTMLElement>(null);
@@ -769,7 +771,8 @@ function WeeklyWall({ picks, byId, race, flop = false }: { picks: WeeklyPick[]; 
   let run = 0;
   picks.forEach((w, i) => {
     const prev = picks[i - 1];
-    run = prev && prev.playerId === w.playerId && prev.day === w.day - 1 ? run + 1 : 1;
+    // One pick per week (per match day for the flop), so neighbours are back to back.
+    run = prev && prev.playerId === w.playerId ? run + 1 : 1;
     const c = counts.get(w.playerId) ?? { playerId: w.playerId, wins: 0, last: w, streak: 0 };
     c.wins++;
     c.last = w;
@@ -797,7 +800,7 @@ function WeeklyWall({ picks, byId, race, flop = false }: { picks: WeeklyPick[]; 
           <p className="mx-auto mt-3 max-w-sm text-sm text-paper-dim">
             {flop
               ? "Every match day has one — most games lost, then the worst goal difference, then the fewest goals and assists."
-              : "The standout performer of every match day — and how many times each has won it."}
+              : "The top-rated player of every week, with both match days added up — and how many times each has won it."}
           </p>
         </Reveal>
 

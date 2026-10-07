@@ -435,7 +435,7 @@ export function useExecutives() {
 export const DESKS: { id: string; label: string; kinds: StoryKind[] }[] = [
   { id: "all", label: "All stories", kinds: [] },
   { id: "reports", label: "Match reports", kinds: ["match_report"] },
-  { id: "totw", label: "Team of the week", kinds: ["team_of_week"] },
+  { id: "totw", label: "Team of the match day", kinds: ["team_of_week"] },
   { id: "discipline", label: "Discipline", kinds: ["discipline", "suspension"] },
   { id: "treatment", label: "Treatment room", kinds: ["injury", "comeback"] },
   { id: "away", label: "Away & out", kinds: ["travel", "unavailable"] },

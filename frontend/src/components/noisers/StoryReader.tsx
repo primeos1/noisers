@@ -244,9 +244,7 @@ export default function StoryReader({
 
             {story.lineup && (
               <section className="mt-10">
-                <h2 className="nz-module-title">
-                  {story.lineup.team} · {story.lineup.won}/{story.lineup.played} won
-                </h2>
+                <h2 className="nz-module-title">{story.lineup.team}</h2>
                 <div className="nz-lineup">
                   {story.lineup.playerIds.map((id, i) => {
                     const p = lookup(id);
@@ -254,7 +252,7 @@ export default function StoryReader({
                     return (
                       <Link key={id} to={`/squad/${id}`} className="nz-lineup-card" style={{ "--i": i } as CSSProperties}>
                         <img src={p.photo} alt="" loading="lazy" />
-                        <span className="nz-lineup-num">{p.number}</span>
+                        <span className="nz-lineup-num">{story.lineup!.positions[i] ?? p.number}</span>
                         <span className="nz-lineup-name">{p.name}</span>
                       </Link>
                     );

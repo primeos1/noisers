@@ -189,10 +189,15 @@ class CmsEndpointsTest extends TestCase
 
         // Public, per-event lookup should agree, independent of the singleton.
         $team = $this->getJson('/api/match-day-events/e2e-test-day/team-of-week')->assertOk();
-        // The week's two forwards, the scorer first.
-        $this->assertSame([$a->id, $b->id], $team->json('data.lineupPlayerIds'));
+        // One forward's place, and it goes to the scorer, who is also the
+        // player of the week and of the match day.
+        $this->assertSame([$a->id], $team->json('data.lineupPlayerIds'));
         $this->assertSame('FWD', $team->json('data.lineup.0.position'));
         $this->assertSame(1, $team->json('data.lineup.0.goals'));
+        $this->assertSame($a->id, $team->json('data.playerOfWeek.playerId'));
+        $this->assertSame('e2e-test-day', $team->json('data.matchDays.0.id'));
+        $this->assertSame([$a->id], array_column($team->json('data.matchDays.0.lineup'), 'playerId'));
+        $this->assertSame($a->id, $team->json('data.matchDays.0.playerOfMatchDay.playerId'));
         $this->assertSame('Team B', $team->json('data.flopTeam.name'));
         $this->assertSame([$b->id], $team->json('data.flopTeam.lineupPlayerIds'));
         $this->assertSame($b->id, $team->json('data.flopPlayer.playerId'));

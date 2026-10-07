@@ -60,7 +60,7 @@ class NoisersFeedTest extends TestCase
         $this->putJson('/api/match-day-events/md', ['status' => 'ended'])->assertOk();
     }
 
-    public function test_a_finished_match_day_writes_a_report_team_of_the_week_and_discipline(): void
+    public function test_a_finished_match_day_writes_a_report_team_of_the_match_day_and_discipline(): void
     {
         $this->endedMatchDay();
 
@@ -75,9 +75,11 @@ class NoisersFeedTest extends TestCase
             ['home' => 'Reds', 'away' => 'Blues', 'homeScore' => 1, 'awayScore' => 0],
         ], $report['scoreline']);
 
+        // The day's best player in each position, keeper first — from both sides.
         $totw = $stories['totw-md'];
-        $this->assertSame('Reds', $totw['lineup']['team']);
-        $this->assertSame([$this->striker->id], $totw['lineup']['playerIds']);
+        $this->assertSame('Team of the match day', $totw['tag']);
+        $this->assertSame([$this->keeper->id, $this->striker->id], $totw['lineup']['playerIds']);
+        $this->assertSame(['GK', 'FWD'], $totw['lineup']['positions']);
 
         $book = $stories['book-md'];
         $this->assertSame('discipline', $book['kind']);

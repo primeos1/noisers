@@ -101,14 +101,14 @@ export default function StoryScreen() {
         {story.stats?.length ? <Figures items={story.stats.map((s) => ({ label: s.label, value: s.value }))} /> : null}
 
         {story.lineup ? (
-          <Group title={`${story.lineup.team} · ${story.lineup.won} of ${story.lineup.played} won`}>
+          <Group title={story.lineup.team}>
             {lineup.map((p) => (
               <Row key={p.id} onPress={() => router.push(`/player/${p.id}`)}>
                 <Avatar player={p} size={34} />
                 <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
                   {p.name}
                 </Txt>
-                <Txt style={text.small}>#{p.number}</Txt>
+                <Txt style={text.small}>{story.lineup!.positions[story.lineup!.playerIds.indexOf(p.id)] ?? `#${p.number}`}</Txt>
               </Row>
             ))}
           </Group>

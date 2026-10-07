@@ -279,7 +279,8 @@ export interface Story {
   matchDay: { id: string; title: string; venue: string | null; date: string } | null;
   scoreline: { home: string; away: string; homeScore: number; awayScore: number }[] | null;
   stats: { label: string; value: number }[] | null;
-  lineup: { team: string; playerIds: number[]; won: number; played: number; score: string; rival: string } | null;
+  /** The team of the match day: its six, keeper first, with the position each was picked for. */
+  lineup: { team: string; playerIds: number[]; positions: string[] } | null;
   cards: StoryCard[] | null;
   absence: { type: AbsenceType; reason: string | null; startsOn: string; endsOn: string | null; status: AbsenceStatus } | null;
 }
@@ -295,6 +296,16 @@ export interface TeamOfWeekPick {
   appearances: number;
 }
 
+/** One match day's own awards, from that day's ratings alone. */
+export interface MatchDayAwards {
+  id: string;
+  title: string;
+  date: string;
+  /** The day's best keeper, two defenders, two midfielders and forward, in that order. */
+  lineup: TeamOfWeekPick[];
+  playerOfMatchDay: TeamOfWeekPick | null;
+}
+
 export interface TeamOfWeek {
   /** "Week of 28 Sep". */
   title: string;
@@ -302,9 +313,13 @@ export interface TeamOfWeek {
   dateRange: string;
   /** Every match day of the week that was compared (Wednesday and Sunday). */
   weekMatchDays?: { id: string; title: string; date: string }[];
-  /** The week's best keeper, two defenders, midfielder and two forwards, in that order. */
+  /** The week's best keeper, two defenders, two midfielders and forward, in that order. */
   lineup: TeamOfWeekPick[];
   lineupPlayerIds: number[];
+  /** The week's highest-rated player, with both match days' points added up. */
+  playerOfWeek?: TeamOfWeekPick | null;
+  /** The team and player of each of the week's match days, oldest first. */
+  matchDays?: MatchDayAwards[];
   /** The side at the bottom of the table — null when only one side played. */
   flopTeam?: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
 }

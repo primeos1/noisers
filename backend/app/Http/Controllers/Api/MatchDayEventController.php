@@ -123,10 +123,11 @@ class MatchDayEventController extends Controller
     }
 
     /**
-     * Public — the team of the week for this match day's week (the best
-     * keeper, two defenders, midfielder and two forwards across Wednesday
-     * and Sunday), plus the week's flop team,
-     * computed on demand. Powers The Vale's "pick a week" selector, which
+     * Public — the team and player of the week for this match day's week
+     * (the best keeper, two defenders, two midfielders and forward, and the
+     * top-rated player, across Wednesday and Sunday), the team and player of
+     * each of the week's match days, and the week's flop team, computed on
+     * demand. Powers The Vale's "pick a week" selector, which
      * shows the latest by default but lets a visitor look at an older one
      * without that overwriting the persisted current award.
      */
@@ -134,6 +135,17 @@ class MatchDayEventController extends Controller
     {
         $squadIds = Player::pluck('id')->all();
         $team = MatchDayFinalizer::computeTeamOfWeek($matchDayEvent, $squadIds);
+        // A pick with what they did on the day or the week it was picked for.
+        $pick = fn (?array $p) => $p === null ? null : [
+            'playerId' => $p['playerId'],
+            'position' => $p['position'],
+            'points' => $p['points'],
+            'goals' => $p['stats']['goals'] ?? 0,
+            'assists' => $p['stats']['assists'] ?? 0,
+            'cleanSheets' => $p['stats']['cleanSheets'] ?? 0,
+            'saves' => $p['stats']['saves'] ?? 0,
+            'appearances' => $p['stats']['appearances'] ?? 0,
+        ];
 
         return response()->json([
             'data' => $team ? [
@@ -141,18 +153,22 @@ class MatchDayEventController extends Controller
                 'dateRange' => implode(' & ', array_map(fn ($e) => $e->date, $team['weekMatchDays'])),
                 'weekOf' => MatchDayFinalizer::weekOf($matchDayEvent)->toDateString(),
                 'weekMatchDays' => array_map(fn ($e) => ['id' => $e->id, 'title' => $e->title, 'date' => $e->date], $team['weekMatchDays']),
-                // GK, DEF, DEF, MID, FWD, FWD — each with what they did that week.
-                'lineup' => array_map(fn ($p) => [
-                    'playerId' => $p['playerId'],
-                    'position' => $p['position'],
-                    'points' => $p['points'],
-                    'goals' => $p['stats']['goals'] ?? 0,
-                    'assists' => $p['stats']['assists'] ?? 0,
-                    'cleanSheets' => $p['stats']['cleanSheets'] ?? 0,
-                    'saves' => $p['stats']['saves'] ?? 0,
-                    'appearances' => $p['stats']['appearances'] ?? 0,
-                ], $team['lineup']),
+                // GK, DEF, DEF, MID, MID, FWD — each with what they did that week.
+                'lineup' => array_map($pick, $team['lineup']),
                 'lineupPlayerIds' => $team['lineupPlayerIds'],
+                'playerOfWeek' => $pick($team['playerOfWeek']),
+                // Each of the week's match days on its own, oldest first.
+                'matchDays' => array_map(function ($e) use ($squadIds, $pick) {
+                    $day = MatchDayFinalizer::computeTeamOfMatchDay($e, $squadIds);
+
+                    return [
+                        'id' => $e->id,
+                        'title' => $e->title,
+                        'date' => $e->date,
+                        'lineup' => array_map($pick, $day['lineup'] ?? []),
+                        'playerOfMatchDay' => $pick($day['playerOfMatchDay'] ?? null),
+                    ];
+                }, $team['weekMatchDays']),
                 'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
                 // Worked out for this match day, so every one has a flop.
                 'flopPlayer' => (function () use ($matchDayEvent, $squadIds) {

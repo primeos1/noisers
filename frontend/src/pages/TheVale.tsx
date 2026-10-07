@@ -6,7 +6,7 @@ import { useMatchDay } from "../lib/MatchDayContext";
 import { DEFAULT_VALE_CONTENT, fromApi as valeFromApi, useValeContent, type ApiValeContent } from "../lib/ValeContentContext";
 import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
-import { formatCards, keepsCleanSheets, positionCodes, roughestPlayer } from "../lib/clubData";
+import { formatCards, keepsCleanSheets, positionCodes, roughestPlayer, type Player } from "../lib/clubData";
 import { CrownIcon } from "../components/icons";
 
 /** "First win", "Won 3 times" — how often this player has been player of the week. */
@@ -42,6 +42,16 @@ interface TeamOfWeekPick {
   appearances: number;
 }
 
+/** One match day's own awards, from that day's ratings alone. */
+interface MatchDayAwards {
+  id: string;
+  title: string;
+  date: string;
+  /** The day's best keeper, two defenders, two midfielders and forward, in that order. */
+  lineup: TeamOfWeekPick[];
+  playerOfMatchDay: TeamOfWeekPick | null;
+}
+
 interface TeamOfWeekData {
   /** "Week of 28 Sep". */
   title: string;
@@ -49,15 +59,59 @@ interface TeamOfWeekData {
   dateRange: string;
   /** Every match day of the week that was compared (Wednesday and Sunday). */
   weekMatchDays?: { id: string; title: string; date: string }[];
-  /** The week's best keeper, two defenders, midfielder and two forwards, in that order. */
+  /** The week's best keeper, two defenders, two midfielders and forward, in that order. */
   lineup: TeamOfWeekPick[];
   lineupPlayerIds: number[];
+  /** The week's highest-rated player, with both match days' points added up. */
+  playerOfWeek?: TeamOfWeekPick | null;
+  /** The team and player of each of the week's match days, oldest first. */
+  matchDays?: MatchDayAwards[];
   /** The side at the bottom of the table — null when only one side played. */
   flopTeam: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
   /** This match day's flop player — null only when no squad player finished a game. */
   flopPlayer?: { playerId: number; note: string } | null;
   /** Every other award as worked out for this match day. */
   awards?: ApiValeContent;
+}
+
+/** A match day's team and player of the match day, under the week's six. */
+function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[] }) {
+  const star = day.playerOfMatchDay ? players.find((p) => p.id === day.playerOfMatchDay!.playerId) : undefined;
+  const picks = day.lineup
+    .map((pick) => ({ pick, player: players.find((p) => p.id === pick.playerId) }))
+    .filter((x): x is typeof x & { player: Player } => Boolean(x.player));
+
+  return (
+    <div className="bg-ink/70 p-6 backdrop-blur">
+      <p className="text-sm text-paper-dim">
+        {day.title} · {day.date}
+      </p>
+      {star && (
+        <div className="mt-4 flex items-center gap-4">
+          <img src={star.photo} alt="" className="duotone h-14 w-14 shrink-0 border border-justice object-cover object-top" loading="lazy" />
+          <div className="min-w-0">
+            <p className="text-xs text-justice">Player of the match day</p>
+            <p className="truncate font-display text-2xl leading-tight text-paper">{star.name}</p>
+            <p className="text-xs text-mist">{pickLine(day.playerOfMatchDay!)}</p>
+          </div>
+        </div>
+      )}
+      {picks.length > 0 && (
+        <>
+          <p className="mt-5 text-xs text-mist">Team of the match day</p>
+          <ul className="mt-2 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+            {picks.map(({ pick, player }) => (
+              <li key={player.id} className="flex min-w-0 items-center gap-2 text-sm text-paper-dim">
+                <span className="w-8 shrink-0 text-xs text-mist">{pick.position}</span>
+                <img src={player.photo} alt="" className="duotone h-8 w-8 shrink-0 border border-ink-line object-cover" loading="lazy" />
+                <span className="truncate">{player.name}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function TheVale() {
@@ -142,7 +196,7 @@ export default function TheVale() {
       <PageHeader
         eyebrow="Updated every match day"
         title="The Vale"
-        description="Team of the week, player honours and the stat leaders — refreshed the moment a match day ends."
+        description="Team and player of the week and of every match day, player honours and the stat leaders — refreshed the moment a match day ends."
       />
 
       {/* Team of the week */}
@@ -185,7 +239,7 @@ export default function TheVale() {
           {team && !teamLoading && (
             <>
               <p className="mt-4 max-w-xl text-paper-dim">
-                {team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards across{" "}
+                {team.dateRange} · The week's best keeper, two defenders, two midfielders and forward, rated across{" "}
                 {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
               </p>
 
@@ -208,6 +262,14 @@ export default function TheVale() {
                       <p className="mt-1 text-xs text-paper-dim">{player.name}</p>
                       <p className="mt-1 text-xs text-mist">{pickLine(pick)}</p>
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {(team.matchDays?.length ?? 0) > 0 && (
+                <div className="mt-10 grid gap-px bg-ink-line md:grid-cols-2">
+                  {team.matchDays!.map((day) => (
+                    <MatchDayCard key={day.id} day={day} players={players} />
                   ))}
                 </div>
               )}

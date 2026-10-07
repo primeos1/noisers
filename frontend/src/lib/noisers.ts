@@ -44,7 +44,8 @@ export interface Story {
   matchDay: { id: string; title: string; venue: string | null; date: string } | null;
   scoreline: StoryGameLine[] | null;
   stats: { label: string; value: number }[] | null;
-  lineup: { team: string; playerIds: number[]; won: number; played: number; score: string; rival: string } | null;
+  /** The team of the match day: its six, keeper first, with the position each was picked for. */
+  lineup: { team: string; playerIds: number[]; positions: string[] } | null;
   cards: StoryCard[] | null;
   absence: {
     type: AbsenceType;
@@ -59,7 +60,7 @@ export interface Story {
 export const desks: { id: string; label: string; kinds: StoryKind[] }[] = [
   { id: "all", label: "All stories", kinds: [] },
   { id: "reports", label: "Match reports", kinds: ["match_report"] },
-  { id: "totw", label: "Team of the week", kinds: ["team_of_week"] },
+  { id: "totw", label: "Team of the match day", kinds: ["team_of_week"] },
   { id: "discipline", label: "Discipline", kinds: ["discipline", "suspension"] },
   { id: "treatment", label: "Treatment room", kinds: ["injury", "comeback"] },
   { id: "away", label: "Away & out", kinds: ["travel", "unavailable"] },
