@@ -125,9 +125,9 @@ class PlayerOfTheWeekWinsTest extends TestCase
         Carbon::setTestNow('2026-10-04 10:00');
         $this->playWeekDay('sun', 'Sun 4 Oct', [$def2, $fwd2], [$def3, $fwd3], [[$fwd2, null]]);
 
-        // Points added up over the week: def2 (-0.10 then +0.22) gets the
-        // second defender's place and fwd2 the second forward's; one
-        // midfielder's place, so mid2 misses out.
+        // Picked from the two days' winning sides (the Reds both times), on
+        // points added up over the week: def2 and fwd2 join from Sunday's;
+        // mid2 was never on a winning side.
         $six = [$gk, $def1, $def2, $mid1, $fwd1, $fwd2];
         foreach (['wed', 'sun'] as $id) {
             $team = $this->getJson("/api/match-day-events/{$id}/team-of-week")
@@ -139,10 +139,11 @@ class PlayerOfTheWeekWinsTest extends TestCase
                 ->assertJsonPath('data.weekMatchDays.1.id', 'sun');
             $this->assertSame(['GK', 'DEF', 'DEF', 'MID', 'FWD', 'FWD'], array_column($team->json('data.lineup'), 'position'));
 
-            // Each match day has its own team and player, from that day alone.
-            $this->assertSame($six, array_column($team->json('data.matchDays.0.lineup'), 'playerId'));
+            // Each match day's team is the side that won it, keeper first.
+            $this->assertSame('Reds', $team->json('data.matchDays.0.team.name'));
+            $this->assertSame([$gk, $def1, $mid1, $fwd1], array_column($team->json('data.matchDays.0.lineup'), 'playerId'));
             $this->assertSame($fwd1, $team->json('data.matchDays.0.playerOfMatchDay.playerId'));
-            $this->assertSame([$def2, $def3, $fwd2, $fwd3], array_column($team->json('data.matchDays.1.lineup'), 'playerId'));
+            $this->assertSame([$def2, $fwd2], array_column($team->json('data.matchDays.1.lineup'), 'playerId'));
             $this->assertSame($fwd2, $team->json('data.matchDays.1.playerOfMatchDay.playerId'));
         }
 
@@ -193,14 +194,14 @@ class PlayerOfTheWeekWinsTest extends TestCase
             ->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 2);
 
-        // Profiles carry both honours. The only two forwards make the six
-        // every week.
+        // Profiles carry both honours. The six comes from each week's
+        // winning sides, so only that week's winner makes it.
         $this->getJson("/api/players/{$ace->id}")
             ->assertJsonPath('data.playerOfTheWeekWins', 2)
-            ->assertJsonPath('data.teamOfTheWeekSelections', 3);
+            ->assertJsonPath('data.teamOfTheWeekSelections', 2);
         $this->getJson("/api/players/{$rival->id}")
             ->assertJsonPath('data.playerOfTheWeekWins', 1)
-            ->assertJsonPath('data.teamOfTheWeekSelections', 3);
+            ->assertJsonPath('data.teamOfTheWeekSelections', 1);
 
         // The committee hands this week to someone else: the count follows.
         $this->putJson('/api/vale-content', ['potw_player_id' => $rival->id])

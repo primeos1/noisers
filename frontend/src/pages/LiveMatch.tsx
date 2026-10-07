@@ -46,8 +46,8 @@ interface TeamLine {
   goalsAgainst: number;
 }
 
-// The day's table from finished games, ranked the way the club picks the
-// day's winners (MatchDayFinalizer::teamTable): most wins, then goal
+// The day's table from finished games, ranked the way the club picks its
+// team of the match day (MatchDayFinalizer::teamTable): most wins, then goal
 // difference, then goals scored. Games are matched to teams by name, as in
 // the rotation (see nextFixture).
 function dayTable(teams: MatchDayTeam[], games: MatchDayGame[]): TeamLine[] {
@@ -121,7 +121,7 @@ function NowPlaying({ game, number, name }: { game: MatchDayGame; number: number
 const gdOf = (l: TeamLine) => l.goalsFor - l.goalsAgainst;
 const signed = (n: number) => `${n > 0 ? "+" : ""}${n}`;
 
-/** Every team in the running to win the day, leader first. */
+/** Every team in the running for team of the match day, leader first. */
 function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: MatchDayGame | null; ended: boolean }) {
   const leader = table[0];
   const started = table.some((l) => l.played > 0);
@@ -143,7 +143,7 @@ function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: Mat
     if (!started) return "Yet to play";
     if (i === 0 || level(l)) {
       if (sharedLead) return "Level at the top";
-      return ended ? "Won the day" : "In front";
+      return ended ? "Team of the match day" : "In front";
     }
     const wins = leader.won - l.won;
     if (wins > 0) return `${wins} win${wins === 1 ? "" : "s"} behind`;
@@ -327,7 +327,7 @@ export default function LiveMatch() {
             {table.length > 1 && (
               <div className="mt-6">
                 <h2 className="mb-2 px-1 text-sm font-semibold text-paper-dim">
-                  {live ? "Race to win the day" : "Winners of the day"}
+                  {live ? "Race for team of the match day" : "Team of the match day"}
                 </h2>
                 <TeamRace table={table} liveGame={liveGame} ended={!live} />
               </div>

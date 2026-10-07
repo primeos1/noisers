@@ -193,9 +193,10 @@ class CmsEndpointsTest extends TestCase
         $this->assertFalse($team->json('data.complete'));
         $this->assertSame([], $team->json('data.lineupPlayerIds'));
         $this->assertNull($team->json('data.playerOfWeek'));
-        // The match day has its own team and player: the scorer first.
+        // The match day has its own team — the side that won it — and player.
         $this->assertSame('e2e-test-day', $team->json('data.matchDays.0.id'));
-        $this->assertSame([$a->id, $b->id], array_column($team->json('data.matchDays.0.lineup'), 'playerId'));
+        $this->assertSame('Team A', $team->json('data.matchDays.0.team.name'));
+        $this->assertSame([$a->id], array_column($team->json('data.matchDays.0.lineup'), 'playerId'));
         $this->assertSame('FWD', $team->json('data.matchDays.0.lineup.0.position'));
         $this->assertSame(1, $team->json('data.matchDays.0.lineup.0.goals'));
         $this->assertSame($a->id, $team->json('data.matchDays.0.playerOfMatchDay.playerId'));

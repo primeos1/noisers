@@ -252,19 +252,22 @@ class NoisersFeed
         $id = "totw-{$event->id}";
         $lineup = $awards['lineupPlayerIds'];
         $star = $awards['playerOfMatchDay'];
+        $team = $awards['team'];
+        $name = $team['name'] ?? 'The winners';
+        $record = $team ? "{$team['won']} ".($team['won'] === 1 ? 'win' : 'wins')." from {$this->plural($team['played'], 'game')}" : '';
 
         $headline = $this->pick("$id-h", [
-            "Team of the match day: {$this->name($star['playerId'])} leads the {$event->title} six",
-            "The best six at {$event->title}, picked on the day's ratings",
-            "Who made the team of the match day at {$event->title}?",
+            "Team of the match day: {$name} take the crown at {$event->title}",
+            "All hail {$name}, the team of the match day",
+            "{$name} — the side nobody could stop at {$event->title}",
         ]);
-        $standfirst = "The day's best keeper, two defenders, midfielder and two forwards — picked on how they rated at {$event->title}.";
+        $standfirst = "{$record} at {$event->title}. One side, one shared bragging right.";
 
         $body = [];
         $body[] = $this->pick("$id-open", [
-            "Every match day has six players who did it better than anyone else in their position. At {$event->title}, these were them.",
-            "Bibs in the wash, ratings in the book. Here's the team of the match day from {$event->title}.",
-            "Wins, goals, assists, clean sheets, saves — it all counts. This is the six who rated best at {$event->title}.",
+            "Every match day has a team everyone else wants to be on. At {$event->title}, that was {$name}.",
+            "Bibs in the wash, trophies in the cabinet. {$name} are the team of the match day after {$event->title}.",
+            "{$name} turned up at {$event->title} and simply out-played everybody: {$record}.",
         ]);
 
         $byPosition = [];
@@ -295,7 +298,7 @@ class NoisersFeed
         return $this->story($id, 'team_of_week', 'Team of the match day', $this->eventTime($event)->addSecond(), $headline, $standfirst, $body, $lineup, [
             'matchDay' => $this->matchDayInfo($event),
             'lineup' => [
-                'team' => 'Team of the match day',
+                'team' => $name,
                 'playerIds' => $lineup,
                 'positions' => array_column($awards['lineup'], 'position'),
             ],

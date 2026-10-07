@@ -75,11 +75,12 @@ class NoisersFeedTest extends TestCase
             ['home' => 'Reds', 'away' => 'Blues', 'homeScore' => 1, 'awayScore' => 0],
         ], $report['scoreline']);
 
-        // The day's best player in each position, keeper first — from both sides.
+        // The side that won the day.
         $totw = $stories['totw-md'];
         $this->assertSame('Team of the match day', $totw['tag']);
-        $this->assertSame([$this->keeper->id, $this->striker->id], $totw['lineup']['playerIds']);
-        $this->assertSame(['GK', 'FWD'], $totw['lineup']['positions']);
+        $this->assertSame('Reds', $totw['lineup']['team']);
+        $this->assertSame([$this->striker->id], $totw['lineup']['playerIds']);
+        $this->assertSame(['FWD'], $totw['lineup']['positions']);
 
         $book = $stories['book-md'];
         $this->assertSame('discipline', $book['kind']);

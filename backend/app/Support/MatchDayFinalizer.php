@@ -447,15 +447,16 @@ class MatchDayFinalizer
     }
 
     /**
-     * The team of the match day and the player of the match day: the day's
-     * six best players by position (see TEAM_SLOTS), and its single
+     * The team of the match day and the player of the match day: the side
+     * that won the day (most wins, then goal difference — the top of
+     * teamTable()) with its squad players keeper first, and the day's single
      * highest-rated player (most goals and assists in weeks 1 and 2 — see
      * GOALS_RULE_LAST_WEEK), from that day's finished games alone — plus the
      * bad boy of the day, whoever was booked most (ties going to more reds).
      * Null when no game finished. Pure and read-only.
      *
      * @param  array<int, int>  $squadIds
-     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfMatchDay: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, badBoy: array{playerId: int, yellowCards: int, redCards: int}|null}|null
+     * @return array{team: array{name: string, won: int, played: int, gd: int}|null, lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfMatchDay: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, badBoy: array{playerId: int, yellowCards: int, redCards: int}|null}|null
      */
     public static function computeTeamOfMatchDay(MatchDayEvent $event, array $squadIds): ?array
     {
@@ -463,12 +464,25 @@ class MatchDayFinalizer
             return null;
         }
         $ranking = self::rankPlayers(collect([$event]), $squadIds);
-        $lineup = self::pickTeam($ranking);
+
+        // The day's winning side, its players keeper first and best-rated
+        // first within each position.
+        $teams = self::teamTable($event, $squadIds);
+        $name = array_key_first($teams);
+        $side = $name === null ? null : $teams[$name];
+        $order = array_flip($ranking['ranked']);
+        $slot = array_flip(PlayerRatings::POSITIONS);
+        $ids = $side['players'] ?? [];
+        usort($ids, fn ($a, $b) => [$slot[$ranking['players'][$a]->position ?? ''] ?? 9, $order[$a] ?? PHP_INT_MAX]
+            <=> [$slot[$ranking['players'][$b]->position ?? ''] ?? 9, $order[$b] ?? PHP_INT_MAX]);
+        $lineup = array_map(fn ($id) => self::pick($ranking, $id, (string) $ranking['players'][$id]->position), $ids);
+
         // Guests carry no awards.
         $squadStats = array_intersect_key($ranking['stats'], $ranking['players']->all());
         $badBoy = PlayerStats::roughest($squadStats);
 
         return [
+            'team' => $side === null ? null : ['name' => (string) $name, 'won' => $side['won'], 'played' => $side['played'], 'gd' => $side['gd']],
             'lineup' => $lineup,
             'lineupPlayerIds' => array_column($lineup, 'playerId'),
             'playerOfMatchDay' => self::topPlayer($ranking, self::picksPlayerOnGoals($event)),
@@ -482,9 +496,11 @@ class MatchDayFinalizer
 
     /**
      * The team of the week and the player of the week for this match day's
-     * week: the same picks as computeTeamOfMatchDay(), but with each player's
-     * points added up across both of the week's match days (see
-     * weekNumbers()), so playing both counts. Like a gameweek, nobody is
+     * week. The team is the best keeper, two defenders, midfielder and two
+     * forwards (TEAM_SLOTS) from the players of the week's two teams of the
+     * match day, each scored on their points added up across both match days
+     * (see weekNumbers()). The player of the week is the week's top-rated
+     * player, whichever side they were on. Like a gameweek, nobody is
      * picked until both match days have ended: until then `complete` is false,
      * the lineup is empty and there's no player of the week. Pure and
      * read-only — used both to rewrite The Vale on finalize() and to answer
@@ -502,7 +518,13 @@ class MatchDayFinalizer
         }
         $complete = $days->count() >= 2;
         $ranking = self::rankPlayers($days, $squadIds);
-        $lineup = $complete ? self::pickTeam($ranking) : [];
+        $pool = [];
+        foreach ($days as $day) {
+            foreach (self::computeTeamOfMatchDay($day, $squadIds)['lineupPlayerIds'] ?? [] as $id) {
+                $pool[$id] = true;
+            }
+        }
+        $lineup = $complete ? self::pickTeam($ranking, $pool) : [];
 
         return [
             'complete' => $complete,
@@ -551,14 +573,16 @@ class MatchDayFinalizer
     }
 
     /**
-     * The best player for each of TEAM_SLOTS, in that order. A slot goes to
-     * the player's main position first, then to someone whose second
-     * position it is; it stays empty if nobody fits.
+     * The best player for each of TEAM_SLOTS, in that order — only from
+     * $pool (ids as keys) when given. A slot goes to the player's main
+     * position first, then to someone whose second position it is; it stays
+     * empty if nobody fits.
      *
      * @param  array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}  $ranking  as rankPlayers()
+     * @param  array<int, true>|null  $pool
      * @return array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>
      */
-    private static function pickTeam(array $ranking): array
+    private static function pickTeam(array $ranking, ?array $pool = null): array
     {
         $picked = [];
         $lineup = [];
@@ -566,7 +590,7 @@ class MatchDayFinalizer
             $choice = null;
             foreach (['position', 'secondary_position'] as $field) {
                 foreach ($ranking['ranked'] as $id) {
-                    if (! isset($picked[$id]) && ($ranking['players'][$id]->{$field} ?? null) === $slot) {
+                    if (($pool === null || isset($pool[$id])) && ! isset($picked[$id]) && ($ranking['players'][$id]->{$field} ?? null) === $slot) {
                         $choice = $id;
                         break 2;
                     }
@@ -615,7 +639,7 @@ class MatchDayFinalizer
         return [
             'playerId' => $id,
             'position' => $position,
-            'points' => round($ranking['points'][$id], 2),
+            'points' => round($ranking['points'][$id] ?? 0.0, 2),
             'stats' => $ranking['stats'][$id] ?? [],
         ];
     }

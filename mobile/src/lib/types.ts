@@ -301,7 +301,9 @@ export interface MatchDayAwards {
   id: string;
   title: string;
   date: string;
-  /** The day's best keeper, two defenders, midfielder and two forwards, in that order. */
+  /** The side that won the day — most wins, then goal difference. */
+  team?: { name: string; won: number; played: number; gd: number } | null;
+  /** That side's players, keeper first. */
   lineup: TeamOfWeekPick[];
   playerOfMatchDay: TeamOfWeekPick | null;
   /** Most cards that day, ties going to more reds — null when nobody was booked. */

@@ -98,6 +98,11 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
       {picks.length > 0 ? (
         <>
           <Txt style={[text.small, styles.dayTeamLabel]}>Team of the match day</Txt>
+          {day.team ? (
+            <Txt style={styles.dayStarName}>
+              {day.team.name} <Txt style={text.small}>· won {day.team.won} of {day.team.played} · {day.team.gd > 0 ? `+${day.team.gd}` : day.team.gd} GD</Txt>
+            </Txt>
+          ) : null}
           {picks.map(({ pick, player }) => (
             <Tilt key={player.id} onPress={() => router.push(`/player/${player.id}`)} accessibilityLabel={`${pick.position}: ${player.name}`}>
               <View style={styles.dayPick}>

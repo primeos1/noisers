@@ -45,7 +45,9 @@ interface MatchDayAwards {
   id: string;
   title: string;
   date: string;
-  /** The day's best keeper, two defenders, midfielder and two forwards, in that order. */
+  /** The side that won the day — most wins, then goal difference. */
+  team?: { name: string; won: number; played: number; gd: number } | null;
+  /** That side's players, keeper first. */
   lineup: TeamOfWeekPick[];
   playerOfMatchDay: TeamOfWeekPick | null;
   /** Most cards that day, ties going to more reds — null when nobody was booked. */
@@ -326,6 +328,14 @@ function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[]
       {picks.length > 0 && (
         <>
           <p className="mt-5 text-xs text-mist">Team of the match day</p>
+          {day.team && (
+            <p className="mt-1 font-display text-2xl leading-tight text-paper">
+              {day.team.name}{" "}
+              <span className="font-sans text-xs text-mist">
+                · won {day.team.won} of {day.team.played} · {day.team.gd > 0 ? `+${day.team.gd}` : day.team.gd} GD
+              </span>
+            </p>
+          )}
           <ul className="mt-2 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
             {picks.map(({ pick, player }) => (
               <li key={player.id} className="flex min-w-0 items-center gap-2 text-sm text-paper-dim">
