@@ -44,13 +44,14 @@ interface TeamLine {
   lost: number;
   goalsFor: number;
   goalsAgainst: number;
-  points: number;
 }
 
-// The day's table from finished games — 3 for a win, 1 for a draw. Games are
-// matched to teams by name, as in the rotation (see nextFixture).
+// The day's table from finished games, ranked the way the club picks its
+// team of the match day (MatchDayFinalizer::teamTable): most wins, then goal
+// difference, then goals scored. Games are matched to teams by name, as in
+// the rotation (see nextFixture).
 function dayTable(teams: MatchDayTeam[], games: MatchDayGame[]): TeamLine[] {
-  const lines = teams.map((team) => ({ team, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }));
+  const lines = teams.map((team) => ({ team, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0 }));
   for (const game of games) {
     if (game.status !== "finished") continue;
     ([0, 1] as const).forEach((side) => {
@@ -66,10 +67,9 @@ function dayTable(teams: MatchDayTeam[], games: MatchDayGame[]): TeamLine[] {
       else line.drawn++;
     });
   }
-  lines.forEach((l) => (l.points = l.won * 3 + l.drawn));
   return lines.sort(
     (a, b) =>
-      b.points - a.points ||
+      b.won - a.won ||
       b.goalsFor - b.goalsAgainst - (a.goalsFor - a.goalsAgainst) ||
       b.goalsFor - a.goalsFor ||
       a.team.name.localeCompare(b.team.name),
@@ -113,6 +113,88 @@ function NowPlaying({ game, number, name }: { game: MatchDayGame; number: number
       )}
       <p className="border-t border-ink-line/70 px-4 py-2.5 text-xs text-mist">
         {timer.running ? `${timer.minute}' — clock running` : timer.isFinished ? "Time's up" : "Clock paused"}
+      </p>
+    </div>
+  );
+}
+
+const gdOf = (l: TeamLine) => l.goalsFor - l.goalsAgainst;
+const signed = (n: number) => `${n > 0 ? "+" : ""}${n}`;
+
+/** Every team in the running for team of the match day, leader first. */
+function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: MatchDayGame | null; ended: boolean }) {
+  const leader = table[0];
+  const started = table.some((l) => l.played > 0);
+  const level = (l: TeamLine) => l.won === leader.won && gdOf(l) === gdOf(leader);
+  const sharedLead = started && table.filter(level).length > 1;
+  const maxWins = Math.max(1, ...table.map((l) => l.won));
+
+  // How a team stands in the game being played right now, if it's in it.
+  const playing = (name: string) => {
+    if (!liveGame) return null;
+    const side = liveGame.teams[0].name === name ? 0 : liveGame.teams[1].name === name ? 1 : null;
+    if (side === null) return null;
+    const us = scoreOf(liveGame, side);
+    const them = scoreOf(liveGame, side === 0 ? 1 : 0);
+    return us > them ? `Winning ${us}–${them} now` : us < them ? `Losing ${us}–${them} now` : `Level ${us}–${them} now`;
+  };
+
+  const note = (l: TeamLine, i: number) => {
+    if (!started) return "Yet to play";
+    if (i === 0 || level(l)) {
+      if (sharedLead) return "Level at the top";
+      return ended ? "Team of the match day" : "In front";
+    }
+    const wins = leader.won - l.won;
+    if (wins > 0) return `${wins} win${wins === 1 ? "" : "s"} behind`;
+    return `${gdOf(leader) - gdOf(l)} goal${gdOf(leader) - gdOf(l) === 1 ? "" : "s"} behind on difference`;
+  };
+
+  return (
+    <div className="overflow-hidden rounded-2xl bg-ink-raised">
+      <ol className="divide-y divide-ink-line/70">
+        {table.map((l, i) => {
+          const front = started && (i === 0 || level(l));
+          const live = playing(l.team.name);
+          return (
+            <li key={l.team.name} className={`px-4 py-3 ${front ? "bg-justice/[0.06]" : ""}`}>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-display text-base font-bold ${
+                    front ? "bg-justice text-ink" : "bg-ink text-mist"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-paper">{l.team.name}</span>
+                  <span className={`block truncate text-xs ${front ? "text-justice" : "text-mist"}`}>
+                    {note(l, i)}
+                    {live && <span className="text-loss"> · {live}</span>}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <span className="block font-display text-2xl font-bold leading-none tabular-nums text-paper">
+                    {l.won}
+                    <span className="ml-0.5 text-xs font-medium text-mist">W</span>
+                  </span>
+                  <span className="block text-xs tabular-nums text-mist">
+                    {l.played} played · GD {signed(gdOf(l))}
+                  </span>
+                </span>
+              </div>
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-ink" aria-hidden="true">
+                <div
+                  className={`h-full rounded-full transition-[width] duration-700 ${front ? "bg-justice" : "bg-paper-dim/60"}`}
+                  style={{ width: `${Math.max(3, (l.won / maxWins) * 100)}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="border-t border-ink-line/70 px-4 py-2.5 text-xs text-mist">
+        Most wins takes it; level teams are split on goal difference. Only finished games count.
       </p>
     </div>
   );
@@ -242,6 +324,15 @@ export default function LiveMatch() {
               <Empty>{teams.length ? "Teams are picked — kick-off is coming." : "Teams haven't been picked yet."}</Empty>
             ) : null}
 
+            {table.length > 1 && (
+              <div className="mt-6">
+                <h2 className="mb-2 px-1 text-sm font-semibold text-paper-dim">
+                  {live ? "Race for team of the match day" : "Team of the match day"}
+                </h2>
+                <TeamRace table={table} liveGame={liveGame} ended={!live} />
+              </div>
+            )}
+
             {finished.length > 0 && (
               <div className="mt-6">
                 <h2 className="mb-2 px-1 text-sm font-semibold text-paper-dim">Results</h2>
@@ -304,23 +395,23 @@ export default function LiveMatch() {
             />
 
             {table.length > 0 && (
-              <Group title="Day table" aside="3 pts a win, 1 a draw">
+              <Group title="Day table" aside="Ranked by wins, then goal difference">
                 <div className="grid grid-cols-[1fr_repeat(5,2rem)] gap-1 px-4 py-2 text-xs text-mist">
                   <span>Team</span>
                   <span className="text-center">P</span>
                   <span className="text-center">W</span>
                   <span className="text-center">D</span>
+                  <span className="text-center">L</span>
                   <span className="text-center">GD</span>
-                  <span className="text-center">Pts</span>
                 </div>
                 {table.map((l) => (
                   <div key={l.team.name} className="grid grid-cols-[1fr_repeat(5,2rem)] items-center gap-1 px-4 py-2.5 text-sm tabular-nums">
                     <span className="truncate font-semibold text-paper">{l.team.name}</span>
                     <span className="text-center text-paper-dim">{l.played}</span>
-                    <span className="text-center text-paper-dim">{l.won}</span>
+                    <span className="text-center font-bold text-paper">{l.won}</span>
                     <span className="text-center text-paper-dim">{l.drawn}</span>
-                    <span className="text-center text-paper-dim">{l.goalsFor - l.goalsAgainst > 0 ? "+" : ""}{l.goalsFor - l.goalsAgainst}</span>
-                    <span className="text-center font-bold text-paper">{l.points}</span>
+                    <span className="text-center text-paper-dim">{l.lost}</span>
+                    <span className="text-center text-paper-dim">{signed(gdOf(l))}</span>
                   </div>
                 ))}
               </Group>
