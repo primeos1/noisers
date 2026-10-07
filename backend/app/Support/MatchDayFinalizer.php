@@ -402,9 +402,9 @@ class MatchDayFinalizer
 
     /**
      * The shape of the team of the match day and the team of the week: one
-     * keeper, two defenders, two midfielders and a forward.
+     * keeper, two defenders, a midfielder and two forwards.
      */
-    public const TEAM_SLOTS = ['GK', 'DEF', 'DEF', 'MID', 'MID', 'FWD'];
+    public const TEAM_SLOTS = ['GK', 'DEF', 'DEF', 'MID', 'FWD', 'FWD'];
 
     /**
      * Weeks 1 and 2 were awarded before ratings picked the player, so their
@@ -474,13 +474,15 @@ class MatchDayFinalizer
      * The team of the week and the player of the week for this match day's
      * week: the same picks as computeTeamOfMatchDay(), but with each player's
      * points added up across both of the week's match days (see
-     * weekNumbers()), so playing both counts. Pure and read-only — used both to
-     * rewrite The Vale on finalize() and to answer "what was the team of the
-     * week for match day X" for any past event.
+     * weekNumbers()), so playing both counts. Like a gameweek, nobody is
+     * picked until both match days have ended: until then `complete` is false,
+     * the lineup is empty and there's no player of the week. Pure and
+     * read-only — used both to rewrite The Vale on finalize() and to answer
+     * "what was the team of the week for match day X" for any past event.
      *
      * @param  array<int, int>  $squadIds
      * @param  ?string  $exceptId  a match day of the same week to leave out
-     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfWeek: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, weekMatchDays: MatchDayEvent[]}|null
+     * @return array{complete: bool, lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfWeek: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, weekMatchDays: MatchDayEvent[]}|null
      */
     public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
@@ -488,13 +490,15 @@ class MatchDayFinalizer
         if ($days->isEmpty()) {
             return null;
         }
+        $complete = $days->count() >= 2;
         $ranking = self::rankPlayers($days, $squadIds);
-        $lineup = self::pickTeam($ranking);
+        $lineup = $complete ? self::pickTeam($ranking) : [];
 
         return [
+            'complete' => $complete,
             'lineup' => $lineup,
             'lineupPlayerIds' => array_column($lineup, 'playerId'),
-            'playerOfWeek' => self::topPlayer($ranking, self::picksPlayerOnGoals($event)),
+            'playerOfWeek' => $complete ? self::topPlayer($ranking, self::picksPlayerOnGoals($event)) : null,
             'weekMatchDays' => $days->all(),
         ];
     }
@@ -941,6 +945,9 @@ class MatchDayFinalizer
                 ),
                 'potw_rating' => min(10, round(6 + $s['goals'] + 0.5 * $s['assists'] + 0.5 * $s['cleanSheets'], 1)),
             ];
+        } else {
+            // The week isn't over yet: no player of the week until it is.
+            $changes += ['potw_player_id' => null, 'potw_note' => null, 'potw_rating' => null];
         }
 
         // Most improved — of the players whose rating rose this match day (set

@@ -51,16 +51,29 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $ace = Player::factory()->create(['position' => 'FWD']);
         $rival = Player::factory()->create(['position' => 'FWD']);
 
-        // Week 1 is Matchday 1 and 2, both won by the ace; week 2 starts with
-        // the rival's Matchday 3.
+        // Week 1 is Matchday 1 and 2, both won by the ace; week 2 is the
+        // rival's Matchday 3 and 4.
         $this->playMatchDay('md1', $ace, $rival, 'Wed 24 Sept');
         $this->playMatchDay('md2', $ace, $rival, 'Sun 28 Sept');
         $this->playMatchDay('md3', $rival, $ace, 'Wed 1 Oct');
 
+        // Like a gameweek, week 2 has no team or player until both its match
+        // days are done — but Matchday 3 has its own.
+        $this->getJson('/api/match-day-events/md3/team-of-week')
+            ->assertJsonPath('data.complete', false)
+            ->assertJsonPath('data.lineupPlayerIds', [])
+            ->assertJsonPath('data.playerOfWeek', null)
+            ->assertJsonPath('data.matchDays.0.playerOfMatchDay.playerId', $rival->id);
+        $this->getJson('/api/vale-content')
+            ->assertJsonPath('data.teamOfTheWeek.lineupPlayerIds', [])
+            ->assertJsonPath('data.playerOfTheWeek.playerId', null);
+
+        $this->playMatchDay('md4', $rival, $ace, 'Sun 5 Oct');
         $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
 
         $this->getJson('/api/match-day-events/md1/team-of-week')
             ->assertJsonPath('data.title', 'Week 1')
+            ->assertJsonPath('data.complete', true)
             ->assertJsonPath('data.lineup.0.playerId', $ace->id)
             ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.awards.weeklyLeaders.topScorer.playerId', $ace->id)
@@ -113,8 +126,9 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $this->playWeekDay('sun', 'Sun 4 Oct', [$def2, $fwd2], [$def3, $fwd3], [[$fwd2, null]]);
 
         // Points added up over the week: def2 (-0.10 then +0.22) gets the
-        // second defender's place; the one forward's place goes to fwd1.
-        $six = [$gk, $def1, $def2, $mid1, $mid2, $fwd1];
+        // second defender's place and fwd2 the second forward's; one
+        // midfielder's place, so mid2 misses out.
+        $six = [$gk, $def1, $def2, $mid1, $fwd1, $fwd2];
         foreach (['wed', 'sun'] as $id) {
             $team = $this->getJson("/api/match-day-events/{$id}/team-of-week")
                 ->assertJsonPath('data.week', 1)
@@ -123,13 +137,12 @@ class PlayerOfTheWeekWinsTest extends TestCase
                 ->assertJsonPath('data.playerOfWeek.playerId', $fwd1)
                 ->assertJsonPath('data.weekMatchDays.0.id', 'wed')
                 ->assertJsonPath('data.weekMatchDays.1.id', 'sun');
-            $this->assertSame(['GK', 'DEF', 'DEF', 'MID', 'MID', 'FWD'], array_column($team->json('data.lineup'), 'position'));
+            $this->assertSame(['GK', 'DEF', 'DEF', 'MID', 'FWD', 'FWD'], array_column($team->json('data.lineup'), 'position'));
 
             // Each match day has its own team and player, from that day alone.
             $this->assertSame($six, array_column($team->json('data.matchDays.0.lineup'), 'playerId'));
             $this->assertSame($fwd1, $team->json('data.matchDays.0.playerOfMatchDay.playerId'));
-            $this->assertSame([$def2, $def3, $fwd2], array_column($team->json('data.matchDays.1.lineup'), 'playerId'));
-            // def2 and fwd2 both earned 0.22; the goal breaks the tie.
+            $this->assertSame([$def2, $def3, $fwd2, $fwd3], array_column($team->json('data.matchDays.1.lineup'), 'playerId'));
             $this->assertSame($fwd2, $team->json('data.matchDays.1.playerOfMatchDay.playerId'));
         }
 
@@ -143,15 +156,17 @@ class PlayerOfTheWeekWinsTest extends TestCase
             ->assertJsonPath('data.teamOfTheWeekSelections', 1)
             ->assertJsonPath('data.playerOfTheWeekWins', 1);
         $this->getJson("/api/players/{$fwd2}")
-            ->assertJsonPath('data.teamOfTheWeekSelections', 0)
+            ->assertJsonPath('data.teamOfTheWeekSelections', 1)
             ->assertJsonPath('data.playerOfTheWeekWins', 0);
+        $this->getJson("/api/players/{$mid2}")->assertJsonPath('data.teamOfTheWeekSelections', 0);
         $this->getJson("/api/players/{$def3}")->assertJsonPath('data.teamOfTheWeekSelections', 0);
 
-        // Delete Wednesday and only Sunday's players are left to pick from.
+        // Delete Wednesday and the week is back to one match day: no team or
+        // player of the week until another is played.
         $this->deleteJson('/api/match-day-events/wed')->assertNoContent();
         $this->getJson('/api/vale-content')
-            ->assertJsonPath('data.teamOfTheWeek.lineupPlayerIds', [$def2, $def3, $fwd2])
-            ->assertJsonPath('data.playerOfTheWeek.playerId', $fwd2);
+            ->assertJsonPath('data.teamOfTheWeek.lineupPlayerIds', [])
+            ->assertJsonPath('data.playerOfTheWeek.playerId', null);
     }
 
     public function test_the_vale_counts_how_often_the_player_of_the_week_has_won(): void
@@ -163,28 +178,29 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.timesWon', 0);
 
         $this->playMatchDay('md1', $ace, $rival);
+        $this->playMatchDay('md2', $ace, $rival);
         $this->getJson('/api/vale-content')
             ->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 1);
 
         // Week 1 (Matchday 1 and 2) goes to the ace, week 2 (3 and 4) to the
-        // rival, and the ace leads week 3 after Matchday 5.
-        $this->playMatchDay('md2', $ace, $rival);
+        // rival, and week 3 (5 and 6) to the ace again.
         $this->playMatchDay('md3', $rival, $ace);
         $this->playMatchDay('md4', $rival, $ace);
         $this->playMatchDay('md5', $ace, $rival);
+        $this->playMatchDay('md6', $ace, $rival);
         $this->getJson('/api/vale-content')
             ->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 2);
 
-        // Profiles carry both honours. The six has one forward's place, and
-        // the week's scorer takes it.
+        // Profiles carry both honours. The only two forwards make the six
+        // every week.
         $this->getJson("/api/players/{$ace->id}")
             ->assertJsonPath('data.playerOfTheWeekWins', 2)
-            ->assertJsonPath('data.teamOfTheWeekSelections', 2);
+            ->assertJsonPath('data.teamOfTheWeekSelections', 3);
         $this->getJson("/api/players/{$rival->id}")
             ->assertJsonPath('data.playerOfTheWeekWins', 1)
-            ->assertJsonPath('data.teamOfTheWeekSelections', 1);
+            ->assertJsonPath('data.teamOfTheWeekSelections', 3);
 
         // The committee hands this week to someone else: the count follows.
         $this->putJson('/api/vale-content', ['potw_player_id' => $rival->id])
@@ -209,14 +225,16 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id);
 
         // Without Matchday 1, the old Matchday 4 is Matchday 3 and starts week
-        // 2 on its own — so The Vale's week 2 is the rival's alone.
+        // 2 on its own — so week 2 has no team or player of the week yet.
         $this->deleteJson('/api/match-day-events/md1')->assertNoContent();
         $this->getJson('/api/match-day-events/md4/team-of-week')
             ->assertJsonPath('data.week', 2)
+            ->assertJsonPath('data.complete', false)
             ->assertJsonPath('data.weekMatchDays.0.id', 'md4');
         $this->getJson('/api/vale-content')
             ->assertJsonPath('data.teamOfTheWeek.title', 'Matchday 3')
-            ->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
+            ->assertJsonPath('data.teamOfTheWeek.lineupPlayerIds', [])
+            ->assertJsonPath('data.playerOfTheWeek.playerId', null);
     }
 
     public function test_weeks_1_and_2_pick_the_player_on_goals_and_assists_and_later_weeks_on_ratings(): void
@@ -228,7 +246,7 @@ class PlayerOfTheWeekWinsTest extends TestCase
 
         // Every match day the same 1–0: the keeper's win and clean sheet
         // (0.25) out-rate the striker's win and goal (0.22).
-        foreach (['md1', 'md2', 'md3', 'md4', 'md5'] as $id) {
+        foreach (['md1', 'md2', 'md3', 'md4', 'md5', 'md6'] as $id) {
             $this->playWeekDay($id, 'Sun 28 Sept', [$keeper, $striker], [$other], [[$striker, null]]);
         }
 

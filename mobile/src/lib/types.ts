@@ -301,7 +301,7 @@ export interface MatchDayAwards {
   id: string;
   title: string;
   date: string;
-  /** The day's best keeper, two defenders, two midfielders and forward, in that order. */
+  /** The day's best keeper, two defenders, midfielder and two forwards, in that order. */
   lineup: TeamOfWeekPick[];
   playerOfMatchDay: TeamOfWeekPick | null;
 }
@@ -313,9 +313,11 @@ export interface TeamOfWeek {
   dateRange: string;
   /** Every match day of the week that was compared (its two match days). */
   weekMatchDays?: { id: string; title: string; date: string }[];
-  /** The week's best keeper, two defenders, two midfielders and forward, in that order. */
+  /** The week's best keeper, two defenders, midfielder and two forwards, in that order. */
   lineup: TeamOfWeekPick[];
   lineupPlayerIds: number[];
+  /** Whether both match days have ended — until then there's no team or player of the week. */
+  complete?: boolean;
   /** The week's highest-rated player, with both match days' points added up. */
   playerOfWeek?: TeamOfWeekPick | null;
   /** The team and player of each of the week's match days, oldest first. */

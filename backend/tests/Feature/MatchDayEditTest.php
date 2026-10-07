@@ -178,8 +178,8 @@ class MatchDayEditTest extends TestCase
         ]);
 
         $vale = ValeContent::current();
-        // The team of the week is a picked six: the defender, then the forward.
-        $this->assertSame([$this->other->id, $this->scorer->id], $vale->team_lineup_player_ids);
+        // One match day of the week in, so no team of the week yet.
+        $this->assertSame([], $vale->team_lineup_player_ids);
         $this->assertSame('Blues', $vale->leader_clean_sheet_team);
         $this->assertSame(1, $vale->leader_clean_sheet_value);
     }

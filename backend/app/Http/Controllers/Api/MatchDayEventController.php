@@ -124,8 +124,9 @@ class MatchDayEventController extends Controller
 
     /**
      * Public — the team and player of the week for this match day's week
-     * (the best keeper, two defenders, two midfielders and forward, and the
-     * top-rated player, across the week's two match days), the team and player of
+     * (the best keeper, two defenders, midfielder and two forwards, and the
+     * top-rated player, across the week's two match days — only once both
+     * have ended), the team and player of
      * each of the week's match days, and the week's flop team, computed on
      * demand. Powers The Vale's "pick a week" selector, which
      * shows the latest by default but lets a visitor look at an older one
@@ -153,7 +154,10 @@ class MatchDayEventController extends Controller
                 'dateRange' => implode(' & ', array_map(fn ($e) => $e->date, $team['weekMatchDays'])),
                 'week' => MatchDayFinalizer::weekNumber($matchDayEvent),
                 'weekMatchDays' => array_map(fn ($e) => ['id' => $e->id, 'title' => $e->title, 'date' => $e->date], $team['weekMatchDays']),
-                // GK, DEF, DEF, MID, MID, FWD — each with what they did that week.
+                // Whether both match days have ended; until then there's no
+                // team or player of the week.
+                'complete' => $team['complete'],
+                // GK, DEF, DEF, MID, FWD, FWD — each with what they did that week.
                 'lineup' => array_map($pick, $team['lineup']),
                 'lineupPlayerIds' => $team['lineupPlayerIds'],
                 'playerOfWeek' => $pick($team['playerOfWeek']),

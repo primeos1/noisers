@@ -43,7 +43,7 @@ interface MatchDayAwards {
   id: string;
   title: string;
   date: string;
-  /** The day's best keeper, two defenders, two midfielders and forward, in that order. */
+  /** The day's best keeper, two defenders, midfielder and two forwards, in that order. */
   lineup: TeamOfWeekPick[];
   playerOfMatchDay: TeamOfWeekPick | null;
 }
@@ -55,9 +55,11 @@ interface TeamOfWeekData {
   dateRange: string;
   /** Every match day of the week that was compared (its two match days). */
   weekMatchDays?: { id: string; title: string; date: string }[];
-  /** The week's best keeper, two defenders, two midfielders and forward, in that order. */
+  /** The week's best keeper, two defenders, midfielder and two forwards, in that order. */
   lineup: TeamOfWeekPick[];
   lineupPlayerIds: number[];
+  /** Whether both match days have ended — until then there's no team or player of the week. */
+  complete?: boolean;
   /** The week's highest-rated player, with both match days' points added up. */
   playerOfWeek?: TeamOfWeekPick | null;
   /** The team and player of each of the week's match days, oldest first. */
@@ -232,8 +234,9 @@ export default function TheVale() {
           {team && !teamLoading && (
             <>
               <p className="mt-4 max-w-xl text-paper-dim">
-                {team.dateRange} · The week's best keeper, two defenders, two midfielders and forward, rated across{" "}
-                {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
+                {team.complete === false
+                  ? `${team.dateRange} · The team and player of the week are picked once both of the week's match days have ended.`
+                  : `${team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards, rated across both match days.`}
               </p>
 
               {lineup.length > 0 && (
@@ -327,7 +330,7 @@ export default function TheVale() {
                 )}
               </div>
               <h3 className="mt-2 font-display text-3xl text-paper">
-                {potw?.name ?? "Coming soon"}
+                {potw?.name ?? (team?.complete === false ? "After both match days" : "Coming soon")}
               </h3>
               {potw && (
                 <p className="mt-1 text-sm text-mist">

@@ -164,7 +164,9 @@ export default function ValeScreen() {
             <LinearGradient colors={["rgba(216,181,106,0.3)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Txt style={styles.teamTitle}>{team.title}</Txt>
             <Txt style={[text.dim, styles.teamBody]}>
-              {team.dateRange} · The week's best keeper, two defenders, two midfielders and forward, rated across {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
+              {team.complete === false
+                ? `${team.dateRange} · The team and player of the week are picked once both of the week's match days have ended.`
+                : `${team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards, rated across both match days.`}
             </Txt>
           </Glass>
           {lineup.length > 0 ? (

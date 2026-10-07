@@ -258,7 +258,7 @@ class NoisersFeed
             "The best six at {$event->title}, picked on the day's ratings",
             "Who made the team of the match day at {$event->title}?",
         ]);
-        $standfirst = "The day's best keeper, two defenders, two midfielders and forward — picked on how they rated at {$event->title}.";
+        $standfirst = "The day's best keeper, two defenders, midfielder and two forwards — picked on how they rated at {$event->title}.";
 
         $body = [];
         $body[] = $this->pick("$id-open", [
