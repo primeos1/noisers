@@ -283,17 +283,25 @@ export interface Story {
 }
 
 /** /match-day-events/{id}/team-of-week */
+export interface TeamOfWeekPick {
+  playerId: number;
+  position: Position;
+  goals: number;
+  assists: number;
+  cleanSheets: number;
+  saves: number;
+  appearances: number;
+}
+
 export interface TeamOfWeek {
-  /** The match day the week's best side played on. */
+  /** "Week of 28 Sep". */
   title: string;
+  /** The week's match day dates, e.g. "Wed 30 Sept & Sun 4 Oct". */
   dateRange: string;
-  teamName?: string;
   /** Every match day of the week that was compared (Wednesday and Sunday). */
   weekMatchDays?: { id: string; title: string; date: string }[];
-  sessionsWon: number;
-  sessionsPlayed: number;
-  rivalTeam: string;
-  score: string;
+  /** The week's best keeper, two defenders, midfielder and two forwards, in that order. */
+  lineup: TeamOfWeekPick[];
   lineupPlayerIds: number[];
   /** The side at the bottom of the table — null when only one side played. */
   flopTeam?: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;

@@ -150,8 +150,8 @@ class CmsEndpointsTest extends TestCase
 
     public function test_match_day_lifecycle_and_team_of_week_endpoint(): void
     {
-        $a = Player::factory()->create(['number' => 10]);
-        $b = Player::factory()->create(['number' => 20]);
+        $a = Player::factory()->create(['number' => 10, 'position' => 'FWD']);
+        $b = Player::factory()->create(['number' => 20, 'position' => 'FWD']);
         Sanctum::actingAs(User::factory()->create(['role' => 'committee']));
 
         $this->postJson('/api/match-day-events', [
@@ -189,9 +189,10 @@ class CmsEndpointsTest extends TestCase
 
         // Public, per-event lookup should agree, independent of the singleton.
         $team = $this->getJson('/api/match-day-events/e2e-test-day/team-of-week')->assertOk();
-        $this->assertSame('Matchday 1', $team->json('data.title'));
-        $this->assertSame([$a->id], $team->json('data.lineupPlayerIds'));
-        $this->assertSame('Team B', $team->json('data.rivalTeam'));
+        // The week's two forwards, the scorer first.
+        $this->assertSame([$a->id, $b->id], $team->json('data.lineupPlayerIds'));
+        $this->assertSame('FWD', $team->json('data.lineup.0.position'));
+        $this->assertSame(1, $team->json('data.lineup.0.goals'));
         $this->assertSame('Team B', $team->json('data.flopTeam.name'));
         $this->assertSame([$b->id], $team->json('data.flopTeam.lineupPlayerIds'));
         $this->assertSame($b->id, $team->json('data.flopPlayer.playerId'));

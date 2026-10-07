@@ -121,8 +121,9 @@ class MatchDayEventController extends Controller
     }
 
     /**
-     * Public — the best side of this match day's week (Wednesday and Sunday
-     * compared, with its lineup/rival/score), plus the week's flop team,
+     * Public — the team of the week for this match day's week (the best
+     * keeper, two defenders, midfielder and two forwards across Wednesday
+     * and Sunday), plus the week's flop team,
      * computed on demand. Powers The Vale's "pick a week" selector, which
      * shows the latest by default but lets a visitor look at an older one
      * without that overwriting the persisted current award.
@@ -134,16 +135,21 @@ class MatchDayEventController extends Controller
 
         return response()->json([
             'data' => $team ? [
-                // The match day the week's best side played on.
-                'title' => $team['matchDay']->title,
-                'dateRange' => $team['matchDay']->date,
-                'teamName' => $team['teamName'],
+                'title' => 'Week of '.MatchDayFinalizer::weekOf($matchDayEvent)->format('j M'),
+                'dateRange' => implode(' & ', array_map(fn ($e) => $e->date, $team['weekMatchDays'])),
                 'weekOf' => MatchDayFinalizer::weekOf($matchDayEvent)->toDateString(),
                 'weekMatchDays' => array_map(fn ($e) => ['id' => $e->id, 'title' => $e->title, 'date' => $e->date], $team['weekMatchDays']),
-                'sessionsWon' => $team['sessionsWon'],
-                'sessionsPlayed' => $team['sessionsPlayed'],
-                'rivalTeam' => $team['rivalTeam'],
-                'score' => $team['score'],
+                // GK, DEF, DEF, MID, FWD, FWD — each with what they did that week.
+                'lineup' => array_map(fn ($p) => [
+                    'playerId' => $p['playerId'],
+                    'position' => $p['position'],
+                    'points' => $p['points'],
+                    'goals' => $p['stats']['goals'] ?? 0,
+                    'assists' => $p['stats']['assists'] ?? 0,
+                    'cleanSheets' => $p['stats']['cleanSheets'] ?? 0,
+                    'saves' => $p['stats']['saves'] ?? 0,
+                    'appearances' => $p['stats']['appearances'] ?? 0,
+                ], $team['lineup']),
                 'lineupPlayerIds' => $team['lineupPlayerIds'],
                 'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
                 // Worked out for this match day, so every one has a flop.

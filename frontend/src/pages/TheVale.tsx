@@ -12,6 +12,19 @@ import { CrownIcon } from "../components/icons";
 /** "First win", "Won 3 times" — how often this player has been player of the week. */
 const winsLabel = (n: number) => (n === 1 ? "First win" : `Won ${n} times`);
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** "2 goals · 1 assist" — what earned a team-of-the-week pick their place. */
+function pickLine(p: TeamOfWeekPick) {
+  const parts = [
+    p.goals > 0 && plural(p.goals, "goal"),
+    p.assists > 0 && plural(p.assists, "assist"),
+    p.cleanSheets > 0 && plural(p.cleanSheets, "clean sheet"),
+    p.saves > 0 && plural(p.saves, "save"),
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : plural(p.appearances, "game");
+}
+
 /** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
 function weekLabel(weekOf?: string) {
   if (!weekOf) return null;
@@ -19,17 +32,25 @@ function weekLabel(weekOf?: string) {
   return `Week of ${new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
 }
 
+interface TeamOfWeekPick {
+  playerId: number;
+  position: "GK" | "DEF" | "MID" | "FWD";
+  goals: number;
+  assists: number;
+  cleanSheets: number;
+  saves: number;
+  appearances: number;
+}
+
 interface TeamOfWeekData {
-  /** The match day the week's best side played on. */
+  /** "Week of 28 Sep". */
   title: string;
+  /** The week's match day dates, e.g. "Wed 30 Sept & Sun 4 Oct". */
   dateRange: string;
-  teamName?: string;
   /** Every match day of the week that was compared (Wednesday and Sunday). */
   weekMatchDays?: { id: string; title: string; date: string }[];
-  sessionsWon: number;
-  sessionsPlayed: number;
-  rivalTeam: string;
-  score: string;
+  /** The week's best keeper, two defenders, midfielder and two forwards, in that order. */
+  lineup: TeamOfWeekPick[];
   lineupPlayerIds: number[];
   /** The side at the bottom of the table — null when only one side played. */
   flopTeam: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
@@ -92,9 +113,9 @@ export default function TheVale() {
       : DEFAULT_VALE_CONTENT;
   const { playerOfTheWeek, mostImproved: mostImprovedPlayer, flopOfTheWeek, weeklyLeaders } = awards;
 
-  const lineup = (team?.lineupPlayerIds ?? [])
-    .map((n) => players.find((p) => p.id === n))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  const lineup = (team?.lineup ?? [])
+    .map((pick) => ({ pick, player: players.find((p) => p.id === pick.playerId) }))
+    .filter((x): x is typeof x & { player: NonNullable<typeof x.player> } => Boolean(x.player));
   const potw = players.find((p) => p.id === playerOfTheWeek.playerId);
   const mip = players.find((p) => p.id === mostImprovedPlayer.playerId);
   const topScorer = players.find((p) => p.id === weeklyLeaders.topScorer.playerId);
@@ -164,17 +185,15 @@ export default function TheVale() {
           {team && !teamLoading && (
             <>
               <p className="mt-4 max-w-xl text-paper-dim">
-                {team.teamName ? `${team.teamName} · ` : ""}
-                {team.dateRange} · {team.sessionsWon} of {team.sessionsPlayed} games won, capped by a{" "}
-                {team.score} win over {team.rivalTeam}.
-                {(team.weekMatchDays?.length ?? 0) > 1 &&
-                  ` The best side across ${team.weekMatchDays!.map((d) => d.date).join(" and ")}.`}
+                {team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards across{" "}
+                {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
               </p>
 
               {lineup.length > 0 && (
-                <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-4 lg:grid-cols-8">
-                  {lineup.map((player) => (
+                <div className="mt-10 grid grid-cols-2 gap-px bg-ink-line sm:grid-cols-3 lg:grid-cols-6">
+                  {lineup.map(({ pick, player }) => (
                     <div key={player.id} className="bg-ink/70 p-4 backdrop-blur">
+                      <p className="mb-2 text-xs text-mist">{pick.position}</p>
                       <div className="relative aspect-square overflow-hidden border border-ink-line">
                         <img
                           src={player.photo}
@@ -187,6 +206,7 @@ export default function TheVale() {
                         {player.number}
                       </p>
                       <p className="mt-1 text-xs text-paper-dim">{player.name}</p>
+                      <p className="mt-1 text-xs text-mist">{pickLine(pick)}</p>
                     </div>
                   ))}
                 </div>

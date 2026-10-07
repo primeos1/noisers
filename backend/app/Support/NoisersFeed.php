@@ -110,7 +110,7 @@ class NoisersFeed
         $scorer = $this->leader($squadStats, 'goals');
         $assister = $this->leader($squadStats, 'assists');
         $cleanSheet = MatchDayFinalizer::computeCleanSheetTeam($event, array_keys($this->players), $this->noCleanSheetIds());
-        $team = MatchDayFinalizer::computeTeamOfWeek($event, array_keys($this->players));
+        $team = MatchDayFinalizer::computeBestSide($event, array_keys($this->players));
         $winner = $team ? $this->winningTeamName($event, $team) : null;
 
         $scoreline = array_map(fn ($g) => $this->gameLine($g), $games);
@@ -233,7 +233,7 @@ class NoisersFeed
 
     private function teamOfTheWeek(MatchDayEvent $event): ?array
     {
-        $team = MatchDayFinalizer::computeTeamOfWeek($event, array_keys($this->players));
+        $team = MatchDayFinalizer::computeBestSide($event, array_keys($this->players));
         if (! $team || $team['lineupPlayerIds'] === []) {
             return null;
         }

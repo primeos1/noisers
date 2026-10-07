@@ -157,7 +157,7 @@ class MatchDayEditTest extends TestCase
         $this->getJson('/api/vale-content')->assertJsonPath('data.weeklyLeaders.topSaves.value', 2);
     }
 
-    public function test_clean_sheet_tie_goes_to_the_team_of_the_week(): void
+    public function test_clean_sheet_tie_goes_to_the_days_best_side(): void
     {
         $this->endedMatchDay([
             $this->game('g1', [['id' => 'a', 'teamIndex' => 1, 'playerId' => $this->other->id], ['id' => 'b', 'teamIndex' => 1, 'playerId' => $this->other->id]]),
@@ -165,7 +165,8 @@ class MatchDayEditTest extends TestCase
         ]);
 
         $vale = ValeContent::current();
-        $this->assertSame([$this->other->id], $vale->team_lineup_player_ids);
+        // The team of the week is a picked six: the defender, then the forward.
+        $this->assertSame([$this->other->id, $this->scorer->id], $vale->team_lineup_player_ids);
         $this->assertSame('Blues', $vale->leader_clean_sheet_team);
         $this->assertSame(1, $vale->leader_clean_sheet_value);
     }

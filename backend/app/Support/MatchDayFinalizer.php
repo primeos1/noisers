@@ -360,38 +360,26 @@ class MatchDayFinalizer
         }
     }
 
+    /** The team of the week's shape: one keeper, two defenders, a midfielder and two forwards. */
+    public const TEAM_OF_WEEK_SLOTS = ['GK', 'DEF', 'DEF', 'MID', 'FWD', 'FWD'];
+
     /**
-     * The best side of this match day's week: each match day of the week
-     * (Wednesday and Sunday) puts forward its top side — most wins, ties
-     * broken by goal difference — and the better of those is the team of the
-     * week, a tie going to the later match day. Comes with its lineup, rival,
-     * score and the match day it played on. Pure and read-only — used both
-     * to rewrite The Vale on finalize() and to answer "what was the team of
-     * the week for match day X" for any past event.
+     * The side with the most wins across this event's finished games (ties
+     * broken by goal difference), with its lineup, rival and score — the
+     * winners of a single match day. Pure and read-only.
      *
      * @param  array<int, int>  $squadIds
-     * @param  ?string  $exceptId  a match day of the same week to leave out
-     * @return array{teamName: string, sessionsWon: int, sessionsPlayed: int, rivalTeam: string, score: string, lineupPlayerIds: int[], matchDay: MatchDayEvent, weekMatchDays: MatchDayEvent[]}|null
+     * @return array{sessionsWon: int, sessionsPlayed: int, rivalTeam: string, score: string, lineupPlayerIds: int[]}|null
      */
-    public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
+    public static function computeBestSide(MatchDayEvent $event, array $squadIds): ?array
     {
-        $days = self::weekEvents($event, $exceptId)->filter(fn ($e) => self::hasFinishedGames($e))->values();
-        $best = null;
-        foreach ($days as $day) {
-            $teams = self::teamTable($day, $squadIds);
-            $top = reset($teams);
-            if ($top && ($best === null || [$top['won'], $top['gd']] >= [$best['won'], $best['gd']])) {
-                $best = $top + ['name' => (string) array_key_first($teams), 'event' => $day];
-            }
-        }
-        if ($best === null) {
+        $teams = self::teamTable($event, $squadIds);
+        if ($teams === []) {
             return null;
         }
+        $best = reset($teams);
 
         return [
-            'teamName' => $best['name'],
-            'matchDay' => $best['event'],
-            'weekMatchDays' => $days->all(),
             'sessionsWon' => $best['won'],
             'sessionsPlayed' => $best['played'],
             'rivalTeam' => $best['rival'],
@@ -401,8 +389,83 @@ class MatchDayFinalizer
     }
 
     /**
+     * The team of the week for this match day's week: the best keeper, two
+     * defenders, midfielder and two forwards across all of the week's match
+     * days (Wednesday and Sunday). Every squad player who played is scored
+     * with the club's rating weights (wins, goals, assists, clean sheets,
+     * saves, cards — see PlayerRatings::points()) summed over the week; ties
+     * go to more goal involvements, then saves, then games played. A slot
+     * goes to the player's main position first, then to someone whose second
+     * position it is; it stays empty if nobody fits. Pure and read-only —
+     * used both to rewrite The Vale on finalize() and to answer "what was the
+     * team of the week for match day X" for any past event.
+     *
+     * @param  array<int, int>  $squadIds
+     * @param  ?string  $exceptId  a match day of the same week to leave out
+     * @return array{lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], weekMatchDays: MatchDayEvent[]}|null
+     */
+    public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
+    {
+        $days = self::weekEvents($event, $exceptId)->filter(fn ($e) => self::hasFinishedGames($e))->values();
+        if ($days->isEmpty()) {
+            return null;
+        }
+
+        $players = Player::query()->whereIn('id', $squadIds)->get()->keyBy('id');
+        $weights = ClubSetting::current()->ratingWeights();
+        $points = [];
+        foreach ($days as $day) {
+            foreach (PlayerRatings::points($day, fn (int $id) => $players[$id]->position ?? null, $weights) as $id => $p) {
+                $points[$id] = ($points[$id] ?? 0.0) + $p;
+            }
+        }
+        $stats = PlayerStats::computeAll($days, PlayerStats::noCleanSheetIds());
+
+        $ranked = array_keys($points);
+        usort($ranked, function ($a, $b) use ($points, $stats) {
+            $key = fn ($id) => [
+                round($points[$id], 4),
+                ($stats[$id]['goals'] ?? 0) + ($stats[$id]['assists'] ?? 0),
+                $stats[$id]['saves'] ?? 0,
+                $stats[$id]['appearances'] ?? 0,
+            ];
+
+            return $key($b) <=> $key($a) ?: $a <=> $b;
+        });
+
+        $picked = [];
+        $lineup = [];
+        foreach (self::TEAM_OF_WEEK_SLOTS as $slot) {
+            $choice = null;
+            foreach (['position', 'secondary_position'] as $field) {
+                foreach ($ranked as $id) {
+                    if (! isset($picked[$id]) && ($players[$id]->{$field} ?? null) === $slot) {
+                        $choice = $id;
+                        break 2;
+                    }
+                }
+            }
+            if ($choice !== null) {
+                $picked[$choice] = true;
+                $lineup[] = [
+                    'playerId' => $choice,
+                    'position' => $slot,
+                    'points' => round($points[$choice], 2),
+                    'stats' => $stats[$choice] ?? [],
+                ];
+            }
+        }
+
+        return [
+            'lineup' => $lineup,
+            'lineupPlayerIds' => array_column($lineup, 'playerId'),
+            'weekMatchDays' => $days->all(),
+        ];
+    }
+
+    /**
      * The side that kept the most clean sheets this match day. A tie goes to
-     * the team of the week (then on down the same wins/goal-difference order).
+     * the day's best side (then on down the same wins/goal-difference order).
      * Null when nobody kept one. Midfielders and forwards are left off the player list.
      *
      * @param  array<int, int>  $squadIds
@@ -413,7 +476,7 @@ class MatchDayFinalizer
     {
         $teams = self::teamTable($event, $squadIds);
         // uasort is stable, so teams level on clean sheets keep the
-        // team-of-the-week order teamTable() already sorted them into.
+        // best-side order teamTable() already sorted them into.
         uasort($teams, fn ($a, $b) => $b['cleanSheets'] <=> $a['cleanSheets']);
         $name = array_key_first($teams);
         if ($name === null || $teams[$name]['cleanSheets'] === 0) {
@@ -429,7 +492,7 @@ class MatchDayFinalizer
 
     /**
      * The flop team of the week — of each match day's bottom side (on the
-     * same wins/goal-difference table the team of the week tops), the worst
+     * same wins/goal-difference table computeBestSide() tops), the worst
      * across the week. Null unless two sides played on one of its match days.
      *
      * @param  array<int, int>  $squadIds
@@ -694,11 +757,12 @@ class MatchDayFinalizer
 
         $team = self::computeTeamOfWeek($event, $squadIds, $exceptId);
         if ($team) {
+            // A picked six, not one side, so there's no single record or rival.
             $changes += [
-                'team_sessions_won' => $team['sessionsWon'],
-                'team_sessions_played' => $team['sessionsPlayed'],
-                'team_rival' => $team['rivalTeam'],
-                'team_score' => $team['score'],
+                'team_sessions_won' => 0,
+                'team_sessions_played' => count($team['weekMatchDays']),
+                'team_rival' => null,
+                'team_score' => null,
                 'team_lineup_player_ids' => $team['lineupPlayerIds'],
             ];
         }

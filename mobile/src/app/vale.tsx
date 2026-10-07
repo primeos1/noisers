@@ -6,7 +6,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useClub } from "../lib/club";
 import { EMPTY_VALE, potwWinsLabel, useTeamOfWeek, useValeContent } from "../lib/content";
 import { sortEvents } from "../lib/derive";
-import type { Player } from "../lib/types";
+import type { Player, TeamOfWeekPick } from "../lib/types";
 import { Avatar, CardPips, Chips, Empty, ErrorBanner, PageTitle, Screen, SectionHeader, Txt, text } from "../components/ui";
 import { CoverFlow, Glass, Reveal, Skeleton, Tilt } from "../components/depth";
 import { CardFace, HoloCard } from "../components/PlayerCard";
@@ -37,6 +37,19 @@ function Leader({ icon, label, player, value, tone, onPress }: { icon: keyof typ
       </Glass>
     </Tilt>
   );
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** "2 goals · 1 assist" — what earned a team-of-the-week pick their place. */
+function pickLine(p: TeamOfWeekPick) {
+  const parts = [
+    p.goals > 0 && plural(p.goals, "goal"),
+    p.assists > 0 && plural(p.assists, "assist"),
+    p.cleanSheets > 0 && plural(p.cleanSheets, "clean sheet"),
+    p.saves > 0 && plural(p.saves, "save"),
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : plural(p.appearances, "game");
 }
 
 /** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
@@ -74,7 +87,7 @@ export default function ValeScreen() {
   const awards = showsSaved ? content : (dayAwards ?? EMPTY_VALE);
 
   const find = (id: number) => players.find((p) => p.id === id);
-  const lineup = (team?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
+  const lineup = (team?.lineup ?? []).map((pick) => ({ pick, player: find(pick.playerId) })).filter((x): x is { pick: TeamOfWeekPick; player: Player } => !!x.player);
   const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
   const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = awards;
   const flop = find(flopOfTheWeek.playerId);
@@ -110,19 +123,20 @@ export default function ValeScreen() {
             <LinearGradient colors={["rgba(216,181,106,0.3)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Txt style={styles.teamTitle}>{team.title}</Txt>
             <Txt style={[text.dim, styles.teamBody]}>
-              {team.teamName ? `${team.teamName} · ` : ""}
-              {team.dateRange} · {team.sessionsWon} of {team.sessionsPlayed} won, capped by a {team.score} win over {team.rivalTeam}.
-              {(team.weekMatchDays?.length ?? 0) > 1 ? ` The best side across ${team.weekMatchDays!.map((d) => d.date).join(" and ")}.` : ""}
+              {team.dateRange} · The week's best keeper, two defenders, midfielder and two forwards across {(team.weekMatchDays?.length ?? 0) > 1 ? "both match days" : "the match day"}.
             </Txt>
           </Glass>
           {lineup.length > 0 ? (
             <CoverFlow
               data={lineup}
               itemWidth={170}
-              keyOf={(p) => p.id}
-              renderItem={(p) => (
-                <Tilt onPress={() => router.push(`/player/${p.id}`)} accessibilityLabel={`${p.name}, number ${p.number}`}>
+              keyOf={({ player }) => player.id}
+              renderItem={({ pick, player: p }) => (
+                <Tilt onPress={() => router.push(`/player/${p.id}`)} accessibilityLabel={`${pick.position}: ${p.name}, ${pickLine(pick)}`}>
                   <CardFace player={p} width={170} />
+                  <Txt style={[text.small, styles.pickLine]} numberOfLines={1}>
+                    {pick.position} · {pickLine(pick)}
+                  </Txt>
                 </Tilt>
               )}
             />
@@ -298,6 +312,7 @@ const styles = StyleSheet.create({
   teamHead: { padding: space.lg },
   teamTitle: { fontFamily: fonts.displayHeavy, fontSize: 32, lineHeight: 34, color: colors.paper },
   teamBody: { marginTop: 6, lineHeight: 20 },
+  pickLine: { marginTop: 8, textAlign: "center" },
 
   potwSkeleton: { height: 420, borderRadius: radius.lg, marginVertical: space.xl },
   potw: { borderRadius: radius.xl, marginBottom: space.xl, marginTop: space.sm },
