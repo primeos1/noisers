@@ -142,50 +142,90 @@ class MatchDayFinalizer
     }
 
     /**
-     * Monday of the week this match day was played in. The stored date is a
-     * label like "Sun 28 Sept" with no year, so the year comes from when the
-     * match day was created; a label that can't be read falls back to that.
+     * Each match day's week number, keyed by id. Match days are numbered by
+     * when they were created (see renumber()) and every two make a week:
+     * Matchday 1 and 2 are week 1, Matchday 3 and 4 week 2, and so on.
+     *
+     * @return array<string, int>
      */
-    public static function weekOf(MatchDayEvent $event): CarbonImmutable
+    public static function weekNumbers(): array
     {
-        $created = CarbonImmutable::parse($event->created_at ?? now());
-        $day = $created;
-        if (preg_match('/(\d{1,2})\s+([A-Za-z]{3})/', (string) $event->date, $m)) {
-            try {
-                $parsed = CarbonImmutable::createFromFormat('!j M Y', "{$m[1]} ".ucfirst(strtolower($m[2]))." {$created->year}");
-                // A late-December match day logged in early January, or the reverse.
-                if ($parsed->diffInDays($created, true) > 180) {
-                    $parsed = $parsed->addYears($parsed->lt($created) ? 1 : -1);
-                }
-                $day = $parsed;
-            } catch (\Throwable) {
-                // keep the created date
-            }
-        }
+        $ids = MatchDayEvent::query()->orderBy('created_at')->orderBy('id')->pluck('id')->values();
 
-        return $day->startOfWeek(CarbonInterface::MONDAY)->startOfDay();
+        return $ids->mapWithKeys(fn ($id, $i) => [$id => intdiv($i, 2) + 1])->all();
+    }
+
+    /** This match day's week number (see weekNumbers()). */
+    public static function weekNumber(MatchDayEvent $event): int
+    {
+        $numbers = self::weekNumbers();
+
+        // Not saved yet: it'll be numbered after every other match day.
+        return $numbers[$event->id] ?? intdiv(count($numbers), 2) + 1;
     }
 
     /**
      * Every ended match day with a finished game in the same week as this one
-     * (the Wednesday and Sunday sessions), always including this one, oldest
-     * first.
+     * (it and its pair — see weekNumbers()), always including this one,
+     * oldest first.
      *
      * @return Collection<int, MatchDayEvent>
      */
     public static function weekEvents(MatchDayEvent $event, ?string $exceptId = null): Collection
     {
-        $week = self::weekOf($event);
+        $numbers = self::weekNumbers();
+        $week = $numbers[$event->id] ?? intdiv(count($numbers), 2) + 1;
 
         return MatchDayEvent::query()
             ->where('status', 'ended')
             ->where('id', '!=', $event->id)
             ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
             ->get()
-            ->filter(fn ($e) => self::hasFinishedGames($e) && self::weekOf($e)->equalTo($week))
+            ->filter(fn ($e) => self::hasFinishedGames($e) && ($numbers[$e->id] ?? null) === $week)
             ->push($event)
             ->sortBy(fn ($e) => $e->created_at?->getTimestamp() ?? PHP_INT_MAX)
             ->values();
+    }
+
+    /**
+     * The match days of the week The Vale is showing, by id — taken before a
+     * match day is deleted, so rePairShownWeek() can tell whether the
+     * renumbering after it changed which match days make up that week.
+     *
+     * @return array<int, string>
+     */
+    public static function shownWeekIds(?string $exceptId = null): array
+    {
+        $shown = self::shownEvent();
+
+        return $shown ? self::weekEvents($shown, $exceptId)->pluck('id')->all() : [];
+    }
+
+    /**
+     * Deleting a match day renumbers the ones after it, so from there on the
+     * weeks pair up differently. If the week The Vale shows now holds other
+     * match days than before (see shownWeekIds()), its awards are rebuilt.
+     *
+     * @param  array<int, string>  $before
+     */
+    public static function rePairShownWeek(array $before): void
+    {
+        if (! ClubSetting::current()->vale_auto_awards) {
+            return;
+        }
+        $shown = self::shownEvent();
+        if ($shown && self::weekEvents($shown)->pluck('id')->all() !== $before) {
+            self::updateWeeklyAwards($shown, Player::pluck('id')->all());
+        }
+    }
+
+    /** The ended match day The Vale's weekly awards come from, if any. */
+    private static function shownEvent(): ?MatchDayEvent
+    {
+        return MatchDayEvent::query()
+            ->where('status', 'ended')
+            ->get()
+            ->first(fn ($e) => self::valeShows($e) && self::hasFinishedGames($e));
     }
 
     /** Whether The Vale's weekly awards currently come from this match day. */
@@ -418,8 +458,8 @@ class MatchDayFinalizer
     /**
      * The team of the week and the player of the week for this match day's
      * week: the same picks as computeTeamOfMatchDay(), but with each player's
-     * points added up across all of the week's match days (Wednesday and
-     * Sunday), so playing both counts. Pure and read-only — used both to
+     * points added up across both of the week's match days (see
+     * weekNumbers()), so playing both counts. Pure and read-only — used both to
      * rewrite The Vale on finalize() and to answer "what was the team of the
      * week for match day X" for any past event.
      *
@@ -736,16 +776,17 @@ class MatchDayFinalizer
         };
 
         $events = MatchDayEvent::query()->where('status', 'ended')->get();
+        $weeks = self::weekNumbers();
         $weeksCounted = [];
         foreach ($events as $event) {
             if ($vale->team_week_title === $event->title && $vale->team_week_date_range === $event->date) {
-                $weeksCounted[self::weekOf($event)->toDateString()] = true; // counted from The Vale below
+                $weeksCounted[$weeks[$event->id]] = true; // counted from The Vale below
             }
         }
 
         // Both awards are picked once a week, across both its match days.
         foreach ($events as $event) {
-            $week = self::weekOf($event)->toDateString();
+            $week = $weeks[$event->id];
             if (isset($weeksCounted[$week]) || ! self::hasFinishedGames($event)) {
                 continue;
             }

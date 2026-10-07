@@ -13,7 +13,7 @@ import { CardFace, HoloCard } from "../components/PlayerCard";
 import { colors, fonts, foil, radius, shadow, space } from "../theme";
 
 // The Vale — the public awards page (frontend/src/pages/TheVale.tsx): the
-// team of the week (the best six across that week's Wednesday and Sunday)
+// team of the week (the best six across that week's two match days)
 // and each match day's team and player for any finished week, then the
 // committee's (or
 // the auto-awarded) player of the week, most improved, flop of the week and
@@ -98,12 +98,8 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
   );
 }
 
-/** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
-function weekLabel(weekOf?: string) {
-  if (!weekOf) return null;
-  const [y, m, d] = weekOf.split("-").map(Number);
-  return `Week of ${new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-}
+/** "Week 3" — every two match days make a week. */
+const weekLabel = (week?: number) => (week ? `Week ${week}` : null);
 
 export default function ValeScreen() {
   const { players, events, refresh } = useClub();
@@ -111,13 +107,13 @@ export default function ValeScreen() {
   const { width } = useWindowDimensions();
 
   // Every ended match day that finished a game, newest first, one per week
-  // (the latest of its Wednesday and Sunday).
+  // (the latest of its two match days).
   const past = useMemo(() => {
     const seen = new Set<string>();
     return sortEvents(events)
       .filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished"))
       .filter((e) => {
-        const week = e.weekOf ?? e.id;
+        const week = e.week ? `week-${e.week}` : e.id;
         if (seen.has(week)) return false;
         seen.add(week);
         return true;
@@ -158,7 +154,7 @@ export default function ValeScreen() {
       {/* Team of the week */}
       <SectionHeader title="Team of the week" />
       {past.length > 1 ? (
-        <Chips value={eventId ?? ""} onChange={setPicked} options={past.slice(0, 12).map((e) => ({ value: e.id, label: weekLabel(e.weekOf) ?? e.title }))} />
+        <Chips value={eventId ?? ""} onChange={setPicked} options={past.slice(0, 12).map((e) => ({ value: e.id, label: weekLabel(e.week) ?? e.title }))} />
       ) : null}
       {teamLoading ? (
         <Skeleton style={styles.teamSkeleton} />

@@ -149,8 +149,8 @@ export interface MatchDayEvent {
   venue: string | null;
   date: string;
   createdAt: string | null;
-  /** Monday of the week it was played ("YYYY-MM-DD"), set by the server. */
-  weekOf?: string;
+  /** Its week number, set by the server: Matchday 1 and 2 are week 1, 3 and 4 week 2, and so on. */
+  week?: number;
   presentPlayers: number[];
   guests: Guest[];
   groups: MatchDayTeam[];
@@ -311,7 +311,7 @@ export interface TeamOfWeek {
   title: string;
   /** The week's match day dates, e.g. "Wed 30 Sept & Sun 4 Oct". */
   dateRange: string;
-  /** Every match day of the week that was compared (Wednesday and Sunday). */
+  /** Every match day of the week that was compared (its two match days). */
   weekMatchDays?: { id: string; title: string; date: string }[];
   /** The week's best keeper, two defenders, two midfielders and forward, in that order. */
   lineup: TeamOfWeekPick[];

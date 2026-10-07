@@ -301,7 +301,7 @@ export function buildAwards(players: Player[], events: MatchDayEvent[], weights:
 
     // Player of the week: the week's leader so far, which a later match day
     // of the same week can overturn.
-    const weekKey = event.weekOf ?? event.id;
+    const weekKey = event.week ? `week-${event.week}` : event.id;
     let week = weeks.get(weekKey);
     if (!week) weeks.set(weekKey, (week = { points: new Map(), lines: new Map(), winner: null }));
     for (const [id, p] of dayPoints(event, squad, weights)) week.points.set(id, (week.points.get(id) ?? 0) + p);

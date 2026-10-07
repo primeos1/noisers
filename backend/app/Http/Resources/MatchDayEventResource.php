@@ -20,7 +20,7 @@ class MatchDayEventResource extends JsonResource
             'date' => $this->date,
             'createdAt' => $this->created_at?->toIso8601String(),
             // Monday of the week it was played — groups Wednesday and Sunday.
-            'weekOf' => MatchDayFinalizer::weekOf($this->resource)->toDateString(),
+            'week' => MatchDayFinalizer::weekNumber($this->resource),
             'presentPlayers' => $this->present_players,
             'guests' => $this->guests,
             'groups' => $this->groups,

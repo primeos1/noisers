@@ -125,7 +125,7 @@ class MatchDayEventController extends Controller
     /**
      * Public — the team and player of the week for this match day's week
      * (the best keeper, two defenders, two midfielders and forward, and the
-     * top-rated player, across Wednesday and Sunday), the team and player of
+     * top-rated player, across the week's two match days), the team and player of
      * each of the week's match days, and the week's flop team, computed on
      * demand. Powers The Vale's "pick a week" selector, which
      * shows the latest by default but lets a visitor look at an older one
@@ -149,9 +149,9 @@ class MatchDayEventController extends Controller
 
         return response()->json([
             'data' => $team ? [
-                'title' => 'Week of '.MatchDayFinalizer::weekOf($matchDayEvent)->format('j M'),
+                'title' => 'Week '.MatchDayFinalizer::weekNumber($matchDayEvent),
                 'dateRange' => implode(' & ', array_map(fn ($e) => $e->date, $team['weekMatchDays'])),
-                'weekOf' => MatchDayFinalizer::weekOf($matchDayEvent)->toDateString(),
+                'week' => MatchDayFinalizer::weekNumber($matchDayEvent),
                 'weekMatchDays' => array_map(fn ($e) => ['id' => $e->id, 'title' => $e->title, 'date' => $e->date], $team['weekMatchDays']),
                 // GK, DEF, DEF, MID, MID, FWD — each with what they did that week.
                 'lineup' => array_map($pick, $team['lineup']),
@@ -198,8 +198,10 @@ class MatchDayEventController extends Controller
 
         DB::transaction(function () use ($matchDayEvent) {
             MatchDayFinalizer::revert($matchDayEvent);
+            $shownWeek = MatchDayFinalizer::shownWeekIds($matchDayEvent->id);
             $matchDayEvent->delete();
             MatchDayFinalizer::renumber();
+            MatchDayFinalizer::rePairShownWeek($shownWeek);
         });
 
         return response()->noContent();

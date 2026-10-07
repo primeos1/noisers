@@ -25,12 +25,8 @@ function pickLine(p: TeamOfWeekPick) {
   return parts.length > 0 ? parts.join(" · ") : plural(p.appearances, "game");
 }
 
-/** "Week of 29 Sept" from a week's Monday ("YYYY-MM-DD"). */
-function weekLabel(weekOf?: string) {
-  if (!weekOf) return null;
-  const [y, m, d] = weekOf.split("-").map(Number);
-  return `Week of ${new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-}
+/** "Week 3" — every two match days make a week. */
+const weekLabel = (week?: number) => (week ? `Week ${week}` : null);
 
 interface TeamOfWeekPick {
   playerId: number;
@@ -57,7 +53,7 @@ interface TeamOfWeekData {
   title: string;
   /** The week's match day dates, e.g. "Wed 30 Sept & Sun 4 Oct". */
   dateRange: string;
-  /** Every match day of the week that was compared (Wednesday and Sunday). */
+  /** Every match day of the week that was compared (its two match days). */
   weekMatchDays?: { id: string; title: string; date: string }[];
   /** The week's best keeper, two defenders, two midfielders and forward, in that order. */
   lineup: TeamOfWeekPick[];
@@ -120,7 +116,7 @@ export default function TheVale() {
   const { content } = useValeContent();
 
   // Every ended match day that actually finished a game, one per week (the
-  // latest of its Wednesday and Sunday) — most recent first — so a visitor
+  // latest of its two match days) — most recent first — so a visitor
   // can look back at an older week's team instead of only ever seeing the latest.
   const pastMatchDays = useMemo(() => {
     const seen = new Set<string>();
@@ -128,7 +124,7 @@ export default function TheVale() {
       .filter((e) => e.status === "ended" && e.games.some((g) => g.status === "finished"))
       .reverse()
       .filter((e) => {
-        const week = e.weekOf ?? e.id;
+        const week = e.week ? `week-${e.week}` : e.id;
         if (seen.has(week)) return false;
         seen.add(week);
         return true;
@@ -225,7 +221,7 @@ export default function TheVale() {
                 >
                   {pastMatchDays.map((e) => (
                     <option key={e.id} value={e.id}>
-                      {weekLabel(e.weekOf) ?? `${e.title} — ${e.date}`}
+                      {weekLabel(e.week) ?? `${e.title} — ${e.date}`}
                     </option>
                   ))}
                 </select>

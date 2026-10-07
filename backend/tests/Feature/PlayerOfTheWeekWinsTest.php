@@ -51,17 +51,22 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $ace = Player::factory()->create(['position' => 'FWD']);
         $rival = Player::factory()->create(['position' => 'FWD']);
 
-        $this->playMatchDay('first', $ace, $rival, 'Sun 21 Sept');
-        $this->playMatchDay('second', $rival, $ace, 'Sun 28 Sept');
+        // Week 1 is Matchday 1 and 2, both won by the ace; week 2 starts with
+        // the rival's Matchday 3.
+        $this->playMatchDay('md1', $ace, $rival, 'Wed 24 Sept');
+        $this->playMatchDay('md2', $ace, $rival, 'Sun 28 Sept');
+        $this->playMatchDay('md3', $rival, $ace, 'Wed 1 Oct');
 
         $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
 
-        $this->getJson('/api/match-day-events/first/team-of-week')
+        $this->getJson('/api/match-day-events/md1/team-of-week')
+            ->assertJsonPath('data.title', 'Week 1')
             ->assertJsonPath('data.lineup.0.playerId', $ace->id)
             ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.awards.weeklyLeaders.topScorer.playerId', $ace->id)
             ->assertJsonPath('data.awards.weeklyLeaders.topScorer.value', 1);
-        $this->getJson('/api/match-day-events/second/team-of-week')
+        $this->getJson('/api/match-day-events/md3/team-of-week')
+            ->assertJsonPath('data.title', 'Week 2')
             ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $rival->id);
 
         // Looking back never rewrites the saved Vale.
@@ -112,7 +117,8 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $six = [$gk, $def1, $def2, $mid1, $mid2, $fwd1];
         foreach (['wed', 'sun'] as $id) {
             $team = $this->getJson("/api/match-day-events/{$id}/team-of-week")
-                ->assertJsonPath('data.weekOf', '2026-09-28')
+                ->assertJsonPath('data.week', 1)
+                ->assertJsonPath('data.title', 'Week 1')
                 ->assertJsonPath('data.lineupPlayerIds', $six)
                 ->assertJsonPath('data.playerOfWeek.playerId', $fwd1)
                 ->assertJsonPath('data.weekMatchDays.0.id', 'wed')
@@ -156,13 +162,17 @@ class PlayerOfTheWeekWinsTest extends TestCase
 
         $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.timesWon', 0);
 
-        $this->playMatchDay('first', $ace, $rival, 'Sun 14 Sept');
+        $this->playMatchDay('md1', $ace, $rival);
         $this->getJson('/api/vale-content')
             ->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 1);
 
-        $this->playMatchDay('second', $rival, $ace, 'Sun 21 Sept');
-        $this->playMatchDay('third', $ace, $rival, 'Sun 28 Sept');
+        // Week 1 (Matchday 1 and 2) goes to the ace, week 2 (3 and 4) to the
+        // rival, and the ace leads week 3 after Matchday 5.
+        $this->playMatchDay('md2', $ace, $rival);
+        $this->playMatchDay('md3', $rival, $ace);
+        $this->playMatchDay('md4', $rival, $ace);
+        $this->playMatchDay('md5', $ace, $rival);
         $this->getJson('/api/vale-content')
             ->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 2);
@@ -179,5 +189,33 @@ class PlayerOfTheWeekWinsTest extends TestCase
         // The committee hands this week to someone else: the count follows.
         $this->putJson('/api/vale-content', ['potw_player_id' => $rival->id])
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 2);
+    }
+
+    public function test_deleting_a_match_day_pairs_the_weeks_up_again(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $ace = Player::factory()->create(['position' => 'FWD']);
+        $rival = Player::factory()->create(['position' => 'FWD']);
+
+        $this->playMatchDay('md1', $ace, $rival);
+        $this->playMatchDay('md2', $ace, $rival);
+        $this->playMatchDay('md3', $ace, $rival);
+        $this->playMatchDay('md4', $rival, $ace);
+
+        // Week 2 is Matchday 3 and 4: one win each, and the tie goes to the ace.
+        $this->getJson('/api/match-day-events/md4/team-of-week')
+            ->assertJsonPath('data.week', 2)
+            ->assertJsonPath('data.weekMatchDays.0.id', 'md3');
+        $this->getJson('/api/vale-content')->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id);
+
+        // Without Matchday 1, the old Matchday 4 is Matchday 3 and starts week
+        // 2 on its own — so The Vale's week 2 is the rival's alone.
+        $this->deleteJson('/api/match-day-events/md1')->assertNoContent();
+        $this->getJson('/api/match-day-events/md4/team-of-week')
+            ->assertJsonPath('data.week', 2)
+            ->assertJsonPath('data.weekMatchDays.0.id', 'md4');
+        $this->getJson('/api/vale-content')
+            ->assertJsonPath('data.teamOfTheWeek.title', 'Matchday 3')
+            ->assertJsonPath('data.playerOfTheWeek.playerId', $rival->id);
     }
 }
