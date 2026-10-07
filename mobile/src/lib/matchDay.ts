@@ -258,6 +258,32 @@ function spreadQuotas(room: number[], count: number): number[] {
   return quotas;
 }
 
+// King Jerry and Ose Miles are drawn onto the same team more often than
+// chance: when they land apart, 70% of the time Ose Miles joins King Jerry's
+// team, trading places with the most similar player there (same membership,
+// then position, then closest rating) so sizes and balance hold.
+const PAIR_CHANCE = 0.7;
+
+function keepPairTogether(players: Player[], teams: ParticipantId[][]) {
+  const jerry = named(players, "king jerry");
+  const ose = named(players, "ose miles");
+  if (!jerry || !ose) return;
+  const his = teams.findIndex((t) => t.includes(jerry.id));
+  const from = teams.findIndex((t) => t.includes(ose.id));
+  if (his < 0 || from < 0 || his === from || Math.random() >= PAIR_CHANCE) return;
+
+  const candidates = teams[his].filter((id) => id !== jerry.id);
+  const squad = candidates
+    .map((id) => players.find((p) => p.id === id))
+    .filter((p): p is Player => !!p);
+  const score = (p: Player) =>
+    (p.membership === ose.membership ? 0 : 10000) + (p.position === ose.position ? 0 : 1000) + Math.abs(p.rating - ose.rating);
+  const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
+  if (partner === undefined) return;
+  teams[his] = teams[his].map((id) => (id === partner ? ose.id : id));
+  teams[from] = teams[from].map((id) => (id === ose.id ? partner : id));
+}
+
 // Members are placed first, then guest members, then guests — each group
 // spread as evenly as the room left by the one before allows. Guests have
 // no rating or position, so they're simply dealt into whatever is left.
@@ -292,19 +318,56 @@ export function buildTeams(
   const guestIds = shuffle(guests.map((g) => g.id));
   room.forEach((r, i) => teams[i].push(...guestIds.splice(0, r)));
 
+  keepPairTogether(players, teams);
   return nameTeams(players, teams);
 }
 
 // The five colours are dealt out in a random order; Team Bibs only ever
-// appears as the sixth team. Rozay (#7) always wears the white stripes:
-// his team takes that name, swapping with whichever team had it. Bibs is
-// pinned to sixth, so if he's drawn there he instead trades places with the
-// most similar player on White Stripes (same position, closest rating).
+// appears as the sixth team. Rozay (#7) always wears the white stripes and
+// Muyiwa Tender always plays for Team Black: the player's team takes that
+// name, swapping with whichever team had it. Bibs is pinned to sixth (and
+// Rozay's team keeps the stripes), so if one of them is drawn onto a team
+// that can't change its name, they instead trade places with the most
+// similar player on the right team (same membership, then position, then
+// closest rating).
 const WHITE_STRIPES = "Team White Stripes";
 const BIBS = "Team Bibs";
+const BLACK = "Team Black";
 
-function isRozay(player: Player) {
-  return player.name.trim().toLowerCase() === "rozay";
+function named(players: Player[], name: string) {
+  return players.find((p) => p.name.trim().toLowerCase() === name);
+}
+
+/** Puts the player on the team called `colour`; returns false if they aren't playing. */
+function pinToColour(players: Player[], teams: MatchDayTeam[], player: Player | undefined, colour: string, locked: Set<string>) {
+  const his = player ? teams.findIndex((t) => t.players.includes(player.id)) : -1;
+  if (!player || his < 0) return false;
+  if (teams[his].name === colour) return true;
+
+  if (!locked.has(teams[his].name)) {
+    const current = teams.findIndex((t) => t.name === colour);
+    if (current >= 0) teams[current].name = teams[his].name;
+    teams[his].name = colour;
+    return true;
+  }
+
+  let target = teams.findIndex((t) => t.name === colour);
+  if (target < 0) {
+    target = teams.findIndex((t) => !locked.has(t.name));
+    if (target < 0) return true;
+    teams[target].name = colour;
+  }
+  const candidates = teams[target].players;
+  const squad = candidates
+    .map((id) => players.find((p) => p.id === id))
+    .filter((p): p is Player => !!p);
+  const score = (p: Player) =>
+    (p.membership === player.membership ? 0 : 10000) + (p.position === player.position ? 0 : 1000) + Math.abs(p.rating - player.rating);
+  const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
+  if (partner === undefined) return true;
+  teams[his].players = teams[his].players.map((id) => (id === player.id ? partner : id));
+  teams[target].players = candidates.map((id) => (id === partner ? player.id : id));
+  return true;
 }
 
 function nameTeams(players: Player[], rosters: ParticipantId[][]): MatchDayTeam[] {
@@ -314,27 +377,9 @@ function nameTeams(players: Player[], rosters: ParticipantId[][]): MatchDayTeam[
     players: [...roster],
   }));
 
-  const rozay = players.find(isRozay);
-  const his = rozay ? teams.findIndex((t) => t.players.includes(rozay.id)) : -1;
-  if (!rozay || his < 0 || teams[his].name === WHITE_STRIPES) return teams;
-
-  const stripes = teams.findIndex((t) => t.name === WHITE_STRIPES);
-  if (teams[his].name === BIBS && stripes >= 0) {
-    const candidates = teams[stripes].players;
-    const squad = candidates
-      .map((id) => players.find((p) => p.id === id))
-      .filter((p): p is Player => !!p);
-    const score = (p: Player) =>
-      (p.membership === rozay.membership ? 0 : 10000) + (p.position === rozay.position ? 0 : 1000) + Math.abs(p.rating - rozay.rating);
-    const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
-    if (partner === undefined) return teams;
-    teams[his].players = teams[his].players.map((id) => (id === rozay.id ? partner : id));
-    teams[stripes].players = candidates.map((id) => (id === partner ? rozay.id : id));
-    return teams;
-  }
-
-  if (stripes >= 0) teams[stripes].name = teams[his].name;
-  teams[his].name = WHITE_STRIPES;
+  const locked = new Set<string>([BIBS]);
+  if (pinToColour(players, teams, named(players, "rozay"), WHITE_STRIPES, locked)) locked.add(WHITE_STRIPES);
+  pinToColour(players, teams, named(players, "muyiwa tender"), BLACK, locked);
   return teams;
 }
 
