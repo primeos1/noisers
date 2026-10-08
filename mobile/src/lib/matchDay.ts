@@ -58,8 +58,8 @@ export function newGame(a: MatchDayTeam, b: MatchDayTeam): MatchDayGame {
   return {
     id: `g${Date.now()}`,
     teams: [
-      { name: a.name, players: [...a.players] },
-      { name: b.name, players: [...b.players] },
+      { name: a.name, players: [...a.players], captain: a.captain ?? null },
+      { name: b.name, players: [...b.players], captain: b.captain ?? null },
     ],
     goals: [],
     cards: [],
@@ -319,7 +319,18 @@ export function buildTeams(
   room.forEach((r, i) => teams[i].push(...guestIds.splice(0, r)));
 
   keepPairTogether(players, teams);
-  return nameTeams(players, teams);
+  return nameTeams(players, teams).map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
+}
+
+// Each team's captain band goes to the full member on it with the most games
+// played (ties: higher rating, then random). Guest members and guests never
+// wear it; a team with no members has no captain.
+function pickCaptain(players: Player[], roster: ParticipantId[]): number | null {
+  const members = shuffle(roster)
+    .map((id) => players.find((p) => p.id === id))
+    .filter((p): p is Player => !!p && p.membership === "member");
+  if (members.length === 0) return null;
+  return members.reduce((a, b) => (b.appearances > a.appearances || (b.appearances === a.appearances && b.rating > a.rating) ? b : a)).id;
 }
 
 // The five colours are dealt out in a random order; Team Bibs only ever

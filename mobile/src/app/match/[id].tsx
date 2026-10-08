@@ -12,7 +12,7 @@ import {
   scoreOf,
 } from "../../lib/derive";
 import type { MatchDayGame, MatchDayTeam, ParticipantId, Player } from "../../lib/types";
-import { CardPips, Empty, Figures, Group, LiveTag, Loading, PageTitle, RefCard, Row, Screen, SectionHeader, Txt, text } from "../../components/ui";
+import { CaptainBand, CardPips, Empty, Figures, Group, LiveTag, Loading, PageTitle, RefCard, Row, Screen, SectionHeader, Txt, text } from "../../components/ui";
 import { FlipNumber, PulseRing, Reveal } from "../../components/depth";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, fonts, glass, radius, space } from "../../theme";
@@ -131,6 +131,7 @@ function TeamRoster({ team, name, players }: { team: MatchDayTeam; name: (id: Pa
             <View key={String(pid)} style={styles.rosterRow}>
               <Txt style={styles.rosterNumber}>{typeof pid === "number" ? (players.find((p) => p.id === pid)?.number ?? "") : ""}</Txt>
               <Txt style={[text.body, styles.flex]}>{name(pid)}</Txt>
+              {pid === team.captain ? <CaptainBand /> : null}
               {typeof pid !== "number" ? <Txt style={text.small}>Guest</Txt> : null}
             </View>
           ))

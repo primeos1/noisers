@@ -6,6 +6,7 @@ import { useSettings } from "../../lib/SettingsContext";
 import { formatNaira } from "../../lib/cards";
 import { eventContributions, eventGoals, eventParticipants } from "../../lib/portal";
 import { participantName, scoreOf, type MatchDayGame, type MatchDayTeam, type ParticipantId } from "../../lib/matchDay";
+import CaptainBand from "../../components/CaptainBand";
 import { CardPips, Empty, Figures, Group, LiveTag, PageTitle, PositionTag, Row } from "../../components/portal/ui";
 
 export function GameCard({ game, number, name }: { game: MatchDayGame; number: number; name: (id: ParticipantId) => string }) {
@@ -217,6 +218,7 @@ export default function PortalMatch() {
                     <li key={String(pid)} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                       <span className="w-7 text-right font-display text-lg font-bold text-mist">{typeof pid === "number" ? pid : ""}</span>
                       <span className="flex-1 text-paper">{name(pid)}</span>
+                      {pid === team.captain && <CaptainBand />}
                       {typeof pid !== "number" && <span className="text-xs text-mist">Guest</span>}
                     </li>
                   ))}

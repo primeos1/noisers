@@ -99,6 +99,8 @@ export interface Guest {
 export interface MatchDayTeam {
   name: string;
   players: ParticipantId[];
+  /** The player wearing the captain band — set when teams are randomized. */
+  captain?: number | null;
 }
 
 export interface MatchDayGoal {

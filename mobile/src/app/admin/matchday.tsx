@@ -22,7 +22,7 @@ import {
 } from "../../lib/matchDay";
 import type { MatchDayEvent, MatchDayGame, MatchDayTeam, ParticipantId, TeamMode } from "../../lib/types";
 import { Choice, confirm, FormError, formStyles, Hint, Label, Section, SwitchRow, TextField, Intro } from "../../components/form";
-import { Avatar, Button, ErrorBanner, Group, LiveTag, Row, Screen, Txt, text } from "../../components/ui";
+import { Avatar, Button, CaptainBand, ErrorBanner, Group, LiveTag, Row, Screen, Txt, text } from "../../components/ui";
 import SavesCounter from "../../components/SavesCounter";
 import { colors, fonts, radius, space } from "../../theme";
 
@@ -394,6 +394,7 @@ function Setup({
               <Txt style={[text.body, styles.flex]} numberOfLines={1}>
                 {name(id)}
               </Txt>
+              {id === team.captain ? <CaptainBand /> : null}
               <Pressable
                 onPress={() => editGroups((groups) => groups.map((t, j) => (j === i ? { ...t, players: t.players.filter((p) => p !== id) } : t)))}
                 hitSlop={8}
@@ -914,7 +915,7 @@ const styles = StyleSheet.create({
   team: { backgroundColor: colors.inkRaised, borderRadius: radius.md, padding: space.lg, marginBottom: space.md },
   teamHead: { flexDirection: "row", alignItems: "center", gap: space.md, marginBottom: space.sm },
   teamName: { flex: 1, fontFamily: fonts.display, fontSize: 22, color: colors.paper, padding: 0 },
-  teamPlayer: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.inkLine },
+  teamPlayer: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.inkLine },
   lateArrivals: { marginTop: space.md, gap: space.sm },
 
   liveBanner: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.inkRaised, borderRadius: radius.md, borderWidth: 1, borderColor: colors.win, padding: space.md, marginBottom: space.lg },

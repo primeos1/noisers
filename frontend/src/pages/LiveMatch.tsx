@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import CaptainBand from "../components/CaptainBand";
 import { Empty, Figures, Group, LiveTag, PositionTag, Row } from "../components/portal/ui";
 import { GameCard } from "./portal/PortalMatch";
 import { useMatchDay } from "../lib/MatchDayContext";
@@ -230,6 +231,7 @@ function TeamCard({ team, line, players, event }: { team: MatchDayTeam; line?: T
               {player ? (
                 <Link to={`/squad/${player.id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-ink-line/25">
                   <span className="min-w-0 flex-1 truncate text-paper">{label}</span>
+                  {id === team.captain && <CaptainBand />}
                   <PositionTag position={player.position} />
                 </Link>
               ) : (

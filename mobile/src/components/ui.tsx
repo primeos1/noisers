@@ -651,7 +651,17 @@ export function Pill({ label, tone, icon, solid = false }: { label: string; tone
   );
 }
 
+/** The gold "C" armband next to a team's captain — matches the website's. */
+export function CaptainBand() {
+  return (
+    <View style={badgeStyles.captain} accessibilityLabel="Captain">
+      <Txt style={[badgeStyles.text, { color: colors.justice }]}>C</Txt>
+    </View>
+  );
+}
+
 const badgeStyles = StyleSheet.create({
+  captain: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: `${colors.justice}b3`, backgroundColor: `${colors.justice}26`, alignItems: "center", justifyContent: "center" },
   badge: { alignSelf: "flex-start", borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   pill: { flexDirection: "row", alignItems: "center", gap: 4 },
   text: { fontFamily: fonts.bodySemi, fontSize: 11 },

@@ -8,6 +8,7 @@ import { useSettings } from "../../lib/SettingsContext";
 import PlayerFormModal from "../../components/admin/PlayerFormModal";
 import SavesCounter from "../../components/admin/SavesCounter";
 import AbsenceBadge from "../../components/AbsenceBadge";
+import CaptainBand from "../../components/CaptainBand";
 import { useAbsences } from "../../lib/AbsencesContext";
 import { absenceStatus } from "../../lib/absences";
 import {
@@ -648,7 +649,10 @@ export default function MatchDay() {
                       <ul className="mt-3 space-y-1 text-sm text-paper-dim">
                         {team.players.map((id) => (
                           <li key={String(id)} className="flex items-center justify-between">
-                            <span>{name(id)}</span>
+                            <span className="flex items-center gap-2">
+                              {name(id)}
+                              {id === team.captain && <CaptainBand />}
+                            </span>
                             <button type="button" onClick={() => removeFromTeam(i, id)} className="text-mist hover:text-loss">
                               ✕
                             </button>
