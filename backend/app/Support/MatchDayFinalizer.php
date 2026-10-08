@@ -505,10 +505,12 @@ class MatchDayFinalizer
      * the lineup is empty and there's no player of the week. Pure and
      * read-only — used both to rewrite The Vale on finalize() and to answer
      * "what was the team of the week for match day X" for any past event.
+     * The bad boy of the week is whoever was booked most across the week's
+     * match days so far (ties going to more reds) — null when nobody was.
      *
      * @param  array<int, int>  $squadIds
      * @param  ?string  $exceptId  a match day of the same week to leave out
-     * @return array{complete: bool, lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfWeek: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, weekMatchDays: MatchDayEvent[]}|null
+     * @return array{complete: bool, lineup: array<int, array{playerId: int, position: string, points: float, stats: array<string, int>}>, lineupPlayerIds: int[], playerOfWeek: array{playerId: int, position: string, points: float, stats: array<string, int>}|null, badBoy: array{playerId: int, yellowCards: int, redCards: int}|null, weekMatchDays: MatchDayEvent[]}|null
      */
     public static function computeTeamOfWeek(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
@@ -526,11 +528,20 @@ class MatchDayFinalizer
         }
         $lineup = $complete ? self::pickTeam($ranking, $pool) : [];
 
+        // Guests carry no awards.
+        $squadStats = array_intersect_key($ranking['stats'], $ranking['players']->all());
+        $badBoy = PlayerStats::roughest($squadStats);
+
         return [
             'complete' => $complete,
             'lineup' => $lineup,
             'lineupPlayerIds' => array_column($lineup, 'playerId'),
             'playerOfWeek' => $complete ? self::topPlayer($ranking, self::picksPlayerOnGoals($event)) : null,
+            'badBoy' => $badBoy === null ? null : [
+                'playerId' => $badBoy,
+                'yellowCards' => $squadStats[$badBoy]['yellowCards'],
+                'redCards' => $squadStats[$badBoy]['redCards'],
+            ],
             'weekMatchDays' => $days->all(),
         ];
     }

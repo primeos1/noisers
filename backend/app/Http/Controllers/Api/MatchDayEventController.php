@@ -161,6 +161,8 @@ class MatchDayEventController extends Controller
                 'lineup' => array_map($pick, $team['lineup']),
                 'lineupPlayerIds' => $team['lineupPlayerIds'],
                 'playerOfWeek' => $pick($team['playerOfWeek']),
+                // Most cards across the week's match days, ties going to more reds; null when nobody was booked.
+                'badBoy' => $team['badBoy'],
                 // Each of the week's match days on its own, oldest first.
                 'matchDays' => array_map(function ($e) use ($squadIds, $pick) {
                     $day = MatchDayFinalizer::computeTeamOfMatchDay($e, $squadIds);

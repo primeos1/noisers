@@ -295,6 +295,8 @@ class PlayerOfTheWeekWinsTest extends TestCase
 
         $this->getJson('/api/match-day-events/md1/team-of-week')
             ->assertJsonPath('data.matchDays.0.badBoy', ['playerId' => $hothead->id, 'yellowCards' => 2, 'redCards' => 0])
-            ->assertJsonPath('data.matchDays.1.badBoy', null);
+            ->assertJsonPath('data.matchDays.1.badBoy', null)
+            // The bad boy of the week counts both match days' cards.
+            ->assertJsonPath('data.badBoy', ['playerId' => $hothead->id, 'yellowCards' => 2, 'redCards' => 0]);
     }
 }

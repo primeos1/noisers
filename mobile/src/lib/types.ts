@@ -311,6 +311,8 @@ export interface MatchDayAwards {
 }
 
 export interface TeamOfWeek {
+  /** Most cards across the week's match days, ties going to more reds — null when nobody was booked. */
+  badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
   /** "Week of 28 Sep". */
   title: string;
   /** The week's match day dates, e.g. "Wed 30 Sept & Sun 4 Oct". */

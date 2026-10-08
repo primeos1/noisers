@@ -7,7 +7,7 @@ import { useMatchDay } from "../lib/MatchDayContext";
 import { DEFAULT_VALE_CONTENT, fromApi as valeFromApi, useValeContent, type ApiValeContent } from "../lib/ValeContentContext";
 import { apiFetch } from "../lib/api";
 import { photos } from "../lib/photos";
-import { formatCards, keepsCleanSheets, positionCodes, roughestPlayer, type Player } from "../lib/clubData";
+import { formatCards, keepsCleanSheets, positionCodes, type Player } from "../lib/clubData";
 import { CrownIcon } from "../components/icons";
 import type { MatchDayEvent } from "../lib/matchDay";
 
@@ -68,6 +68,8 @@ interface TeamOfWeekData {
   complete?: boolean;
   /** The week's highest-rated player, with both match days' points added up. */
   playerOfWeek?: TeamOfWeekPick | null;
+  /** Most cards across the week's match days, ties going to more reds — null when nobody was booked. */
+  badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
   /** The team and player of each of the week's match days, oldest first. */
   matchDays?: MatchDayAwards[];
   /** The side at the bottom of the table — null when only one side played. */
@@ -418,7 +420,8 @@ export default function TheVale() {
   // A flop award left empty falls back to the one worked out for that day.
   const flopPick = (flopOfTheWeek.playerId ? flopOfTheWeek : null) ?? team?.flopPlayer ?? null;
   const flop = flopPick ? players.find((p) => p.id === flopPick.playerId) : undefined;
-  const leagueBadBoy = roughestPlayer(players);
+  const weekBadBoy = team?.badBoy ?? null;
+  const badBoy = weekBadBoy ? players.find((p) => p.id === weekBadBoy.playerId) : undefined;
   const cleanSheetTeam = weeklyLeaders.cleanSheetTeam;
   // Midfielders and forwards don't keep clean sheets, even on the side that did.
   const cleanSheetLeaders = weeklyLeaders.cleanSheets
@@ -693,24 +696,24 @@ export default function TheVale() {
             <div className="bg-ink p-8">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-xs uppercase tracking-wide text-mist">
-                  Bad boy of the league
+                  Bad boy of the week
                 </p>
-                {leagueBadBoy && (
+                {badBoy && (
                   <img
-                    src={leagueBadBoy.photo}
-                    alt={leagueBadBoy.name}
+                    src={badBoy.photo}
+                    alt={badBoy.name}
                     className="duotone -mt-2 h-16 w-16 shrink-0 border border-ink-line object-cover"
                     loading="lazy"
                   />
                 )}
               </div>
               <p className="mt-4 font-display text-4xl text-paper">
-                {leagueBadBoy ? leagueBadBoy.yellowCards + leagueBadBoy.redCards : 0} cards
+                {badBoy && weekBadBoy ? weekBadBoy.yellowCards + weekBadBoy.redCards : 0} cards
               </p>
               <p className="mt-2 text-sm text-paper-dim">
-                {leagueBadBoy
-                  ? `${leagueBadBoy.name} · #${leagueBadBoy.number} · ${formatCards(leagueBadBoy.yellowCards, leagueBadBoy.redCards)} this season`
-                  : "Nobody booked yet this season"}
+                {badBoy && weekBadBoy
+                  ? `${badBoy.name} · #${badBoy.number} · ${formatCards(weekBadBoy.yellowCards, weekBadBoy.redCards)} this week`
+                  : "Nobody booked this week"}
               </p>
             </div>
           </div>

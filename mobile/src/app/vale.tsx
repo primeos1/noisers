@@ -17,7 +17,7 @@ import { colors, fonts, foil, radius, shadow, space } from "../theme";
 // and each match day's team and player for any finished week, then the
 // committee's (or
 // the auto-awarded) player of the week, most improved, flop of the week and
-// stat leaders, with the bad boy of the league.
+// stat leaders, with the bad boy of the week.
 
 function Leader({ icon, label, player, value, tone, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; player?: Player; value: string; tone: string; onPress?: () => void }) {
   return (
@@ -155,7 +155,8 @@ export default function ValeScreen() {
   const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
   const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = awards;
   const flop = find(flopOfTheWeek.playerId);
-  const leagueBadBoy = badBoyOfTheLeague(players);
+  const weekBadBoy = team?.badBoy ?? null;
+  const badBoy = weekBadBoy ? find(weekBadBoy.playerId) : undefined;
   const potwPlayer = find(potw.playerId);
   const mip = find(mostImproved.playerId);
   const delta = mostImproved.currentRating - mostImproved.previousRating;
@@ -331,11 +332,11 @@ export default function ValeScreen() {
           <Leader icon="hand-left" label="Top saves" player={find(w.topSaves.playerId)} value={`${w.topSaves.value} saves`} tone={colors.gold} onPress={open(find(w.topSaves.playerId))} />
           <Leader
             icon="skull"
-            label="Bad boy of the league"
-            player={leagueBadBoy}
-            value={leagueBadBoy ? `${leagueBadBoy.yellowCards ?? 0}Y · ${leagueBadBoy.redCards ?? 0}R` : "No cards"}
+            label="Bad boy of the week"
+            player={badBoy}
+            value={badBoy && weekBadBoy ? `${weekBadBoy.yellowCards}Y · ${weekBadBoy.redCards}R` : "No cards"}
             tone={colors.loss}
-            onPress={open(leagueBadBoy)}
+            onPress={open(badBoy)}
           />
         </View>
         {w.cleanSheetTeam.name ? (
@@ -402,15 +403,3 @@ const styles = StyleSheet.create({
   flopTeamName: { fontFamily: fonts.displayHeavy, fontSize: 26, lineHeight: 28, color: colors.paper },
   flopLineup: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
 });
-
-/** Most cards this season, ties going to whoever has more reds. */
-function badBoyOfTheLeague(players: Player[]): Player | undefined {
-  let top: Player | undefined;
-  for (const p of players) {
-    const cards = (p.yellowCards ?? 0) + (p.redCards ?? 0);
-    if (!cards) continue;
-    const topCards = top ? (top.yellowCards ?? 0) + (top.redCards ?? 0) : 0;
-    if (!top || cards > topCards || (cards === topCards && (p.redCards ?? 0) > (top.redCards ?? 0))) top = p;
-  }
-  return top;
-}
