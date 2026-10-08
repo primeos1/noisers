@@ -117,8 +117,8 @@ export interface Fixture {
 }
 
 /**
- * A provisional double round robin by the circle method: every club meets
- * every other club home and away, three games a round, ten rounds.
+ * A triple round robin by the circle method: every club meets every other
+ * club home, away, then home again, three games a round, fifteen rounds.
  */
 export function buildFixtures(ids: ClubId[] = clubs.map((c) => c.id)): Fixture[][] {
   const order = [...ids];
@@ -137,7 +137,7 @@ export function buildFixtures(ids: ClubId[] = clubs.map((c) => c.id)): Fixture[]
     order.splice(1, 0, order.pop()!);
   }
   const second = first.map((round) => round.map((f) => ({ home: f.away, away: f.home })));
-  return [...first, ...second];
+  return [...first, ...second, ...first];
 }
 
 /** Season one kicks off on Sunday 15 November 2026 at 9pm, Lagos time. */

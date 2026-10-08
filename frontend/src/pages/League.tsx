@@ -8,6 +8,7 @@ const reducedMotion = () =>
 
 const byId = new Map(clubs.map((c) => [c.id, c]));
 const club = (id: ClubId) => byId.get(id)!;
+const season = buildSchedule();
 
 const clubVars = (c: Club) =>
   ({
@@ -169,8 +170,8 @@ function Hero({ onPick }: { onPick: (id: ClubId) => void }) {
       <div className="relative mx-auto grid max-w-4xl grid-cols-4 gap-2 px-5 pb-10 md:px-10 md:pb-14">
         {[
           { n: clubs.length, l: "Clubs" },
-          { n: clubs.length * (clubs.length - 1), l: "Fixtures" },
-          { n: Math.ceil((clubs.length * (clubs.length - 1)) / GAMES_PER_NIGHT), l: "Sundays" },
+          { n: season.reduce((n, night) => n + night.games.length, 0), l: "Fixtures" },
+          { n: season.length, l: "Sundays" },
           { n: 0, l: "Played" },
         ].map((s) => (
           <div key={s.l} className="text-center">
@@ -450,7 +451,7 @@ const dayLabel = (d: Date, long = false) =>
   d.toLocaleDateString("en-GB", { weekday: long ? "long" : "short", day: "numeric", month: long ? "long" : "short", timeZone: "UTC" });
 
 function Fixtures() {
-  const nights = useMemo(() => buildSchedule(), []);
+  const nights = season;
   const [night, setNight] = useState(0);
   const games = nights[night].games;
   const last = games[games.length - 1];
@@ -463,7 +464,7 @@ function Fixtures() {
         <SectionHead
           eyebrow="Season one schedule"
           title="Fixtures"
-          note={`Every club meets every other club twice, home and away. Sundays from 15 November, 9pm to midnight: ${GAMES_PER_NIGHT} games of ${GAME_MINUTES} minutes a night.`}
+          note={`Every club meets every other club three times: home, away, then home again. Sundays from 15 November, 9pm to midnight: ${GAMES_PER_NIGHT} games of ${GAME_MINUTES} minutes a night.`}
         />
 
         <div className="lg-picker -mx-5 mb-6 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:px-0" role="tablist" aria-label="Match nights">
