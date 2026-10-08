@@ -77,7 +77,8 @@ class PlayerOfTheWeekWinsTest extends TestCase
             ->assertJsonPath('data.lineup.0.playerId', $ace->id)
             ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.awards.weeklyLeaders.topScorer.playerId', $ace->id)
-            ->assertJsonPath('data.awards.weeklyLeaders.topScorer.value', 1);
+            // The leaders count the whole week: a goal on each of its two match days.
+            ->assertJsonPath('data.awards.weeklyLeaders.topScorer.value', 2);
         $this->getJson('/api/match-day-events/md3/team-of-week')
             ->assertJsonPath('data.title', 'Week 2')
             ->assertJsonPath('data.awards.playerOfTheWeek.playerId', $rival->id);

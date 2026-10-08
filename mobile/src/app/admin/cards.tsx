@@ -6,10 +6,45 @@ import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
 import { cardDate, formatNaira, outstandingFines, participantName } from "../../lib/derive";
 import type { Card } from "../../lib/types";
-import { Empty, ErrorBanner, Figures, Group, RefCard, Row, Screen, Segmented, Txt, text } from "../../components/ui";
+import { CardPips, Empty, ErrorBanner, Figures, Group, Row, Screen, Segmented, Txt, text } from "../../components/ui";
 import { colors, radius, space } from "../../theme";
 
 type Filter = "unpaid" | "paid" | "all" | "yellow" | "red";
+
+/** All of one player's cards, added up into a single row. */
+interface CardGroup {
+  playerId: number;
+  /** Newest first. */
+  cards: Card[];
+  yellows: number;
+  reds: number;
+  fine: number;
+  paid: boolean;
+}
+
+function groupCards(cards: Card[]): CardGroup[] {
+  const groups = new Map<number, CardGroup>();
+  for (const card of cards) {
+    const group = groups.get(card.playerId) ?? { playerId: card.playerId, cards: [], yellows: 0, reds: 0, fine: 0, paid: true };
+    group.cards.push(card);
+    if (card.type === "red") group.reds += 1;
+    else group.yellows += 1;
+    group.fine += card.fineAmount;
+    group.paid &&= card.paid;
+    groups.set(card.playerId, group);
+  }
+  // Card ids go up as they're logged, so the highest is the latest.
+  for (const group of groups.values()) group.cards.sort((a, b) => b.id - a.id);
+  return [...groups.values()];
+}
+
+/** Distinct reasons, and the first and latest dates when they differ. */
+function groupDetail(group: CardGroup) {
+  const reasons = [...new Set(group.cards.map((c) => c.reason).filter(Boolean))].join(", ");
+  const newest = cardDate(group.cards[0]);
+  const oldest = cardDate(group.cards[group.cards.length - 1]);
+  return [reasons, newest === oldest ? newest : `${oldest} – ${newest}`].filter(Boolean).join(", ");
+}
 
 export default function CardsScreen() {
   const { cards, players, settings, refresh, setCardPaid, removeCard } = useClub();
@@ -19,20 +54,26 @@ export default function CardsScreen() {
   const visible = cards.filter((c) =>
     filter === "all" ? true : filter === "paid" ? c.paid : filter === "unpaid" ? !c.paid : c.type === filter,
   );
+  const groups = groupCards(visible);
   const collected = cards.filter((c) => c.paid).reduce((s, c) => s + c.fineAmount, 0);
   const nameOf = (c: Card) => (c.playerId != null ? participantName(players, [], c.playerId) : "Unknown player");
 
-  async function togglePaid(card: Card) {
+  // A partly paid group gets marked fully paid; a fully paid one goes back to owing.
+  async function togglePaid(group: CardGroup) {
     setError("");
+    const paid = !group.paid;
     try {
-      await setCardPaid(card.id, !card.paid);
+      await Promise.all(group.cards.filter((c) => c.paid !== paid).map((c) => setCardPaid(c.id, paid)));
     } catch (err) {
       setError(errorMessage(err, "Couldn't update that card."));
     }
   }
 
-  function confirmRemove(card: Card) {
-    Alert.alert("Delete this card?", `${nameOf(card)}'s ${card.type} card and its ${formatNaira(card.fineAmount)} fine will be removed.`, [
+  // Deletes one card at a time — the latest in the group.
+  function confirmRemove(group: CardGroup) {
+    const card = group.cards[0];
+    const which = group.cards.length > 1 ? `latest card (a ${card.type}, of ${group.cards.length})` : `${card.type} card`;
+    Alert.alert("Delete this card?", `${nameOf(card)}'s ${which} and its ${formatNaira(card.fineAmount)} fine will be removed.`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -91,28 +132,28 @@ export default function CardsScreen() {
         <Empty>{filter === "unpaid" ? "Everyone's paid up." : "No cards match this filter."}</Empty>
       ) : (
         <Group aside="Tap to mark paid, long-press to delete">
-          {visible.map((c) => (
+          {groups.map((g) => (
             <Row
-              key={c.id}
-              onPress={() => togglePaid(c)}
-              onLongPress={() => confirmRemove(c)}
+              key={g.playerId}
+              onPress={() => togglePaid(g)}
+              onLongPress={() => confirmRemove(g)}
               chevron={false}
-              accessibilityLabel={`${nameOf(c)}, ${c.type} card, ${c.paid ? "paid" : "not paid"}`}
+              accessibilityLabel={`${nameOf(g.cards[0])}, ${g.yellows} yellow, ${g.reds} red, ${g.paid ? "paid" : "not paid"}`}
             >
-              <RefCard type={c.type} size="md" />
+              <CardPips yellow={g.yellows} red={g.reds} />
               <View style={styles.flex}>
                 <Txt style={text.semi} numberOfLines={1}>
-                  {nameOf(c)}
+                  {nameOf(g.cards[0])}
                 </Txt>
                 <Txt style={text.small} numberOfLines={1}>
-                  {[c.reason, cardDate(c)].filter(Boolean).join(", ")}
+                  {groupDetail(g)}
                 </Txt>
               </View>
               <View style={styles.amount}>
-                <Txt style={[text.semi, text.tabular]}>{formatNaira(c.fineAmount)}</Txt>
-                <View style={[styles.status, c.paid ? styles.statusPaid : styles.statusUnpaid]}>
-                  <Ionicons name={c.paid ? "checkmark" : "time-outline"} size={12} color={c.paid ? colors.win : colors.loss} />
-                  <Txt style={[text.small, { color: c.paid ? colors.win : colors.loss }]}>{c.paid ? "Paid" : "Unpaid"}</Txt>
+                <Txt style={[text.semi, text.tabular]}>{formatNaira(g.fine)}</Txt>
+                <View style={[styles.status, g.paid ? styles.statusPaid : styles.statusUnpaid]}>
+                  <Ionicons name={g.paid ? "checkmark" : "time-outline"} size={12} color={g.paid ? colors.win : colors.loss} />
+                  <Txt style={[text.small, { color: g.paid ? colors.win : colors.loss }]}>{g.paid ? "Paid" : "Unpaid"}</Txt>
                 </View>
               </View>
             </Row>

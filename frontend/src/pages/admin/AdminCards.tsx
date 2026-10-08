@@ -10,6 +10,67 @@ import type { MatchDayEvent } from "../../lib/matchDay";
 
 type Filter = "all" | "unpaid" | "paid" | CardType;
 
+/** All of one player's cards, added up into a single row. */
+interface CardGroup {
+  playerId: number;
+  /** Newest first. */
+  cards: CardRecord[];
+  yellows: number;
+  reds: number;
+  fine: number;
+  paid: boolean;
+}
+
+function groupCards(cards: CardRecord[]): CardGroup[] {
+  const groups = new Map<number, CardGroup>();
+  for (const card of cards) {
+    const group = groups.get(card.playerId) ?? { playerId: card.playerId, cards: [], yellows: 0, reds: 0, fine: 0, paid: true };
+    group.cards.push(card);
+    if (card.type === "red") group.reds += 1;
+    else group.yellows += 1;
+    group.fine += card.fine;
+    group.paid &&= card.paid;
+    groups.set(card.playerId, group);
+  }
+  // Card ids go up as they're logged, so the highest is the latest.
+  for (const group of groups.values()) group.cards.sort((a, b) => Number(b.id) - Number(a.id));
+  return [...groups.values()];
+}
+
+function cardCounts(group: CardGroup) {
+  return [
+    group.yellows > 0 && `${group.yellows} yellow`,
+    group.reds > 0 && `${group.reds} red`,
+  ].filter(Boolean).join(", ");
+}
+
+/** A yellow and/or red card chip, each with its count when there's more than one. */
+function CardChips({ group }: { group: CardGroup }) {
+  return (
+    <span className="inline-flex shrink-0 gap-1" aria-label={cardCounts(group)}>
+      {(["yellow", "red"] as CardType[]).map((type) => {
+        const n = type === "red" ? group.reds : group.yellows;
+        return n > 0 ? (
+          <span
+            key={type}
+            className={`flex h-9 w-6 items-center justify-center rounded-[4px] font-display text-sm font-bold text-ink ${type === "red" ? "bg-loss" : "bg-draw"}`}
+          >
+            {n > 1 ? n : null}
+          </span>
+        ) : null;
+      })}
+    </span>
+  );
+}
+
+/** Distinct reasons, and the first and latest dates when they differ. */
+function groupDetail(group: CardGroup) {
+  const reasons = [...new Set(group.cards.map((c) => c.reason).filter(Boolean))].join(", ");
+  const newest = group.cards[0].date;
+  const oldest = group.cards[group.cards.length - 1].date;
+  return { reasons, dates: newest === oldest ? newest : `${oldest} – ${newest}` };
+}
+
 const filters: { label: string; value: Filter }[] = [
   { label: "All", value: "all" },
   { label: "Unpaid", value: "unpaid" },
@@ -20,13 +81,13 @@ const filters: { label: string; value: Filter }[] = [
 
 export default function AdminCards() {
   const { players, refresh: refreshSquad } = useSquad();
-  const { cards, addCard, removeCard, togglePaid, refresh: refreshCards, error: cardsError } = useCards();
+  const { cards, addCard, removeCard, updateCard, refresh: refreshCards, error: cardsError } = useCards();
   const { events, updateEvent, refresh: refreshMatchDays, error: matchDayError } = useMatchDay();
   const { refresh: refreshVale } = useValeContent();
   const { settings } = useSettings();
   const [filter, setFilter] = useState<Filter>("all");
   const [adding, setAdding] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<CardRecord | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<CardGroup | null>(null);
 
   // A card missed during a match day goes into that game's record; the
   // server then logs its fine and updates stats, ratings and The Vale.
@@ -77,6 +138,14 @@ export default function AdminCards() {
         return sorted;
     }
   }, [sorted, filter]);
+
+  const groups = useMemo(() => groupCards(visible), [visible]);
+
+  // A partly paid group gets marked fully paid; a fully paid one goes back to owing.
+  function toggleGroupPaid(group: CardGroup) {
+    const paid = !group.paid;
+    for (const card of group.cards) if (card.paid !== paid) updateCard(card.id, { paid });
+  }
 
   const outstanding = outstandingFines(cards);
   const collected = cards.filter((c) => c.paid).reduce((sum, c) => sum + c.fine, 0);
@@ -153,32 +222,33 @@ export default function AdminCards() {
         <>
         {/* Phones: card list */}
         <ul className="mt-4 divide-y divide-ink-line overflow-hidden rounded-2xl border border-ink-line bg-ink-raised md:hidden">
-          {visible.map((card) => {
-            const player = players.find((p) => p.id === card.playerId);
+          {groups.map((group) => {
+            const player = players.find((p) => p.id === group.playerId);
+            const { reasons, dates } = groupDetail(group);
             return (
-              <li key={card.id} className="flex items-center gap-3 px-4 py-3">
-                <span className={`h-9 w-6 shrink-0 rounded-[4px] ${card.type === "red" ? "bg-loss" : "bg-draw"}`} aria-label={`${card.type} card`} />
+              <li key={group.playerId} className="flex items-center gap-3 px-4 py-3">
+                <CardChips group={group} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[0.95rem] text-paper">
                     {player ? player.name : "Former player"}
                   </p>
-                  <p className="truncate text-xs text-mist">{card.reason} · {card.date}</p>
+                  <p className="truncate text-xs text-mist">{[reasons, dates].filter(Boolean).join(" · ")}</p>
                   <div className="mt-1 flex items-center gap-3 text-xs">
-                    <span className="tabular-nums text-paper-dim">{formatNaira(card.fine)}</span>
-                    <button type="button" onClick={() => setConfirmDelete(card)} className="text-loss">
+                    <span className="tabular-nums text-paper-dim">{formatNaira(group.fine)}</span>
+                    <button type="button" onClick={() => setConfirmDelete(group)} className="text-loss">
                       Remove
                     </button>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => togglePaid(card.id)}
-                  aria-pressed={card.paid}
+                  onClick={() => toggleGroupPaid(group)}
+                  aria-pressed={group.paid}
                   className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${
-                    card.paid ? "bg-win/20 text-win" : "bg-loss/15 text-loss"
+                    group.paid ? "bg-win/20 text-win" : "bg-loss/15 text-loss"
                   }`}
                 >
-                  {card.paid ? "Paid" : "Owes"}
+                  {group.paid ? "Paid" : "Owes"}
                 </button>
               </li>
             );
@@ -199,11 +269,12 @@ export default function AdminCards() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((card, i) => {
-                const player = players.find((p) => p.id === card.playerId);
+              {groups.map((group, i) => {
+                const player = players.find((p) => p.id === group.playerId);
+                const { reasons, dates } = groupDetail(group);
                 return (
                   <tr
-                    key={card.id}
+                    key={group.playerId}
                     className="animate-hero-in border-b border-ink-line transition-colors last:border-b-0 hover:bg-ink-raised"
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
@@ -219,40 +290,44 @@ export default function AdminCards() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-2">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${
-                            card.type === "red" ? "bg-loss" : "bg-draw"
-                          }`}
-                        />
-                        <span className={card.type === "red" ? "text-loss" : "text-draw"}>
-                          {card.type === "red" ? "Red" : "Yellow"}
-                        </span>
+                      <span className="inline-flex items-center gap-3">
+                        {group.yellows > 0 && (
+                          <span className="inline-flex items-center gap-2 text-draw">
+                            <span className="h-2.5 w-2.5 rounded-full bg-draw" />
+                            {group.yellows > 1 ? `${group.yellows} × Yellow` : "Yellow"}
+                          </span>
+                        )}
+                        {group.reds > 0 && (
+                          <span className="inline-flex items-center gap-2 text-loss">
+                            <span className="h-2.5 w-2.5 rounded-full bg-loss" />
+                            {group.reds > 1 ? `${group.reds} × Red` : "Red"}
+                          </span>
+                        )}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-paper-dim">{card.reason}</td>
-                    <td className="px-4 py-3 text-paper-dim">{card.date}</td>
-                    <td className="px-4 py-3 tabular-nums text-paper-dim">{formatNaira(card.fine)}</td>
+                    <td className="px-4 py-3 text-paper-dim">{reasons}</td>
+                    <td className="px-4 py-3 text-paper-dim">{dates}</td>
+                    <td className="px-4 py-3 tabular-nums text-paper-dim">{formatNaira(group.fine)}</td>
                     <td className="px-4 py-3">
                       <button
                         type="button"
-                        onClick={() => togglePaid(card.id)}
-                        aria-pressed={card.paid}
+                        onClick={() => toggleGroupPaid(group)}
+                        aria-pressed={group.paid}
                         className={`relative inline-flex h-7 w-14 items-center border transition-colors ${
-                          card.paid ? "border-win bg-win/20" : "border-ink-line bg-ink"
+                          group.paid ? "border-win bg-win/20" : "border-ink-line bg-ink"
                         }`}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform bg-paper transition-transform duration-300 ease-out ${
-                            card.paid ? "translate-x-8" : "translate-x-1"
+                            group.paid ? "translate-x-8" : "translate-x-1"
                           }`}
                         />
                         <span
                           className={`pointer-events-none absolute inset-0 flex items-center text-[10px] font-medium uppercase tracking-wide ${
-                            card.paid ? "justify-start pl-2 text-win" : "justify-end pr-2 text-mist"
+                            group.paid ? "justify-start pl-2 text-win" : "justify-end pr-2 text-mist"
                           }`}
                         >
-                          {card.paid ? "Paid" : "Owes"}
+                          {group.paid ? "Paid" : "Owes"}
                         </span>
                       </button>
                     </td>
@@ -260,7 +335,7 @@ export default function AdminCards() {
                       <div className="flex justify-end">
                         <button
                           type="button"
-                          onClick={() => setConfirmDelete(card)}
+                          onClick={() => setConfirmDelete(group)}
                           className="text-paper-dim hover:text-loss"
                         >
                           Remove
@@ -299,8 +374,10 @@ export default function AdminCards() {
           >
             <h2 className="font-display text-xl text-paper">Remove card</h2>
             <p className="mt-2 text-sm text-paper-dim">
-              Remove this {confirmDelete.type} card ({confirmDelete.reason})? This
-              can't be undone.
+              {confirmDelete.cards.length > 1
+                ? `Remove the latest of these ${confirmDelete.cards.length} cards, the ${confirmDelete.cards[0].type} on ${confirmDelete.cards[0].date}${confirmDelete.cards[0].reason ? ` (${confirmDelete.cards[0].reason})` : ""}?`
+                : `Remove this ${confirmDelete.cards[0].type} card (${confirmDelete.cards[0].reason})?`}{" "}
+              This can't be undone.
             </p>
             <div className="sheet-actions mt-6 flex justify-end gap-3">
               <button
@@ -314,7 +391,7 @@ export default function AdminCards() {
                 type="button"
                 onClick={() => {
                   // A match day card also comes off its game, which can move stats and ratings.
-                  removeCard(confirmDelete.id).then((ok) => {
+                  removeCard(confirmDelete.cards[0].id).then((ok) => {
                     if (!ok) return;
                     refreshMatchDays();
                     refreshSquad();

@@ -672,6 +672,42 @@ class MatchDayFinalizer
     }
 
     /**
+     * The side (by team name) that kept the most clean sheets across these
+     * match days — the week's, for The Vale's stat leaders. A tie goes to the
+     * side with more wins, then the better goal difference, across them.
+     * Null when nobody kept one.
+     *
+     * @param  MatchDayEvent[]  $days
+     * @param  array<int, int>  $squadIds
+     * @param  array<int, int>  $noCleanSheetIds
+     * @return array{name: string, value: int, playerIds: int[]}|null
+     */
+    public static function computeWeekCleanSheetTeam(array $days, array $squadIds, array $noCleanSheetIds = []): ?array
+    {
+        $teams = [];
+        foreach ($days as $day) {
+            foreach (self::teamTable($day, $squadIds) as $name => $t) {
+                $teams[$name] ??= ['won' => 0, 'gd' => 0, 'cleanSheets' => 0, 'players' => []];
+                $teams[$name]['won'] += $t['won'];
+                $teams[$name]['gd'] += $t['gd'];
+                $teams[$name]['cleanSheets'] += $t['cleanSheets'];
+                $teams[$name]['players'] = array_values(array_unique(array_merge($teams[$name]['players'], $t['players'])));
+            }
+        }
+        uasort($teams, fn ($a, $b) => [$b['cleanSheets'], $b['won'], $b['gd']] <=> [$a['cleanSheets'], $a['won'], $a['gd']]);
+        $name = array_key_first($teams);
+        if ($name === null || $teams[$name]['cleanSheets'] === 0) {
+            return null;
+        }
+
+        return [
+            'name' => (string) $name,
+            'value' => $teams[$name]['cleanSheets'],
+            'playerIds' => array_values(array_diff($teams[$name]['players'], $noCleanSheetIds)),
+        ];
+    }
+
+    /**
      * The flop team of the week — of each match day's bottom side (on the
      * same wins/goal-difference table computeBestSide() tops), the worst
      * across the week. Null unless two sides played on one of its match days.
@@ -706,40 +742,48 @@ class MatchDayFinalizer
     }
 
     /**
-     * The Vale's flop-of-the-week columns for this match day.
+     * The Vale's flop-of-the-week columns for this match day's week.
      *
      * @param  array<int, int>  $squadIds
+     * @param  ?string  $exceptId  a match day of the same week to leave out
      * @return array{flop_player_id: ?int, flop_note: ?string}
      */
-    public static function flopFields(MatchDayEvent $event, array $squadIds): array
+    public static function flopFields(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): array
     {
-        $flop = self::computeFlopPlayer($event, $squadIds);
+        $flop = self::computeFlopPlayer($event, $squadIds, $exceptId);
 
         return [
             'flop_player_id' => $flop['playerId'] ?? null,
             'flop_note' => $flop ? sprintf(
-                'Lost %d of %d game%s (%+d goal difference) with %d goal involvement%s at %s.',
+                'Lost %d of %d game%s (%+d goal difference) with %d goal involvement%s %s %s.',
                 $flop['lost'], $flop['played'], $flop['played'] === 1 ? '' : 's',
                 $flop['gd'],
                 $flop['involvements'], $flop['involvements'] === 1 ? '' : 's',
-                $event->title,
+                count($flop['matchDays']) > 1 ? 'across' : 'at',
+                implode(' and ', $flop['matchDays']),
             ) : null,
         ];
     }
 
     /**
-     * The flop player of the week — the squad player who lost the most
-     * games, then had the worst goal difference on the pitch, then the
-     * fewest goals and assists. There is always one, even on a day of
-     * draws — null only when no squad player finished a game.
+     * The flop player of the week — across both of the week's match days
+     * (see weekEvents()), the squad player who lost the most games, then
+     * had the worst goal difference on the pitch, then the fewest goals and
+     * assists. Until the week's second match day ends it's the worst of the
+     * first. There is always one, even on a week of draws — null only when
+     * no squad player finished a game.
      *
      * @param  array<int, int>  $squadIds
-     * @return array{playerId: int, played: int, lost: int, gd: int, involvements: int}|null
+     * @param  ?string  $exceptId  a match day of the same week to leave out
+     * @return array{playerId: int, played: int, lost: int, gd: int, involvements: int, matchDays: string[]}|null
      */
-    public static function computeFlopPlayer(MatchDayEvent $event, array $squadIds): ?array
+    public static function computeFlopPlayer(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
+        $days = self::weekEvents($event, $exceptId)->filter(fn ($e) => self::hasFinishedGames($e))->values();
+        $games = $days->flatMap(fn ($e) => $e->games ?? []);
+
         $rows = [];
-        foreach (($event->games ?? []) as $game) {
+        foreach ($games as $game) {
             if (($game['status'] ?? null) !== 'finished') {
                 continue;
             }
@@ -774,7 +818,7 @@ class MatchDayFinalizer
                 $flop = ['playerId' => $playerId, 'key' => $key] + $r;
             }
         }
-        return $flop ? array_diff_key($flop, ['key' => true]) : null;
+        return $flop ? array_diff_key($flop, ['key' => true]) + ['matchDays' => $days->pluck('title')->all()] : null;
     }
 
     /**
@@ -923,9 +967,10 @@ class MatchDayFinalizer
             ];
         }
 
-        // The weekly leaders — this match day's stats only.
+        // The weekly leaders — totals across the week's match days so far.
+        $weekDays = self::weekEvents($event, $exceptId)->filter(fn ($e) => self::hasFinishedGames($e))->values();
         $stats = array_filter(
-            PlayerStats::computeAll([$event], $noCleanSheetIds = PlayerStats::noCleanSheetIds()),
+            PlayerStats::computeAll($weekDays->all(), $noCleanSheetIds = PlayerStats::noCleanSheetIds()),
             fn ($playerId) => $inSquad($playerId),
             ARRAY_FILTER_USE_KEY,
         );
@@ -953,14 +998,14 @@ class MatchDayFinalizer
             'leader_top_saves_value' => $keeper ? $stats[$keeper]['saves'] : 0,
         ];
 
-        $cleanSheetTeam = self::computeCleanSheetTeam($event, $squadIds, $noCleanSheetIds);
+        $cleanSheetTeam = self::computeWeekCleanSheetTeam($weekDays->all(), $squadIds, $noCleanSheetIds);
         $changes += [
             'leader_clean_sheet_team' => $cleanSheetTeam['name'] ?? null,
             'leader_clean_sheet_value' => $cleanSheetTeam['value'] ?? 0,
             'leader_clean_sheet_player_ids' => $cleanSheetTeam['playerIds'] ?? [],
         ];
 
-        $changes += self::flopFields($event, $squadIds);
+        $changes += self::flopFields($event, $squadIds, $exceptId);
 
         // Player of the week — the highest-rated player across the week (most
         // goals and assists in weeks 1 and 2).

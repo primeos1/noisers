@@ -323,14 +323,14 @@ export function buildTeams(
 }
 
 // The five colours are dealt out in a random order; Team Bibs only ever
-// appears as the sixth team. Rozay (#7) always wears the white stripes and
+// appears as the sixth team. Rozay (#7) always plays for Team Grey and
 // Muyiwa Tender always plays for Team Black: the player's team takes that
 // name, swapping with whichever team had it. Bibs is pinned to sixth (and
-// Rozay's team keeps the stripes), so if one of them is drawn onto a team
+// Rozay's team stays Grey), so if one of them is drawn onto a team
 // that can't change its name, they instead trade places with the most
 // similar player on the right team (same membership, then position, then
 // closest rating).
-const WHITE_STRIPES = "Team White Stripes";
+const GREY = "Team Grey";
 const BIBS = "Team Bibs";
 const BLACK = "Team Black";
 
@@ -378,7 +378,7 @@ function nameTeams(players: Player[], rosters: ParticipantId[][]): MatchDayTeam[
   }));
 
   const locked = new Set<string>([BIBS]);
-  if (pinToColour(players, teams, named(players, "rozay"), WHITE_STRIPES, locked)) locked.add(WHITE_STRIPES);
+  if (pinToColour(players, teams, named(players, "rozay"), GREY, locked)) locked.add(GREY);
   pinToColour(players, teams, named(players, "muyiwa tender"), BLACK, locked);
   return teams;
 }

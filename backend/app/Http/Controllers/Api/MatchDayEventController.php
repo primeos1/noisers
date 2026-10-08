@@ -178,7 +178,7 @@ class MatchDayEventController extends Controller
                     ];
                 }, $team['weekMatchDays']),
                 'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
-                // Worked out for this match day, so every one has a flop.
+                // Worked out across the week's match days, so every week has a flop.
                 'flopPlayer' => (function () use ($matchDayEvent, $squadIds) {
                     $flop = MatchDayFinalizer::flopFields($matchDayEvent, $squadIds);
 

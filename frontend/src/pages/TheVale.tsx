@@ -72,7 +72,7 @@ interface TeamOfWeekData {
   matchDays?: MatchDayAwards[];
   /** The side at the bottom of the table — null when only one side played. */
   flopTeam: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
-  /** This match day's flop player — null only when no squad player finished a game. */
+  /** The week's flop player, across both its match days — null only when no squad player finished a game. */
   flopPlayer?: { playerId: number; note: string } | null;
   /** Every other award as worked out for this match day. */
   awards?: ApiValeContent;
