@@ -4625,3 +4625,689 @@
     }
   }
 }
+
+/* League — registered so the showcase can fade between club colours. */
+@property --c1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0a0e1a;
+}
+@property --c3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0a0e1a;
+}
+@property --glow {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0a0e1a;
+}
+@property --lg-spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@layer utilities {
+  .lg-hero {
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, #1a2240 0%, var(--color-ink) 70%);
+  }
+  .lg-hero-bands {
+    position: absolute;
+    inset: 0 -12%;
+    display: flex;
+    opacity: 0.2;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 55%, transparent);
+  }
+  .lg-hero-bands-soft {
+    opacity: 0.1;
+  }
+  .lg-hero-bands span {
+    flex: 1;
+    background: linear-gradient(180deg, var(--c1), var(--glow));
+    transform: skewX(-14deg);
+    transform-origin: top;
+    animation:
+      lg-band-drop 1.2s calc(var(--i) * 90ms) cubic-bezier(0.16, 1, 0.3, 1) both,
+      lg-band-breathe 6s calc(1.3s + var(--i) * 0.45s) ease-in-out infinite;
+  }
+  @keyframes lg-band-drop {
+    from {
+      transform: skewX(-14deg) scaleY(0);
+    }
+  }
+  @keyframes lg-band-breathe {
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  .lg-beam {
+    position: absolute;
+    top: -10%;
+    width: 70%;
+    height: 130%;
+    pointer-events: none;
+    background: conic-gradient(
+      from 180deg at 50% 0%,
+      transparent 165deg,
+      rgba(255, 255, 255, 0.07) 175deg,
+      rgba(255, 255, 255, 0.12) 180deg,
+      rgba(255, 255, 255, 0.07) 185deg,
+      transparent 195deg
+    );
+    transform-origin: 50% 0;
+    animation: lg-sweep 9s ease-in-out infinite alternate;
+  }
+  .lg-beam-l {
+    left: -25%;
+  }
+  .lg-beam-r {
+    right: -25%;
+    animation-delay: -4.5s;
+  }
+  @keyframes lg-sweep {
+    from {
+      transform: rotate(-16deg);
+    }
+    to {
+      transform: rotate(16deg);
+    }
+  }
+
+  .lg-title {
+    font-size: clamp(5.5rem, 27vw, 11rem);
+  }
+  .lg-title-word {
+    background: linear-gradient(
+      100deg,
+      var(--color-paper) 0 38%,
+      #f2b41c 44%,
+      #e0455f 48%,
+      #5b78d6 52%,
+      #2fa35f 56%,
+      var(--color-paper) 62% 100%
+    );
+    background-size: 300% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation:
+      lg-title-in 1.1s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both,
+      lg-shine 7s 1.4s ease-in-out infinite;
+  }
+  @keyframes lg-title-in {
+    from {
+      opacity: 0;
+      transform: translateY(40px) scale(0.94);
+      letter-spacing: 0.2em;
+    }
+  }
+  @keyframes lg-shine {
+    0% {
+      background-position: 100% 0;
+    }
+    45%,
+    100% {
+      background-position: 0% 0;
+    }
+  }
+
+  .lg-ping {
+    animation: lg-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes lg-ping {
+    75%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+
+  /* The kits on a turning 3D ring. */
+  .lg-stage {
+    --w: 132px;
+    --h: 198px;
+    --r: 185px;
+    position: relative;
+    height: calc(var(--h) + 100px);
+    perspective: 1100px;
+    animation: lg-rise 1.2s 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @media (min-width: 768px) {
+    .lg-stage {
+      --w: 190px;
+      --h: 285px;
+      --r: 320px;
+      height: calc(var(--h) + 140px);
+    }
+  }
+  @keyframes lg-rise {
+    from {
+      opacity: 0;
+      transform: translateY(60px) scale(0.9);
+    }
+  }
+  .lg-ring {
+    position: absolute;
+    left: 50%;
+    top: 40px;
+    width: var(--w);
+    height: var(--h);
+    margin-left: calc(var(--w) / -2);
+    transform-style: preserve-3d;
+    animation: lg-spin 42s linear infinite;
+  }
+  .lg-stage:hover .lg-ring,
+  .lg-stage:focus-within .lg-ring {
+    animation-play-state: paused;
+  }
+  @keyframes lg-spin {
+    from {
+      transform: rotateX(-7deg) rotateY(0deg);
+    }
+    to {
+      transform: rotateX(-7deg) rotateY(-360deg);
+    }
+  }
+  .lg-ring-card {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #8d8f94;
+    border: 2px solid color-mix(in srgb, var(--glow) 75%, transparent);
+    box-shadow:
+      0 0 46px -8px var(--glow),
+      0 30px 50px -20px rgba(0, 0, 0, 0.8);
+    transform: rotateY(calc(var(--i) * 60deg)) translateZ(var(--r));
+    backface-visibility: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.3s ease;
+  }
+  .lg-ring-card:hover,
+  .lg-ring-card:focus-visible {
+    box-shadow:
+      0 0 70px -4px var(--glow),
+      0 30px 50px -20px rgba(0, 0, 0, 0.8);
+  }
+  .lg-ring-card img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+  .lg-ring-label {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1.75rem 0.55rem 0.55rem;
+    background: linear-gradient(transparent, rgba(10, 14, 26, 0.94));
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.8rem;
+    line-height: 1;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--color-paper);
+  }
+  @media (min-width: 768px) {
+    .lg-ring-label {
+      font-size: 1rem;
+      padding: 2rem 0.75rem 0.7rem;
+    }
+  }
+  .lg-floor {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    height: 70px;
+    width: calc(var(--r) * 2.8);
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(216, 181, 106, 0.22), transparent 70%);
+    filter: blur(8px);
+    pointer-events: none;
+  }
+
+  .lg-ticker {
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .lg-ticker-track {
+    display: flex;
+    width: max-content;
+    animation: lg-marquee 40s linear infinite;
+  }
+  @keyframes lg-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .lg-reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition:
+      opacity 0.7s var(--d, 0ms),
+      transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms);
+  }
+  .lg-reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  .lg-in {
+    animation: lg-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms) both;
+  }
+  @keyframes lg-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+  }
+
+  /* Club showcase: the whole section takes on the picked club's colours. */
+  .lg-show {
+    transition:
+      --c1 0.9s ease,
+      --c3 0.9s ease,
+      --glow 0.9s ease;
+  }
+  .lg-show-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(55% 65% at 22% 58%, color-mix(in srgb, var(--glow) 34%, transparent), transparent 70%),
+      radial-gradient(45% 55% at 95% 5%, color-mix(in srgb, var(--c1) 50%, transparent), transparent 70%),
+      radial-gradient(40% 50% at 70% 100%, color-mix(in srgb, var(--c3) 35%, transparent), transparent 70%),
+      var(--color-ink);
+  }
+  .lg-picker {
+    scrollbar-width: none;
+  }
+  .lg-picker::-webkit-scrollbar {
+    display: none;
+  }
+  .lg-chip {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-ink-line);
+    background: rgba(19, 26, 43, 0.75);
+    padding: 0.35rem 1rem 0.35rem 0.4rem;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-paper-dim);
+    transition:
+      color 0.25s,
+      background 0.25s,
+      border-color 0.25s,
+      box-shadow 0.35s;
+  }
+  .lg-chip:hover {
+    color: var(--color-paper);
+    border-color: color-mix(in srgb, var(--glow) 70%, transparent);
+  }
+  .lg-chip.is-on {
+    color: var(--color-ink);
+    background: var(--color-paper);
+    border-color: var(--color-paper);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--glow) 40%, transparent),
+      0 10px 30px -8px var(--glow);
+  }
+
+  .lg-frame-wrap {
+    position: relative;
+    perspective: 1000px;
+    animation:
+      lg-frame-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both,
+      lg-float 7s 0.9s ease-in-out infinite;
+  }
+  .lg-frame-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 8% 10%;
+    border-radius: 50%;
+    background: conic-gradient(from var(--lg-spin), var(--c1), var(--glow), var(--c3), var(--glow), var(--c1));
+    filter: blur(46px);
+    opacity: 0.6;
+    animation: lg-glow-spin 8s linear infinite;
+  }
+  @keyframes lg-glow-spin {
+    to {
+      --lg-spin: 360deg;
+    }
+  }
+  @keyframes lg-frame-in {
+    from {
+      opacity: 0;
+      transform: translateY(30px) rotateY(-28deg) scale(0.92);
+    }
+  }
+  @keyframes lg-float {
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  .lg-frame {
+    --rx: 0deg;
+    --ry: 0deg;
+    --mx: 50%;
+    --my: 30%;
+    position: relative;
+    aspect-ratio: 2 / 3;
+    max-width: 26rem;
+    margin-inline: auto;
+    overflow: hidden;
+    border-radius: 28px;
+    background: #8e9095;
+    box-shadow:
+      0 40px 80px -30px color-mix(in srgb, var(--glow) 85%, transparent),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lg-frame:hover {
+    transition-duration: 0.15s;
+  }
+  .lg-kit {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+  .lg-sheen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at var(--mx) var(--my), rgba(255, 255, 255, 0.3), transparent 45%);
+    mix-blend-mode: overlay;
+  }
+  .lg-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: lg-swipe 1.3s 0.5s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+  }
+  @keyframes lg-swipe {
+    to {
+      transform: translateX(120%);
+    }
+  }
+  .lg-frame-num {
+    position: absolute;
+    top: 0.4rem;
+    right: 1rem;
+    font-family: var(--font-display);
+    font-size: 4.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.9);
+    mix-blend-mode: overlay;
+  }
+  .lg-letter {
+    display: inline-block;
+    animation: lg-letter 0.75s cubic-bezier(0.2, 1.4, 0.4, 1) var(--d) both;
+  }
+  @keyframes lg-letter {
+    from {
+      opacity: 0;
+      transform: translateY(0.55em) rotate(10deg);
+      filter: blur(6px);
+    }
+  }
+  .lg-arrow {
+    display: flex;
+    height: 2.75rem;
+    width: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--color-ink-line);
+    background: rgba(10, 14, 26, 0.6);
+    color: var(--color-paper);
+    transition:
+      background 0.2s,
+      color 0.2s,
+      transform 0.2s;
+  }
+  .lg-arrow:hover {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    transform: scale(1.06);
+  }
+
+  /* Standings */
+  .lg-table {
+    position: relative;
+  }
+  .lg-table::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 40%, rgba(216, 181, 106, 0.07) 50%, transparent 60%);
+    background-size: 250% 100%;
+    animation: lg-scan 5s linear infinite;
+  }
+  @keyframes lg-scan {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+  .lg-row {
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr) repeat(2, 1.9rem) 2.2rem;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.7rem 0.75rem;
+  }
+  @media (min-width: 640px) {
+    .lg-row {
+      grid-template-columns: 2.25rem minmax(0, 1fr) repeat(5, 2rem) 2.5rem 5.5rem;
+    }
+  }
+  @media (min-width: 768px) {
+    .lg-row {
+      grid-template-columns: 2.75rem minmax(0, 1fr) repeat(7, 2.75rem) 3rem 6.5rem;
+      padding: 0.85rem 1.25rem;
+    }
+  }
+  .lg-row-head {
+    background: rgba(10, 14, 26, 0.6);
+  }
+  .lg-row-body {
+    position: relative;
+    border-top: 1px solid var(--color-ink-line);
+    transition: background 0.25s;
+  }
+  .lg-row-body::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 18%;
+    bottom: 18%;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(var(--c1), var(--glow));
+    transition:
+      top 0.25s,
+      bottom 0.25s,
+      width 0.25s;
+  }
+  .lg-row-body:hover {
+    background: color-mix(in srgb, var(--glow) 12%, transparent);
+  }
+  .lg-row-body:hover::before {
+    top: 0;
+    bottom: 0;
+    width: 6px;
+  }
+  .lg-table .lg-row-body {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  .lg-table.is-in .lg-row-body {
+    animation: lg-row-in 0.65s var(--d) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes lg-row-in {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Fixtures */
+  .lg-round {
+    display: flex;
+    min-width: 4.25rem;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    border-radius: 14px;
+    border: 1px solid var(--color-ink-line);
+    background: var(--color-ink);
+    padding: 0.6rem 0.5rem;
+    color: var(--color-paper-dim);
+    transition:
+      background 0.25s,
+      color 0.25s,
+      transform 0.25s,
+      box-shadow 0.25s;
+  }
+  .lg-round:hover {
+    color: var(--color-paper);
+  }
+  .lg-round.is-on {
+    background: var(--color-paper);
+    border-color: var(--color-paper);
+    color: var(--color-ink);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -10px rgba(216, 181, 106, 0.7);
+  }
+  .lg-match {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid var(--color-ink-line);
+    background: linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--h) 24%, var(--color-ink)) 0%,
+      var(--color-ink) 47%,
+      var(--color-ink) 53%,
+      color-mix(in srgb, var(--a) 24%, var(--color-ink)) 100%
+    );
+    padding: 1.25rem;
+    animation: lg-fade-up 0.6s var(--d) cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition:
+      transform 0.3s,
+      border-color 0.3s;
+  }
+  .lg-match::before {
+    content: "";
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(transparent, rgba(255, 255, 255, 0.16), transparent);
+    transform: rotate(18deg);
+  }
+  .lg-match:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  .lg-match-crest {
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
+    transition: transform 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+  }
+  .lg-match:hover .lg-match-crest {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  .lg-vs {
+    animation: lg-vs 2.4s ease-in-out infinite;
+  }
+  @keyframes lg-vs {
+    50% {
+      color: var(--color-paper);
+      transform: scale(1.14);
+      text-shadow: 0 0 18px rgba(216, 181, 106, 0.7);
+    }
+  }
+
+  /* Three ideas */
+  .lg-idea {
+    border-radius: 24px;
+    border: 1px solid var(--color-ink-line);
+    background: rgba(19, 26, 43, 0.5);
+    padding: 1.5rem 1.5rem 1.25rem;
+  }
+  .lg-idea-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    background: rgba(10, 14, 26, 0.6);
+    padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+    text-align: left;
+    transition:
+      background 0.25s,
+      border-color 0.25s,
+      transform 0.25s;
+  }
+  .lg-idea-row:hover {
+    border-color: color-mix(in srgb, var(--glow) 60%, transparent);
+    background: color-mix(in srgb, var(--glow) 14%, var(--color-ink));
+    transform: translateX(4px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lg-ring,
+    .lg-ticker-track,
+    .lg-beam,
+    .lg-ping,
+    .lg-vs,
+    .lg-title-word,
+    .lg-hero-bands span,
+    .lg-stage,
+    .lg-frame-wrap,
+    .lg-frame-wrap::before,
+    .lg-frame::after,
+    .lg-table::after {
+      animation: none !important;
+    }
+    .lg-letter,
+    .lg-in,
+    .lg-match,
+    .lg-table .lg-row-body {
+      animation: none !important;
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+    .lg-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .lg-show {
+      transition: none;
+    }
+  }
+}

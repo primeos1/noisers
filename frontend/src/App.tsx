@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Squad from "./pages/Squad";
 import TheVale from "./pages/TheVale";
+import League from "./pages/League";
 import Highlights from "./pages/Highlights";
 import Executives from "./pages/Executives";
 import Awards from "./pages/Awards";
@@ -56,6 +57,7 @@ export default function App() {
       <Route path="/squad" element={<Squad />} />
       <Route path="/squad/:id" element={<PlayerProfile />} />
       <Route path="/the-vale" element={<TheVale />} />
+      <Route path="/league" element={<League />} />
       <Route path="/highlights" element={<Highlights />} />
       <Route path="/executives" element={<Executives />} />
       <Route path="/awards" element={<Awards />} />

@@ -12,6 +12,7 @@ import {
   MoreIcon,
   PlayIcon,
   PulseIcon,
+  ShieldIcon,
   ShirtIcon,
   TrophyIcon,
   UserIcon,
@@ -23,6 +24,7 @@ export const publicLinks = [
   { label: "Home", to: "/", end: true, icon: <HomeIcon /> },
   { label: "Squad", to: "/squad", icon: <ShirtIcon /> },
   { label: "The Vale", to: "/the-vale", icon: <TrophyIcon /> },
+  { label: "League", to: "/league", icon: <ShieldIcon /> },
   { label: "Noisers", to: "/noisers", icon: <MegaphoneIcon /> },
   { label: "Highlights", to: "/highlights", icon: <PlayIcon /> },
   { label: "Executives", to: "/executives", icon: <UsersIcon /> },
@@ -31,11 +33,12 @@ export const publicLinks = [
 ];
 
 // Phones keep four sections in the dock; the rest sit behind "More".
-const moreRoutes = ["/highlights", "/executives", "/awards", "/live"];
+const moreRoutes = ["/league", "/highlights", "/executives", "/awards", "/live"];
 const tabLinks = publicLinks.filter((l) => !moreRoutes.includes(l.to));
 const moreLinks = publicLinks.filter((l) => moreRoutes.includes(l.to));
 
 const moreNotes: Record<string, string> = {
+  "/league": "Six clubs, six kits, one table",
   "/highlights": "Goals, saves and match day clips",
   "/executives": "The committee that runs the club",
   "/awards": "The race for every honour",
@@ -164,9 +167,9 @@ export default function Navbar() {
                         <span className="block text-[0.95rem] text-paper">{link.label}</span>
                         <span className="block truncate text-xs text-mist">{moreNotes[link.to]}</span>
                       </span>
-                      {awards && (
+                      {(awards || link.to === "/league") && (
                         <span className="rounded-full bg-justice/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-justice">
-                          New
+                          {awards ? "New" : "Soon"}
                         </span>
                       )}
                       <ChevronRightIcon className="h-4 w-4 text-mist" />
