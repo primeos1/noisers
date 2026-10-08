@@ -1026,12 +1026,11 @@ class MatchDayFinalizer
             $changes += [
                 'potw_player_id' => $potw['playerId'],
                 'potw_note' => sprintf(
-                    '%d goal%s and %d assist%s across %d game%s — %s of the week at %s.',
+                    '%d goal%s and %d assist%s across %d game%s — %s of the week.',
                     $s['goals'], $s['goals'] === 1 ? '' : 's',
                     $s['assists'], $s['assists'] === 1 ? '' : 's',
                     $s['appearances'], $s['appearances'] === 1 ? '' : 's',
                     self::picksPlayerOnGoals($event) ? 'the most goals and assists' : 'the top rating',
-                    $event->title,
                 ),
                 'potw_rating' => min(10, round(6 + $s['goals'] + 0.5 * $s['assists'] + 0.5 * $s['cleanSheets'], 1)),
             ];

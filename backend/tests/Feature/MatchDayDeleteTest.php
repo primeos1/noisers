@@ -94,6 +94,6 @@ class MatchDayDeleteTest extends TestCase
         $this->assertSame(['Matchday 1', 'Matchday 2'], MatchDayEvent::orderBy('id')->pluck('title')->all());
         $vale = ValeContent::current();
         $this->assertSame('Matchday 2', $vale->team_week_title);
-        $this->assertStringEndsWith('at Matchday 2.', $vale->potw_note);
+        $this->assertStringEndsWith('of the week.', $vale->potw_note);
     }
 }
