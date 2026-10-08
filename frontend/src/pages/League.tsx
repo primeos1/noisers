@@ -502,12 +502,13 @@ function Table({ onPick }: { onPick: (id: ClubId) => void }) {
 const leaderBoards: { title: string; stat: string; glyph: ReactNode }[] = [
   { title: "Golden Boot", stat: "Goals", glyph: <path d="M5 4h6v7l7 3a2.5 2.5 0 0 1 2 2.5V18H5Zm0 10h15M9 18v2m5-2v2" /> },
   { title: "Playmaker", stat: "Assists", glyph: <path d="M4 18c4-8 8-11 15-12m0 0-4-1.5M19 6l-1.5 4M4 18l3 2" /> },
+  { title: "Clean Sheet", stat: "Clean sheets", glyph: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6Zm-3.5 9 2.5 2.5 4.5-5" /> },
   {
     title: "Golden Glove",
     stat: "Saves",
     glyph: <path d="M7 21v-6L4 11.5a1.6 1.6 0 0 1 2.4-2L8 11V4.5a1.5 1.5 0 0 1 3 0V10V3.5a1.5 1.5 0 0 1 3 0V10V4.5a1.5 1.5 0 0 1 3 0V11V7a1.5 1.5 0 0 1 3 0v7a7 7 0 0 1-4 6.3V21" />,
   },
-  { title: "Discipline", stat: "Cards", glyph: <path d="M7 3h10v18H7Z" /> },
+  { title: "Hot Head", stat: "Cards", glyph: <path d="M7 3h10v18H7Z" /> },
 ];
 
 function Leaders() {
@@ -515,7 +516,7 @@ function Leaders() {
     <section className="border-y border-ink-line bg-ink-raised/40">
       <div className="mx-auto max-w-7xl px-5 py-16 md:px-10 md:py-24">
         <SectionHead eyebrow="Player stats" title="League leaders" note="The league's top performers, updated after every game once the season starts." />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
           {leaderBoards.map((b, i) => (
             <Reveal key={b.title} delay={i * 100} className="lg-leader">
               <div className="flex items-center justify-between">
