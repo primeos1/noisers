@@ -209,7 +209,7 @@ export function squadLeaderboards(players: Player[], count = 5): Leaderboard[] {
     board("appearances", "Most appearances", "games", (p) => p.appearances),
     board(
       "cards",
-      "Bad boys of the league",
+      "Hot heads of the league",
       "cards",
       (p) => p.yellowCards + p.redCards,
       (p) => p.redCards,

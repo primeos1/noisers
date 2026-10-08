@@ -80,11 +80,11 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
         </Tilt>
       ) : null}
       {bad && day.badBoy ? (
-        <Tilt onPress={() => router.push(`/player/${bad.id}`)} accessibilityLabel={`Bad boy of the day: ${bad.name}, ${day.badBoy.yellowCards} yellow, ${day.badBoy.redCards} red`}>
+        <Tilt onPress={() => router.push(`/player/${bad.id}`)} accessibilityLabel={`Hot head of the day: ${bad.name}, ${day.badBoy.yellowCards} yellow, ${day.badBoy.redCards} red`}>
           <View style={styles.dayStar}>
             <Avatar player={bad} size={48} ring={colors.loss} />
             <View style={styles.flex}>
-              <Txt style={[text.small, { color: colors.loss }]}>Bad boy of the day</Txt>
+              <Txt style={[text.small, { color: colors.loss }]}>Hot head of the day</Txt>
               <Txt style={styles.dayStarName} numberOfLines={1}>
                 {bad.name}
               </Txt>
@@ -93,7 +93,7 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
           </View>
         </Tilt>
       ) : (
-        <Txt style={text.small}>Bad boy of the day: nobody booked — angels, the lot of them.</Txt>
+        <Txt style={text.small}>Hot head of the day: nobody booked — angels, the lot of them.</Txt>
       )}
       {picks.length > 0 ? (
         <>
@@ -332,7 +332,7 @@ export default function ValeScreen() {
           <Leader icon="hand-left" label="Top saves" player={find(w.topSaves.playerId)} value={`${w.topSaves.value} saves`} tone={colors.gold} onPress={open(find(w.topSaves.playerId))} />
           <Leader
             icon="skull"
-            label="Bad boy of the week"
+            label="Hot head of the week"
             player={badBoy}
             value={badBoy && weekBadBoy ? `${weekBadBoy.yellowCards}Y · ${weekBadBoy.redCards}R` : "No cards"}
             tone={colors.loss}

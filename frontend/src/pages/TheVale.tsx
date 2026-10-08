@@ -311,7 +311,7 @@ function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[]
         <div className="mt-4 flex items-center gap-4">
           <img src={bad.photo} alt="" className="duotone h-14 w-14 shrink-0 border border-loss object-cover object-top grayscale" loading="lazy" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-loss">Bad boy of the day</p>
+            <p className="text-xs text-loss">Hot head of the day</p>
             <p className="truncate font-display text-2xl leading-tight text-paper">{bad.name}</p>
             <p className="text-xs text-mist">{formatCards(day.badBoy.yellowCards, day.badBoy.redCards)}</p>
           </div>
@@ -325,7 +325,7 @@ function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[]
           </span>
         </div>
       ) : (
-        <p className="mt-4 text-xs text-mist">Bad boy of the day: nobody booked — angels, the lot of them.</p>
+        <p className="mt-4 text-xs text-mist">Hot head of the day: nobody booked — angels, the lot of them.</p>
       )}
       {picks.length > 0 && (
         <>
@@ -696,7 +696,7 @@ export default function TheVale() {
             <div className="bg-ink p-8">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-xs uppercase tracking-wide text-mist">
-                  Bad boy of the week
+                  Hot head of the week
                 </p>
                 {badBoy && (
                   <img

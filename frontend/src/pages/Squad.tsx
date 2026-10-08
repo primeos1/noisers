@@ -98,7 +98,7 @@ export default function Squad() {
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wide text-mist">Bad boy of the league · most cards this season</p>
+                <p className="text-xs uppercase tracking-wide text-mist">Hot head of the league · most cards this season</p>
                 <p className="mt-1 font-display text-2xl leading-tight text-paper md:text-4xl">{roughest.name}</p>
                 <p className="mt-2 flex items-center gap-3 text-sm text-paper-dim">
                   <span className="inline-flex items-center gap-1">
