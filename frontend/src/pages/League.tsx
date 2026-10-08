@@ -445,6 +445,55 @@ function Table({ onPick }: { onPick: (id: ClubId) => void }) {
   );
 }
 
+/* --------------------------------------------------------------- Leaders */
+
+const leaderBoards: { title: string; stat: string; glyph: ReactNode }[] = [
+  { title: "Golden Boot", stat: "Goals", glyph: <path d="M5 4h6v7l7 3a2.5 2.5 0 0 1 2 2.5V18H5Zm0 10h15M9 18v2m5-2v2" /> },
+  { title: "Playmaker", stat: "Assists", glyph: <path d="M4 18c4-8 8-11 15-12m0 0-4-1.5M19 6l-1.5 4M4 18l3 2" /> },
+  { title: "Clean Sheet", stat: "Clean sheets", glyph: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6Zm-3.5 9 2.5 2.5 4.5-5" /> },
+  {
+    title: "Golden Glove",
+    stat: "Saves",
+    glyph: <path d="M7 21v-6L4 11.5a1.6 1.6 0 0 1 2.4-2L8 11V4.5a1.5 1.5 0 0 1 3 0V10V3.5a1.5 1.5 0 0 1 3 0V10V4.5a1.5 1.5 0 0 1 3 0V11V7a1.5 1.5 0 0 1 3 0v7a7 7 0 0 1-4 6.3V21" />,
+  },
+  { title: "Hot Head", stat: "Cards", glyph: <path d="M7 3h10v18H7Z" /> },
+];
+
+function Leaders() {
+  return (
+    <section className="border-y border-ink-line bg-ink-raised/40">
+      <div className="mx-auto max-w-7xl px-5 py-16 md:px-10 md:py-24">
+        <SectionHead eyebrow="Player stats" title="League leaders" note="The league's top performers, updated after every game once the season starts." />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
+          {leaderBoards.map((b, i) => (
+            <Reveal key={b.title} delay={i * 100} className="lg-leader">
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-justice/15 text-justice">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    {b.glyph}
+                  </svg>
+                </span>
+                <span className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-mist">{b.stat}</span>
+              </div>
+              <p className="mt-4 font-display text-2xl font-extrabold uppercase leading-none text-paper md:text-3xl">{b.title}</p>
+              <ul className="mt-4 space-y-2" aria-label="No leaders yet">
+                {[0, 1, 2].map((r) => (
+                  <li key={r} className="flex items-center gap-2.5">
+                    <span className="w-3 font-display text-sm font-bold text-mist">{r + 1}</span>
+                    <span className="lg-skel h-6 w-6 rounded-full" />
+                    <span className="lg-skel h-2.5 flex-1 rounded-full" style={{ maxWidth: `${80 - r * 15}%` }} />
+                    <span className="font-display text-sm font-bold text-mist">–</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* -------------------------------------------------------------- Fixtures */
 
 const dayLabel = (d: Date, long = false) =>
@@ -614,6 +663,7 @@ export default function League() {
       <Hero onPick={pick} />
       <Showcase active={active} onPick={setActive} />
       <Table onPick={pick} />
+      <Leaders />
       <Fixtures />
       <Ideas onPick={pick} />
 

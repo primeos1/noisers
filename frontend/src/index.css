@@ -5310,11 +5310,45 @@
     transform: translateX(4px);
   }
 
+  /* League leaders: empty boards waiting for the first game. */
+  .lg-leader {
+    border-radius: 20px;
+    border: 1px solid var(--color-ink-line);
+    background: var(--color-ink);
+    padding: 1rem;
+    transition:
+      border-color 0.3s,
+      transform 0.3s;
+  }
+  .lg-leader:hover {
+    border-color: rgba(216, 181, 106, 0.45);
+  }
+  @media (min-width: 768px) {
+    .lg-leader {
+      padding: 1.25rem;
+    }
+  }
+  .lg-skel {
+    display: block;
+    background: linear-gradient(90deg, var(--color-ink-raised) 0%, var(--color-ink-line) 50%, var(--color-ink-raised) 100%);
+    background-size: 200% 100%;
+    animation: lg-skel 1.8s ease-in-out infinite;
+  }
+  @keyframes lg-skel {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .lg-ring,
     .lg-ticker-track,
     .lg-count-num,
     .lg-beam,
+    .lg-skel,
     .lg-ping,
     .lg-vs,
     .lg-title-word,
