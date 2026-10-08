@@ -139,3 +139,56 @@ export function buildFixtures(ids: ClubId[] = clubs.map((c) => c.id)): Fixture[]
   const second = first.map((round) => round.map((f) => ({ home: f.away, away: f.home })));
   return [...first, ...second];
 }
+
+/** Season one kicks off on Sunday 15 November 2026 at 9pm, Lagos time. */
+export const KICK_OFF = new Date("2026-11-15T21:00:00+01:00");
+export const GAME_MINUTES = 15;
+export const CHANGEOVER_MINUTES = 5;
+export const GAMES_PER_NIGHT = 9;
+
+export interface ScheduledGame extends Fixture {
+  round: number;
+  /** Minutes after 9pm. */
+  start: number;
+}
+
+export interface MatchNight {
+  /** Midnight UTC of the Sunday, for date labels. */
+  date: Date;
+  games: ScheduledGame[];
+}
+
+/** "9:20 PM" for a game starting `start` minutes after 9pm. */
+export function clockTime(start: number) {
+  const total = 21 * 60 + start;
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+/**
+ * Lays the rounds out over Sundays: nine games a night, 15 minutes each with
+ * a 5-minute changeover. Within a night, games are ordered so no club plays
+ * two in a row.
+ */
+export function buildSchedule(rounds: Fixture[][] = buildFixtures()): MatchNight[] {
+  const queue = rounds.flatMap((round, r) => round.map((f) => ({ ...f, round: r + 1 })));
+  const nights: MatchNight[] = [];
+  for (let n = 0; queue.length > 0; n++) {
+    const date = new Date(Date.UTC(2026, 10, 15 + n * 7));
+    const games: ScheduledGame[] = [];
+    while (games.length < GAMES_PER_NIGHT && queue.length > 0) {
+      const prev = games[games.length - 1];
+      const round = queue[0].round;
+      // Among the games left in this round, pick one that rests the last game's clubs.
+      let pick = queue.findIndex(
+        (g) => g.round === round && (!prev || ![prev.home, prev.away].some((id) => id === g.home || id === g.away)),
+      );
+      if (pick < 0) pick = 0;
+      const [g] = queue.splice(pick, 1);
+      games.push({ ...g, start: games.length * (GAME_MINUTES + CHANGEOVER_MINUTES) });
+    }
+    nights.push({ date, games });
+  }
+  return nights;
+}

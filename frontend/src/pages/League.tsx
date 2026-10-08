@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import { buildFixtures, clubs, ideas, type Club, type ClubId } from "../lib/league";
+import { buildSchedule, clockTime, clubs, GAME_MINUTES, GAMES_PER_NIGHT, ideas, KICK_OFF, type Club, type ClubId } from "../lib/league";
 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -151,7 +151,7 @@ function Hero({ onPick }: { onPick: (id: ClubId) => void }) {
         <div className="animate-hero-in flex justify-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-justice/40 bg-justice/10 px-3.5 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-justice">
             <SoonDot />
-            Season one · Coming soon
+            Season one · Kicks off Sun 15 Nov, 9pm
           </span>
         </div>
         <h1 className="lg-title mt-5 text-center font-display font-black uppercase leading-[0.82] text-paper">
@@ -161,6 +161,7 @@ function Hero({ onPick }: { onPick: (id: ClubId) => void }) {
         <p className="animate-hero-in mx-auto mt-5 max-w-xl text-center text-[0.95rem] text-paper-dim md:text-lg" style={{ animationDelay: "0.25s" }}>
           Six squads. Six colours. Six names. One table at the end of it all.
         </p>
+        <Countdown />
       </div>
 
       <KitRing onPick={onPick} />
@@ -168,8 +169,8 @@ function Hero({ onPick }: { onPick: (id: ClubId) => void }) {
       <div className="relative mx-auto grid max-w-4xl grid-cols-4 gap-2 px-5 pb-10 md:px-10 md:pb-14">
         {[
           { n: clubs.length, l: "Clubs" },
-          { n: (clubs.length - 1) * 2, l: "Rounds" },
           { n: clubs.length * (clubs.length - 1), l: "Fixtures" },
+          { n: Math.ceil((clubs.length * (clubs.length - 1)) / GAMES_PER_NIGHT), l: "Sundays" },
           { n: 0, l: "Played" },
         ].map((s) => (
           <div key={s.l} className="text-center">
@@ -445,68 +446,122 @@ function Table({ onPick }: { onPick: (id: ClubId) => void }) {
 
 /* -------------------------------------------------------------- Fixtures */
 
+const dayLabel = (d: Date, long = false) =>
+  d.toLocaleDateString("en-GB", { weekday: long ? "long" : "short", day: "numeric", month: long ? "long" : "short", timeZone: "UTC" });
+
 function Fixtures() {
-  const rounds = useMemo(() => buildFixtures(), []);
-  const [round, setRound] = useState(0);
+  const nights = useMemo(() => buildSchedule(), []);
+  const [night, setNight] = useState(0);
+  const games = nights[night].games;
+  const last = games[games.length - 1];
+  const firstRound = games[0].round;
+  const lastRound = last.round;
 
   return (
-    <section className="border-y border-ink-line bg-ink-raised/40">
+    <section id="fixtures" className="scroll-mt-16 border-y border-ink-line bg-ink-raised/40 md:scroll-mt-24">
       <div className="mx-auto max-w-7xl px-5 py-16 md:px-10 md:py-24">
         <SectionHead
-          eyebrow="Provisional draw"
+          eyebrow="Season one schedule"
           title="Fixtures"
-          note="Every club meets every other club twice, once at home and once away. Dates and kick-off times land with the launch."
+          note={`Every club meets every other club twice, home and away. Sundays from 15 November, 9pm to midnight: ${GAMES_PER_NIGHT} games of ${GAME_MINUTES} minutes a night.`}
         />
 
-        <div className="lg-picker -mx-5 mb-8 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:px-0" role="tablist" aria-label="Rounds">
-          {rounds.map((_, r) => (
+        <div className="lg-picker -mx-5 mb-6 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:px-0" role="tablist" aria-label="Match nights">
+          {nights.map((n, i) => (
             <button
-              key={r}
+              key={i}
               type="button"
               role="tab"
-              aria-selected={r === round}
-              onClick={() => setRound(r)}
-              className={`lg-round ${r === round ? "is-on" : ""}`}
+              aria-selected={i === night}
+              onClick={() => setNight(i)}
+              className={`lg-round lg-night ${i === night ? "is-on" : ""}`}
             >
-              <span className="text-[0.6rem] uppercase tracking-[0.2em] opacity-70">Round</span>
-              <span className="font-display text-2xl font-black leading-none">{r + 1}</span>
+              <span className="text-[0.6rem] uppercase tracking-[0.2em] opacity-70">Night {i + 1}</span>
+              <span className="font-display text-2xl font-black leading-none">{dayLabel(n.date)}</span>
+              <span className="text-[0.6rem] uppercase tracking-[0.15em] opacity-70">{n.games.length} games</span>
             </button>
           ))}
         </div>
 
-        <div key={round} className="grid gap-4 md:grid-cols-3" role="tabpanel" aria-label={`Round ${round + 1}`}>
-          {rounds[round].map((f, i) => {
-            const h = club(f.home);
-            const a = club(f.away);
-            return (
-              <article
-                key={`${f.home}-${f.away}`}
-                className="lg-match"
-                style={{ "--h": h.colours.glow, "--a": a.colours.glow, "--d": `${i * 90}ms` } as CSSProperties}
-              >
-                <div className="flex items-center justify-between text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-mist">
-                  <span>Round {round + 1} · Game {i + 1}</span>
-                  <span className="rounded-full bg-ink px-2 py-0.5 text-justice">TBC</span>
-                </div>
-                <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <div className="flex flex-col items-center gap-2 text-center">
-                    <Crest c={h} className="lg-match-crest h-14 w-14" />
-                    <span className="font-display text-base font-bold uppercase leading-tight text-paper">{h.name}</span>
-                    <span className="text-[0.6rem] uppercase tracking-[0.2em] text-mist">Home</span>
+        <div key={night} role="tabpanel" aria-label={dayLabel(nights[night].date, true)}>
+          <div className="lg-in mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-ink-line bg-ink px-4 py-3 text-sm md:px-5">
+            <span className="font-display text-xl font-extrabold uppercase text-paper">{dayLabel(nights[night].date, true)}</span>
+            <span className="text-paper-dim">
+              {clockTime(0)} – {clockTime(last.start + GAME_MINUTES)}
+            </span>
+            <span className="text-paper-dim">{firstRound === lastRound ? `Round ${firstRound}` : `Rounds ${firstRound}–${lastRound}`}</span>
+            <span className="text-mist md:ml-auto">Each club plays {(games.length * 2) / clubs.length} games</span>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {games.map((f, i) => {
+              const h = club(f.home);
+              const a = club(f.away);
+              return (
+                <article
+                  key={`${f.home}-${f.away}`}
+                  className="lg-match"
+                  style={{ "--h": h.colours.glow, "--a": a.colours.glow, "--d": `${i * 70}ms` } as CSSProperties}
+                >
+                  <div className="flex items-center justify-between text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-mist">
+                    <span>
+                      Game {i + 1} · Round {f.round}
+                    </span>
+                    <span className="rounded-full bg-ink px-2 py-0.5 font-display text-sm tracking-wide text-justice">{clockTime(f.start)}</span>
                   </div>
-                  <span className="lg-vs font-display text-2xl font-black text-paper-dim">VS</span>
-                  <div className="flex flex-col items-center gap-2 text-center">
-                    <Crest c={a} className="lg-match-crest h-14 w-14" />
-                    <span className="font-display text-base font-bold uppercase leading-tight text-paper">{a.name}</span>
-                    <span className="text-[0.6rem] uppercase tracking-[0.2em] text-mist">Away</span>
+                  <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <Crest c={h} className="lg-match-crest h-14 w-14" />
+                      <span className="font-display text-base font-bold uppercase leading-tight text-paper">{h.name}</span>
+                      <span className="text-[0.6rem] uppercase tracking-[0.2em] text-mist">Home</span>
+                    </div>
+                    <span className="lg-vs font-display text-2xl font-black text-paper-dim">VS</span>
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <Crest c={a} className="lg-match-crest h-14 w-14" />
+                      <span className="font-display text-base font-bold uppercase leading-tight text-paper">{a.name}</span>
+                      <span className="text-[0.6rem] uppercase tracking-[0.2em] text-mist">Away</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/* ------------------------------------------------------------- Countdown */
+
+/** Ticks down to the opening kick-off; after that, says the season is on. */
+function Countdown() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  const left = Math.max(0, KICK_OFF.getTime() - now);
+  if (left === 0) {
+    return <p className="mt-6 text-center font-display text-2xl font-extrabold uppercase text-justice">Season one is under way</p>;
+  }
+  const parts = [
+    { l: "Days", v: Math.floor(left / 86_400_000) },
+    { l: "Hours", v: Math.floor(left / 3_600_000) % 24 },
+    { l: "Mins", v: Math.floor(left / 60_000) % 60 },
+    { l: "Secs", v: Math.floor(left / 1000) % 60 },
+  ];
+  return (
+    <div className="animate-hero-in mt-7 flex justify-center gap-2 md:gap-3" style={{ animationDelay: "0.4s" }} role="timer" aria-label="Time until kick-off">
+      {parts.map((p) => (
+        <div key={p.l} className="lg-count">
+          <span key={p.v} className="lg-count-num font-display text-3xl font-black tabular-nums text-paper md:text-5xl">
+            {String(p.v).padStart(2, "0")}
+          </span>
+          <span className="mt-1 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-mist">{p.l}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -573,7 +628,7 @@ export default function League() {
           </p>
           <h2 className="mt-4 font-display text-5xl font-black uppercase leading-[0.9] text-paper md:text-7xl">Kick-off is close</h2>
           <p className="mx-auto mt-4 max-w-lg text-paper-dim">
-            Results, scorers and the live table will all land on this page once season one gets going. Until then, get to know the squad.
+            Season one kicks off on Sunday 15 November at 9pm. Results, scorers and the live table will all land on this page from the first whistle.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to="/squad" className="bg-paper px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-paper-dim">
