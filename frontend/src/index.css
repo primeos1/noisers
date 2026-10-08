@@ -5170,92 +5170,119 @@
     }
   }
 
-  /* Club file tiles */
-  .lg-file {
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(10, 14, 26, 0.55);
-    padding: 0.85rem 1rem;
-    backdrop-filter: blur(8px);
-  }
-
-  /* League leaders: empty boards waiting for the first game. */
-  .lg-leader {
-    border-radius: 20px;
+  /* Fixtures */
+  .lg-round {
+    display: flex;
+    min-width: 4.25rem;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    border-radius: 14px;
     border: 1px solid var(--color-ink-line);
     background: var(--color-ink);
-    padding: 1rem;
+    padding: 0.6rem 0.5rem;
+    color: var(--color-paper-dim);
     transition:
-      border-color 0.3s,
-      transform 0.3s;
+      background 0.25s,
+      color 0.25s,
+      transform 0.25s,
+      box-shadow 0.25s;
   }
-  .lg-leader:hover {
-    border-color: rgba(216, 181, 106, 0.45);
+  .lg-round:hover {
+    color: var(--color-paper);
   }
-  @media (min-width: 768px) {
-    .lg-leader {
-      padding: 1.25rem;
-    }
+  .lg-round.is-on {
+    background: var(--color-paper);
+    border-color: var(--color-paper);
+    color: var(--color-ink);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -10px rgba(216, 181, 106, 0.7);
   }
-  .lg-skel {
-    display: block;
-    background: linear-gradient(90deg, var(--color-ink-raised) 0%, var(--color-ink-line) 50%, var(--color-ink-raised) 100%);
-    background-size: 200% 100%;
-    animation: lg-skel 1.8s ease-in-out infinite;
+  .lg-match {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid var(--color-ink-line);
+    background: linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--h) 24%, var(--color-ink)) 0%,
+      var(--color-ink) 47%,
+      var(--color-ink) 53%,
+      color-mix(in srgb, var(--a) 24%, var(--color-ink)) 100%
+    );
+    padding: 1.25rem;
+    animation: lg-fade-up 0.6s var(--d) cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition:
+      transform 0.3s,
+      border-color 0.3s;
   }
-  @keyframes lg-skel {
-    from {
-      background-position: 100% 0;
-    }
-    to {
-      background-position: -100% 0;
+  .lg-match::before {
+    content: "";
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(transparent, rgba(255, 255, 255, 0.16), transparent);
+    transform: rotate(18deg);
+  }
+  .lg-match:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  .lg-match-crest {
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
+    transition: transform 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+  }
+  .lg-match:hover .lg-match-crest {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  .lg-vs {
+    animation: lg-vs 2.4s ease-in-out infinite;
+  }
+  @keyframes lg-vs {
+    50% {
+      color: var(--color-paper);
+      transform: scale(1.14);
+      text-shadow: 0 0 18px rgba(216, 181, 106, 0.7);
     }
   }
 
-  /* Rules and honours */
-  .lg-panel {
+  /* Three ideas */
+  .lg-idea {
     border-radius: 24px;
     border: 1px solid var(--color-ink-line);
     background: rgba(19, 26, 43, 0.5);
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 1.25rem;
   }
-  @media (min-width: 768px) {
-    .lg-panel {
-      padding: 2rem;
-    }
+  .lg-idea-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    background: rgba(10, 14, 26, 0.6);
+    padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+    text-align: left;
+    transition:
+      background 0.25s,
+      border-color 0.25s,
+      transform 0.25s;
   }
-  .lg-honours {
-    background:
-      radial-gradient(60% 50% at 50% 35%, rgba(216, 181, 106, 0.18), transparent 70%),
-      rgba(19, 26, 43, 0.5);
-  }
-  .lg-cup {
-    filter: drop-shadow(0 18px 30px rgba(216, 181, 106, 0.35));
-    animation: lg-cup 5s ease-in-out infinite;
-  }
-  @keyframes lg-cup {
-    50% {
-      transform: translateY(-8px) rotate(-2deg);
-      filter: drop-shadow(0 26px 40px rgba(216, 181, 106, 0.55));
-    }
-  }
-  .lg-bob {
-    animation: lg-bob 2.8s calc(var(--i) * 0.18s) ease-in-out infinite;
-  }
-  @keyframes lg-bob {
-    50% {
-      transform: translateY(-5px);
-    }
+  .lg-idea-row:hover {
+    border-color: color-mix(in srgb, var(--glow) 60%, transparent);
+    background: color-mix(in srgb, var(--glow) 14%, var(--color-ink));
+    transform: translateX(4px);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .lg-ring,
     .lg-ticker-track,
-    .lg-skel,
-    .lg-cup,
-    .lg-bob,
     .lg-beam,
     .lg-ping,
+    .lg-vs,
     .lg-title-word,
     .lg-hero-bands span,
     .lg-stage,
@@ -5267,6 +5294,7 @@
     }
     .lg-letter,
     .lg-in,
+    .lg-match,
     .lg-table .lg-row-body {
       animation: none !important;
       opacity: 1;
