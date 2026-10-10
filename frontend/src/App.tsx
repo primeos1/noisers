@@ -1,4 +1,4 @@
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useMemo } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Squad from "./pages/Squad";
@@ -34,7 +34,10 @@ import AdminExecutives from "./pages/admin/AdminExecutives";
 import PlayerProfile from "./pages/PlayerProfile";
 import Noisers from "./pages/Noisers";
 import AdminAvailability from "./pages/admin/AdminAvailability";
+import NotFound from "./pages/NotFound";
 import { screenKey } from "./lib/screenKey";
+import { useSeo } from "./lib/useSeo";
+import { metaForPath } from "./seo";
 
 // New screens open at the top, as in a native app (hash links excepted).
 // Opening or closing a Noisers story isn't a new screen — the reader sits
@@ -48,10 +51,19 @@ function ScrollToTop() {
   return null;
 }
 
+// Title, description and share tags for the current route; pages with
+// their own data (a player profile) refine them with useSeo.
+function RouteSeo() {
+  const { pathname } = useLocation();
+  useSeo(useMemo(() => metaForPath(pathname), [pathname]));
+  return null;
+}
+
 export default function App() {
   return (
     <>
     <ScrollToTop />
+    <RouteSeo />
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/squad" element={<Squad />} />
@@ -104,6 +116,8 @@ export default function App() {
         <Route path="executives" element={<AdminExecutives />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
     </>
   );

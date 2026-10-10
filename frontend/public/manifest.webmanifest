@@ -1,7 +1,7 @@
 {
   "name": "Noisers FC",
   "short_name": "Noisers",
-  "description": "Squad, match days and stats for Noisers FC.",
+  "description": "Squad, match days and stats for Noisers FC, five-a-side football in Lekki, Lagos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

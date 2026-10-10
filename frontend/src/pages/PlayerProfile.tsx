@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
@@ -6,12 +7,14 @@ import { useCards } from "../lib/CardsContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
 import { formatNaira } from "../lib/cards";
-import { isKeeper, keepsCleanSheets, positionNames, savesLabel } from "../lib/clubData";
+import { isKeeper, isStockPhoto, keepsCleanSheets, positionNames, savesLabel } from "../lib/clubData";
 import MembershipBadge from "../components/MembershipBadge";
 import { CrownIcon, TrophyIcon } from "../components/icons";
 import AbsenceBadge from "../components/AbsenceBadge";
 import { useAbsences } from "../lib/AbsencesContext";
 import { absenceLabel, absencePeriod } from "../lib/absences";
+import { useSeo } from "../lib/useSeo";
+import { playerMeta } from "../seo";
 
 function playedFor(game: MatchDayGame, playerId: number): 0 | 1 | null {
   if (game.teams[0].players.includes(playerId)) return 0;
@@ -28,6 +31,7 @@ export default function PlayerProfile() {
 
   const playerId = Number(id);
   const player = players.find((p) => p.id === playerId);
+  useSeo(useMemo(() => (player ? playerMeta({ ...player, positionName: positionNames(player), photoUrl: isStockPhoto(player.photo) ? null : player.photo }) : null), [player]));
 
   if (!player) {
     return (
