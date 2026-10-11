@@ -258,30 +258,39 @@ function spreadQuotas(room: number[], count: number): number[] {
   return quotas;
 }
 
-// King Jerry and Ose Miles are drawn onto the same team more often than
-// chance: when they land apart, 70% of the time Ose Miles joins King Jerry's
-// team, trading places with the most similar player there (same membership,
-// then position, then closest rating) so sizes and balance hold.
-const PAIR_CHANCE = 0.7;
+// King Jerry and Ose Miles always play together on the third team (the
+// third in the rotation queue, or the last one when fewer are drawn).
+// Whichever of them was drawn elsewhere trades places with the most similar
+// player there (same membership, then position, then closest rating) so
+// sizes and balance hold.
+const PAIR_TEAM = 2;
 
-function keepPairTogether(players: Player[], teams: ParticipantId[][]) {
-  const jerry = named(players, "king jerry");
-  const ose = named(players, "ose miles");
-  if (!jerry || !ose) return;
-  const his = teams.findIndex((t) => t.includes(jerry.id));
-  const from = teams.findIndex((t) => t.includes(ose.id));
-  if (his < 0 || from < 0 || his === from || Math.random() >= PAIR_CHANCE) return;
+function pairOf(players: Player[]) {
+  return [named(players, "king jerry"), named(players, "ose miles")].filter((p): p is Player => !!p);
+}
 
-  const candidates = teams[his].filter((id) => id !== jerry.id);
+function placePair(players: Player[], teams: ParticipantId[][]) {
+  const pair = pairOf(players);
+  const pairIds = new Set<ParticipantId>(pair.map((p) => p.id));
+  const target = Math.min(PAIR_TEAM, teams.length - 1);
+  for (const player of pair) {
+    const from = teams.findIndex((t) => t.includes(player.id));
+    if (from < 0 || from === target) continue;
+    const partner = mostSimilar(players, teams[target].filter((id) => !pairIds.has(id)), player);
+    if (partner === undefined) continue;
+    teams[target] = teams[target].map((id) => (id === partner ? player.id : id));
+    teams[from] = teams[from].map((id) => (id === player.id ? partner : id));
+  }
+}
+
+/** The candidate closest to `to`: same membership, then position, then closest rating. */
+function mostSimilar(players: Player[], candidates: ParticipantId[], to: Player): ParticipantId | undefined {
   const squad = candidates
     .map((id) => players.find((p) => p.id === id))
     .filter((p): p is Player => !!p);
   const score = (p: Player) =>
-    (p.membership === ose.membership ? 0 : 10000) + (p.position === ose.position ? 0 : 1000) + Math.abs(p.rating - ose.rating);
-  const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
-  if (partner === undefined) return;
-  teams[his] = teams[his].map((id) => (id === partner ? ose.id : id));
-  teams[from] = teams[from].map((id) => (id === ose.id ? partner : id));
+    (p.membership === to.membership ? 0 : 10000) + (p.position === to.position ? 0 : 1000) + Math.abs(p.rating - to.rating);
+  return squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
 }
 
 // Members are placed first, then guest members, then guests — each group
@@ -318,7 +327,7 @@ export function buildTeams(
   const guestIds = shuffle(guests.map((g) => g.id));
   room.forEach((r, i) => teams[i].push(...guestIds.splice(0, r)));
 
-  keepPairTogether(players, teams);
+  placePair(players, teams);
   return nameTeams(players, teams).map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
 }
 
@@ -340,7 +349,7 @@ function pickCaptain(players: Player[], roster: ParticipantId[]): number | null 
 // Rozay's team stays Grey), so if one of them is drawn onto a team
 // that can't change its name, they instead trade places with the most
 // similar player on the right team (same membership, then position, then
-// closest rating).
+// closest rating) — never King Jerry or Ose Miles, who stay on the third team.
 const GREY = "Team Grey";
 const BIBS = "Team Bibs";
 const BLACK = "Team Black";
@@ -368,16 +377,11 @@ function pinToColour(players: Player[], teams: MatchDayTeam[], player: Player | 
     if (target < 0) return true;
     teams[target].name = colour;
   }
-  const candidates = teams[target].players;
-  const squad = candidates
-    .map((id) => players.find((p) => p.id === id))
-    .filter((p): p is Player => !!p);
-  const score = (p: Player) =>
-    (p.membership === player.membership ? 0 : 10000) + (p.position === player.position ? 0 : 1000) + Math.abs(p.rating - player.rating);
-  const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
+  const pairIds = new Set<ParticipantId>(pairOf(players).map((p) => p.id));
+  const partner = mostSimilar(players, teams[target].players.filter((id) => !pairIds.has(id)), player);
   if (partner === undefined) return true;
   teams[his].players = teams[his].players.map((id) => (id === player.id ? partner : id));
-  teams[target].players = candidates.map((id) => (id === partner ? player.id : id));
+  teams[target].players = teams[target].players.map((id) => (id === partner ? player.id : id));
   return true;
 }
 
