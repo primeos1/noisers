@@ -6,6 +6,7 @@
 // then games. Weeks 1 and 2 (MatchDayFinalizer::GOALS_RULE_LAST_WEEK) go to
 // the most goals and assists instead, then goals, then clean sheets. A week
 // has no player until both its match days have ended. The flop of the week follows MatchDayFinalizer::computeFlopPlayer:
+// the worst of the flop team (the bottom side by wins, then goal difference) —
 // most games lost, then worst goal difference, then fewest goal involvements —
 // there's always one.
 
@@ -165,11 +166,33 @@ export interface WeeklyFlop {
   involvements: number;
 }
 
-function flopOfTheDay(lines: Map<number, Line>): [number, Line] | null {
+/** The squad players of the day's bottom side (MatchDayFinalizer::teamTable), or null with fewer than two sides. */
+function flopTeamOfTheDay(event: MatchDayEvent): Set<number> | null {
+  const teams = new Map<string, { won: number; gd: number; players: Set<number> }>();
+  for (const game of event.games) {
+    if (game.status !== "finished") continue;
+    const score = [0, 0];
+    for (const goal of game.goals) score[goal.teamIndex === 1 ? 1 : 0]++;
+    game.teams.forEach((team, i) => {
+      let t = teams.get(team.name);
+      if (!t) teams.set(team.name, (t = { won: 0, gd: 0, players: new Set() }));
+      if (score[i] > score[1 - i]) t.won++;
+      t.gd += score[i] - score[1 - i];
+      for (const id of team.players) if (typeof id === "number") t.players.add(id);
+    });
+  }
+  if (teams.size < 2) return null;
+  const table = [...teams.values()].sort((a, b) => b.won - a.won || b.gd - a.gd);
+  return table[table.length - 1].players;
+}
+
+function flopOfTheDay(event: MatchDayEvent, lines: Map<number, Line>): [number, Line] | null {
+  const flopTeam = flopTeamOfTheDay(event);
+  const inFlopTeam = flopTeam && [...lines].some(([id, l]) => l.games > 0 && flopTeam.has(id)) ? flopTeam : null;
   let worst: [number, Line] | null = null;
   const key = (l: Line) => [l.losses, -l.gd, -(l.goals + l.assists)];
   for (const entry of lines) {
-    if (entry[1].games === 0) continue;
+    if (entry[1].games === 0 || (inFlopTeam && !inFlopTeam.has(entry[0]))) continue;
     if (!worst) {
       worst = entry;
       continue;
@@ -334,7 +357,7 @@ export function buildAwards(players: Player[], events: MatchDayEvent[], weights:
       winners.push(week.winner);
     }
 
-    const worst = flopOfTheDay(lines);
+    const worst = flopOfTheDay(event, lines);
     if (worst) {
       const [playerId, l] = worst;
       totals.get(playerId)!.flops++;

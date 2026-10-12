@@ -724,12 +724,13 @@ class MatchDayFinalizer
      * across the week. Null unless two sides played on one of its match days.
      *
      * @param  array<int, int>  $squadIds
+     * @param  ?string  $exceptId  a match day of the same week to leave out
      * @return array{name: string, won: int, played: int, gd: int, lineupPlayerIds: int[]}|null
      */
-    public static function computeFlopTeam(MatchDayEvent $event, array $squadIds): ?array
+    public static function computeFlopTeam(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
     {
         $worst = null;
-        foreach (self::weekEvents($event) as $day) {
+        foreach (self::weekEvents($event, $exceptId) as $day) {
             $teams = self::teamTable($day, $squadIds);
             if (count($teams) < 2) {
                 continue;
@@ -777,12 +778,14 @@ class MatchDayFinalizer
     }
 
     /**
-     * The flop player of the week — across both of the week's match days
-     * (see weekEvents()), the squad player who lost the most games, then
+     * The flop player of the week — the worst of the flop team of the week
+     * (see computeFlopTeam()): across both of the week's match days (see
+     * weekEvents()), the one of its players who lost the most games, then
      * had the worst goal difference on the pitch, then the fewest goals and
-     * assists. Until the week's second match day ends it's the worst of the
-     * first. There is always one, even on a week of draws — null only when
-     * no squad player finished a game.
+     * assists. With no flop team it's the worst of the whole squad. Until
+     * the week's second match day ends it's the worst of the first. There is
+     * always one, even on a week of draws — null only when no squad player
+     * finished a game.
      *
      * @param  array<int, int>  $squadIds
      * @param  ?string  $exceptId  a match day of the same week to leave out
@@ -822,8 +825,10 @@ class MatchDayFinalizer
             }
         }
 
+        $flopTeam = array_intersect_key($rows, array_flip(self::computeFlopTeam($event, $squadIds, $exceptId)['lineupPlayerIds'] ?? []));
+
         $flop = null;
-        foreach ($rows as $playerId => $r) {
+        foreach ($flopTeam ?: $rows as $playerId => $r) {
             $key = [$r['lost'], -$r['gd'], -$r['involvements']];
             if ($flop === null || $key > $flop['key']) {
                 $flop = ['playerId' => $playerId, 'key' => $key] + $r;
