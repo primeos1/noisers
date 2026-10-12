@@ -258,32 +258,6 @@ function spreadQuotas(room: number[], count: number): number[] {
   return quotas;
 }
 
-// King Jerry and Ose Miles are drawn onto the same team more often than
-// chance: when they land apart, 70% of the time Ose Miles joins King Jerry's
-// team, trading places with the most similar player there (same membership,
-// then position, then closest rating) so sizes and balance hold.
-const PAIR_CHANCE = 0.7;
-
-function keepPairTogether(players: Player[], teams: ParticipantId[][]) {
-  const jerry = named(players, "king jerry");
-  const ose = named(players, "ose miles");
-  if (!jerry || !ose) return;
-  const his = teams.findIndex((t) => t.includes(jerry.id));
-  const from = teams.findIndex((t) => t.includes(ose.id));
-  if (his < 0 || from < 0 || his === from || Math.random() >= PAIR_CHANCE) return;
-
-  const candidates = teams[his].filter((id) => id !== jerry.id);
-  const squad = candidates
-    .map((id) => players.find((p) => p.id === id))
-    .filter((p): p is Player => !!p);
-  const score = (p: Player) =>
-    (p.membership === ose.membership ? 0 : 10000) + (p.position === ose.position ? 0 : 1000) + Math.abs(p.rating - ose.rating);
-  const partner = squad.length > 0 ? squad.reduce((a, b) => (score(b) < score(a) ? b : a)).id : candidates[0];
-  if (partner === undefined) return;
-  teams[his] = teams[his].map((id) => (id === partner ? ose.id : id));
-  teams[from] = teams[from].map((id) => (id === ose.id ? partner : id));
-}
-
 // Members are placed first, then guest members, then guests — each group
 // spread as evenly as the room left by the one before allows. Guests have
 // no rating or position, so they're simply dealt into whatever is left.
@@ -318,7 +292,6 @@ export function buildTeams(
   const guestIds = shuffle(guests.map((g) => g.id));
   room.forEach((r, i) => teams[i].push(...guestIds.splice(0, r)));
 
-  keepPairTogether(players, teams);
   return nameTeams(players, teams).map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
 }
 
