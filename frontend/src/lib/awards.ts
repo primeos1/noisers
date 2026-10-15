@@ -169,6 +169,8 @@ export interface WeeklyFlop {
 /** The squad players of the day's bottom side (MatchDayFinalizer::teamTable), or null with fewer than two sides. */
 function flopTeamOfTheDay(event: MatchDayEvent): Set<number> | null {
   const teams = new Map<string, { won: number; gd: number; players: Set<number> }>();
+  // A side is its drawn roster — not whoever stood in for it in a game.
+  const rosters = new Map(event.groups.map((g) => [g.name, g.players]));
   for (const game of event.games) {
     if (game.status !== "finished") continue;
     const score = [0, 0];
@@ -178,7 +180,7 @@ function flopTeamOfTheDay(event: MatchDayEvent): Set<number> | null {
       if (!t) teams.set(team.name, (t = { won: 0, gd: 0, players: new Set() }));
       if (score[i] > score[1 - i]) t.won++;
       t.gd += score[i] - score[1 - i];
-      for (const id of team.players) if (typeof id === "number") t.players.add(id);
+      for (const id of rosters.get(team.name) ?? team.players) if (typeof id === "number") t.players.add(id);
     });
   }
   if (teams.size < 2) return null;

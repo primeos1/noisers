@@ -839,7 +839,10 @@ class MatchDayFinalizer
 
     /**
      * Every side (by team name) across this event's finished games, best
-     * first by wins then goal difference.
+     * first by wins then goal difference. A side's players are its drawn
+     * roster (the event's groups), so someone from another team who only
+     * stood in for a game isn't counted as one of them; match days without
+     * a matching group fall back to whoever lined up in its games.
      *
      * @param  array<int, int>  $squadIds
      * @return array<string, array{won: int, played: int, gd: int, cleanSheets: int, players: int[], rival: string, score: string}>
@@ -847,6 +850,11 @@ class MatchDayFinalizer
     private static function teamTable(MatchDayEvent $event, array $squadIds): array
     {
         $inSquad = fn ($id) => is_int($id) && in_array($id, $squadIds, true);
+
+        $rosters = [];
+        foreach (($event->groups ?? []) as $group) {
+            $rosters[$group['name'] ?? ''] = array_values(array_filter($group['players'] ?? [], $inSquad));
+        }
 
         $teams = [];
         foreach (($event->games ?? []) as $game) {
@@ -865,7 +873,7 @@ class MatchDayFinalizer
                 $t['won'] += $score[$i] > $score[1 - $i] ? 1 : 0;
                 $t['gd'] += $score[$i] - $score[1 - $i];
                 $t['cleanSheets'] += $score[1 - $i] === 0 ? 1 : 0;
-                $t['players'] = array_values(array_unique(array_merge(
+                $t['players'] = $rosters[$name] ?? array_values(array_unique(array_merge(
                     $t['players'],
                     array_filter($game['teams'][$i]['players'] ?? [], $inSquad),
                 )));
