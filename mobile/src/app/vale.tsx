@@ -58,6 +58,7 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
   const star = day.playerOfMatchDay ? find(day.playerOfMatchDay.playerId) : undefined;
   const bad = day.badBoy ? find(day.badBoy.playerId) : undefined;
   const picks = day.lineup.map((pick) => ({ pick, player: find(pick.playerId) })).filter((x): x is { pick: TeamOfWeekPick; player: Player } => !!x.player);
+  const flopLineup = (day.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
   return (
     <Glass style={styles.dayCard}>
       <Txt style={text.eyebrow}>
@@ -116,6 +117,29 @@ function MatchDayCard({ day, find }: { day: MatchDayAwards; find: (id: number) =
           ))}
         </>
       ) : null}
+      {day.flopTeam ? (
+        <>
+          <View style={[styles.flopHead, styles.dayTeamLabel]}>
+            <Ionicons name="trending-down" size={14} color={colors.loss} />
+            <Txt style={[text.small, { color: colors.loss }]}>Flop team of the match day</Txt>
+          </View>
+          <Txt style={styles.dayStarName}>
+            {day.flopTeam.name}{" "}
+            <Txt style={text.small}>
+              · won {day.flopTeam.won} of {day.flopTeam.played} · {day.flopTeam.gd > 0 ? `+${day.flopTeam.gd}` : day.flopTeam.gd} GD
+            </Txt>
+          </Txt>
+          {flopLineup.length > 0 ? (
+            <View style={styles.flopLineup}>
+              {flopLineup.map((p) => (
+                <Tilt key={p.id} onPress={() => router.push(`/player/${p.id}`)} accessibilityLabel={p.name}>
+                  <Avatar player={p} size={36} ring={colors.loss} />
+                </Tilt>
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
     </Glass>
   );
 }
@@ -152,7 +176,6 @@ export default function ValeScreen() {
 
   const find = (id: number) => players.find((p) => p.id === id);
   const lineup = (team?.lineup ?? []).map((pick) => ({ pick, player: find(pick.playerId) })).filter((x): x is { pick: TeamOfWeekPick; player: Player } => !!x.player);
-  const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? []).map(find).filter((p): p is Player => !!p);
   const { playerOfTheWeek: potw, mostImproved, flopOfTheWeek, weeklyLeaders: w } = awards;
   const flop = find(flopOfTheWeek.playerId);
   const weekBadBoy = team?.badBoy ?? null;
@@ -210,28 +233,6 @@ export default function ValeScreen() {
           {(team.matchDays ?? []).map((day) => (
             <MatchDayCard key={day.id} day={day} find={find} />
           ))}
-          {team.flopTeam ? (
-            <Glass style={styles.flopTeam}>
-              <LinearGradient colors={["rgba(194,59,59,0.25)", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-              <View style={styles.flopHead}>
-                <Ionicons name="trending-down" size={16} color={colors.loss} />
-                <Txt style={[text.eyebrow, { color: colors.loss }]}>Flop team of the week</Txt>
-              </View>
-              <Txt style={styles.flopTeamName}>{team.flopTeam.name}</Txt>
-              <Txt style={text.small}>
-                Won {team.flopTeam.won} of {team.flopTeam.played} · goal difference {team.flopTeam.gd > 0 ? `+${team.flopTeam.gd}` : team.flopTeam.gd}
-              </Txt>
-              {flopLineup.length > 0 ? (
-                <View style={styles.flopLineup}>
-                  {flopLineup.map((p) => (
-                    <Tilt key={p.id} onPress={() => router.push(`/player/${p.id}`)} accessibilityLabel={p.name}>
-                      <Avatar player={p} size={36} ring={colors.loss} />
-                    </Tilt>
-                  ))}
-                </View>
-              ) : null}
-            </Glass>
-          ) : null}
         </Reveal>
       ) : (
         <Empty icon="trophy-outline">No finished match days yet. The team of the week appears after the first one.</Empty>
@@ -398,8 +399,6 @@ const styles = StyleSheet.create({
   cleanSheet: { flexDirection: "row", alignItems: "center", gap: space.md, padding: space.lg, marginBottom: space.xl },
   cleanValue: { fontFamily: fonts.displayHeavy, fontSize: 32, color: colors.win },
 
-  flopTeam: { padding: space.lg, marginTop: space.md, marginBottom: space.xl, gap: 4 },
   flopHead: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  flopTeamName: { fontFamily: fonts.displayHeavy, fontSize: 26, lineHeight: 28, color: colors.paper },
   flopLineup: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
 });

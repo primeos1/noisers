@@ -66,14 +66,14 @@ class FlopPlayerTest extends TestCase
         ];
     }
 
-    public function test_the_flop_comes_from_the_flop_team(): void
+    public function test_the_flop_is_the_worst_record_even_off_the_flop_team(): void
     {
         $event = new MatchDayEvent(['games' => $this->flopTeamDay(1, 2, 3, 4)]);
 
-        $this->assertSame('Blues', MatchDayFinalizer::computeFlopTeam($event, [1, 2, 3, 4])['name']);
+        $this->assertSame('Blues', MatchDayFinalizer::computeFlopTeamOfMatchDay($event, [1, 2, 3, 4])['name']);
         $flop = MatchDayFinalizer::computeFlopPlayer($event, [1, 2, 3, 4]);
-        $this->assertSame(2, $flop['playerId']);
-        $this->assertSame(1, $flop['lost']);
+        $this->assertSame(3, $flop['playerId']);
+        $this->assertSame(2, $flop['lost']);
     }
 
     public function test_the_flop_is_worst_across_both_match_days_of_the_week(): void
@@ -128,22 +128,22 @@ class FlopPlayerTest extends TestCase
         $this->assertStringEndsWith('across Matchday 1 and Matchday 2.', $vale->flop_note);
     }
 
-    public function test_refresh_takes_the_saved_flop_from_the_flop_team(): void
+    public function test_refresh_takes_the_saved_flop_from_the_whole_squad(): void
     {
         [$a, $b, $x, $y] = Player::factory()->count(4)->create()->pluck('id')->all();
         MatchDayEvent::create([
             'id' => 'matchday-5', 'title' => 'Matchday 5', 'date' => 'Sun 12 Oct', 'status' => 'ended',
             'present_players' => [], 'guests' => [], 'groups' => [], 'games' => $this->flopTeamDay($a, $b, $x, $y),
         ]);
-        // What the old rule saved: the most losses in the whole squad.
+        // What the old rule saved: the worst of the flop team.
         ValeContent::current()->update([
             'team_week_title' => 'Matchday 5', 'team_week_date_range' => 'Sun 12 Oct',
-            'flop_player_id' => $x, 'flop_note' => 'Lost 2 of 2 games at Matchday 5.',
+            'flop_player_id' => $b, 'flop_note' => 'Lost 1 of 1 game at Matchday 5.',
         ]);
 
-        (require database_path('migrations/2026_10_12_120000_refresh_vale_flop_player_from_flop_team.php'))->up();
+        (require database_path('migrations/2026_10_15_130000_refresh_vale_flop_player_from_whole_squad.php'))->up();
 
-        $this->assertSame($b, ValeContent::current()->flop_player_id);
+        $this->assertSame($x, ValeContent::current()->flop_player_id);
     }
 
     public function test_backfill_fills_an_empty_flop_from_the_match_day_the_vale_shows(): void

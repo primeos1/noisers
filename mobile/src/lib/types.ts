@@ -310,6 +310,8 @@ export interface MatchDayAwards {
   playerOfMatchDay: TeamOfWeekPick | null;
   /** Most cards that day, ties going to more reds — null when nobody was booked. */
   badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
+  /** The side at the bottom that day — null when only one side played. */
+  flopTeam?: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
 }
 
 export interface TeamOfWeek {
@@ -330,6 +332,4 @@ export interface TeamOfWeek {
   playerOfWeek?: TeamOfWeekPick | null;
   /** The team and player of each of the week's match days, oldest first. */
   matchDays?: MatchDayAwards[];
-  /** The side at the bottom of the table — null when only one side played. */
-  flopTeam?: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
 }

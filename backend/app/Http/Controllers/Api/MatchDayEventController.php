@@ -174,12 +174,13 @@ class MatchDayEventController extends Controller
                         // The side that won the day, and its players.
                         'team' => $day['team'] ?? null,
                         'lineup' => array_map($pick, $day['lineup'] ?? []),
+                        // The side at the bottom that day; null when only one side played.
+                        'flopTeam' => MatchDayFinalizer::computeFlopTeamOfMatchDay($e, $squadIds),
                         'playerOfMatchDay' => $pick($day['playerOfMatchDay'] ?? null),
                         // Most cards that day, ties going to more reds; null when nobody was booked.
                         'badBoy' => $day['badBoy'] ?? null,
                     ];
                 }, $team['weekMatchDays']),
-                'flopTeam' => MatchDayFinalizer::computeFlopTeam($matchDayEvent, $squadIds),
                 // Worked out across the week's match days, so every week has a flop.
                 'flopPlayer' => (function () use ($matchDayEvent, $squadIds) {
                     $flop = MatchDayFinalizer::flopFields($matchDayEvent, $squadIds);

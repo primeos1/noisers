@@ -52,6 +52,8 @@ interface MatchDayAwards {
   playerOfMatchDay: TeamOfWeekPick | null;
   /** Most cards that day, ties going to more reds — null when nobody was booked. */
   badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
+  /** The side at the bottom that day — null when only one side played. */
+  flopTeam?: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
 }
 
 interface TeamOfWeekData {
@@ -72,8 +74,6 @@ interface TeamOfWeekData {
   badBoy?: { playerId: number; yellowCards: number; redCards: number } | null;
   /** The team and player of each of the week's match days, oldest first. */
   matchDays?: MatchDayAwards[];
-  /** The side at the bottom of the table — null when only one side played. */
-  flopTeam: { name: string; won: number; played: number; gd: number; lineupPlayerIds: number[] } | null;
   /** The week's flop player, across both its match days — null only when no squad player finished a game. */
   flopPlayer?: { playerId: number; note: string } | null;
   /** Every other award as worked out for this match day. */
@@ -291,6 +291,9 @@ function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[]
   const picks = day.lineup
     .map((pick) => ({ pick, player: players.find((p) => p.id === pick.playerId) }))
     .filter((x): x is typeof x & { player: Player } => Boolean(x.player));
+  const flopLineup = (day.flopTeam?.lineupPlayerIds ?? [])
+    .map((n) => players.find((p) => p.id === n))
+    .filter((p): p is Player => Boolean(p));
 
   return (
     <div className="bg-ink/70 p-6 backdrop-blur">
@@ -347,6 +350,28 @@ function MatchDayCard({ day, players }: { day: MatchDayAwards; players: Player[]
               </li>
             ))}
           </ul>
+        </>
+      )}
+      {day.flopTeam && (
+        <>
+          <p className="mt-5 text-xs text-loss">Flop team of the match day</p>
+          <p className="mt-1 font-display text-2xl leading-tight text-paper">
+            {day.flopTeam.name}{" "}
+            <span className="font-sans text-xs text-mist">
+              · won {day.flopTeam.won} of {day.flopTeam.played} ·{" "}
+              {day.flopTeam.gd > 0 ? `+${day.flopTeam.gd}` : day.flopTeam.gd} GD
+            </span>
+          </p>
+          {flopLineup.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+              {flopLineup.map((player) => (
+                <li key={player.id} className="flex min-w-0 items-center gap-2 text-sm text-paper-dim">
+                  <img src={player.photo} alt="" className="duotone h-8 w-8 shrink-0 border border-loss/60 object-cover grayscale" loading="lazy" />
+                  <span className="truncate">{player.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </div>
@@ -414,9 +439,6 @@ export default function TheVale() {
   const topScorer = players.find((p) => p.id === weeklyLeaders.topScorer.playerId);
   const topAssist = players.find((p) => p.id === weeklyLeaders.topAssist.playerId);
   const topSaves = players.find((p) => p.id === weeklyLeaders.topSaves.playerId);
-  const flopLineup = (team?.flopTeam?.lineupPlayerIds ?? [])
-    .map((n) => players.find((p) => p.id === n))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
   // A flop award left empty falls back to the one worked out for that day.
   const flopPick = (flopOfTheWeek.playerId ? flopOfTheWeek : null) ?? team?.flopPlayer ?? null;
   const flop = flopPick ? players.find((p) => p.id === flopPick.playerId) : undefined;
@@ -499,33 +521,6 @@ export default function TheVale() {
                 </div>
               )}
 
-              {team.flopTeam && (
-                <div className="mt-10 border border-loss/40 bg-ink/70 p-6 backdrop-blur">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm text-loss">Flop team of the week</p>
-                    <p className="text-xs text-mist">
-                      Won {team.flopTeam.won} of {team.flopTeam.played} · goal difference{" "}
-                      {team.flopTeam.gd > 0 ? `+${team.flopTeam.gd}` : team.flopTeam.gd}
-                    </p>
-                  </div>
-                  <h3 className="mt-2 font-display text-3xl text-paper">{team.flopTeam.name}</h3>
-                  {flopLineup.length > 0 && (
-                    <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-                      {flopLineup.map((player) => (
-                        <li key={player.id} className="flex items-center gap-2 text-sm text-paper-dim">
-                          <img
-                            src={player.photo}
-                            alt=""
-                            className="duotone h-8 w-8 border border-ink-line object-cover"
-                            loading="lazy"
-                          />
-                          {player.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
             </>
           )}
         </div>

@@ -719,37 +719,27 @@ class MatchDayFinalizer
     }
 
     /**
-     * The flop team of the week — of each match day's bottom side (on the
-     * same wins/goal-difference table computeBestSide() tops), the worst
-     * across the week. Null unless two sides played on one of its match days.
+     * The flop team of the match day — the side at the bottom of the day's
+     * wins/goal-difference table (the one computeBestSide() tops). Null
+     * unless two sides finished a game.
      *
      * @param  array<int, int>  $squadIds
-     * @param  ?string  $exceptId  a match day of the same week to leave out
      * @return array{name: string, won: int, played: int, gd: int, lineupPlayerIds: int[]}|null
      */
-    public static function computeFlopTeam(MatchDayEvent $event, array $squadIds, ?string $exceptId = null): ?array
+    public static function computeFlopTeamOfMatchDay(MatchDayEvent $event, array $squadIds): ?array
     {
-        $worst = null;
-        foreach (self::weekEvents($event, $exceptId) as $day) {
-            $teams = self::teamTable($day, $squadIds);
-            if (count($teams) < 2) {
-                continue;
-            }
-            $bottom = end($teams);
-            if ($worst === null || [$bottom['won'], $bottom['gd']] <= [$worst['won'], $worst['gd']]) {
-                $worst = $bottom + ['name' => (string) array_key_last($teams)];
-            }
-        }
-        if ($worst === null) {
+        $teams = self::teamTable($event, $squadIds);
+        if (count($teams) < 2) {
             return null;
         }
+        $bottom = end($teams);
 
         return [
-            'name' => $worst['name'],
-            'won' => $worst['won'],
-            'played' => $worst['played'],
-            'gd' => $worst['gd'],
-            'lineupPlayerIds' => $worst['players'],
+            'name' => (string) array_key_last($teams),
+            'won' => $bottom['won'],
+            'played' => $bottom['played'],
+            'gd' => $bottom['gd'],
+            'lineupPlayerIds' => $bottom['players'],
         ];
     }
 
@@ -778,12 +768,11 @@ class MatchDayFinalizer
     }
 
     /**
-     * The flop player of the week — the worst of the flop team of the week
-     * (see computeFlopTeam()): across both of the week's match days (see
-     * weekEvents()), the one of its players who lost the most games, then
-     * had the worst goal difference on the pitch, then the fewest goals and
-     * assists. With no flop team it's the worst of the whole squad. Until
-     * the week's second match day ends it's the worst of the first. There is
+     * The flop player of the week — the squad player with the worst record
+     * across both of the week's match days (see weekEvents()): who lost the
+     * most games, then had the worst goal difference on the pitch, then the
+     * fewest goals and assists. Until the week's second match day ends it's
+     * the worst of the first. There is
      * always one, even on a week of draws — null only when no squad player
      * finished a game.
      *
@@ -825,10 +814,8 @@ class MatchDayFinalizer
             }
         }
 
-        $flopTeam = array_intersect_key($rows, array_flip(self::computeFlopTeam($event, $squadIds, $exceptId)['lineupPlayerIds'] ?? []));
-
         $flop = null;
-        foreach ($flopTeam ?: $rows as $playerId => $r) {
+        foreach ($rows as $playerId => $r) {
             $key = [$r['lost'], -$r['gd'], -$r['involvements']];
             if ($flop === null || $key > $flop['key']) {
                 $flop = ['playerId' => $playerId, 'key' => $key] + $r;
