@@ -35,12 +35,12 @@ export const CLUB_JSON_LD = {
       alternateName: ["Noisers", "Noisers Football Club"],
       slogan: "Vale 2 Zenith",
       sport: "Soccer",
-      foundingDate: "2021",
+      foundingDate: "2025",
       url: SITE_URL,
       logo: `${SITE_URL}/favicon.png`,
       image: OG_IMAGE,
       description:
-        "Noisers FC is a grassroots five-a-side football club in Lekki, Lagos, established in 2021. Squad ratings, match days, the Noisers League, awards and highlights.",
+        "Noisers FC is a grassroots five-a-side football club in Lekki, Lagos, established in 2025. Squad ratings, match days, the Noisers League, awards and highlights.",
       location: {
         "@type": "Place",
         name: "Lekki, Lagos",
@@ -68,7 +68,7 @@ export const PAGES: SitemapPage[] = [
     path: "/",
     title: "Noisers FC — Five-a-Side Football Club in Lekki, Lagos | Vale 2 Zenith",
     description:
-      "Noisers FC is a grassroots five-a-side football club in Lekki, Lagos, established in 2021 and built on passion, teamwork and the drive to win. Squad ratings, match days, the Noisers League, awards and highlights.",
+      "Noisers FC is a grassroots five-a-side football club in Lekki, Lagos, established in 2025 and built on passion, teamwork and the drive to win. Squad ratings, match days, the Noisers League, awards and highlights.",
     jsonLd: CLUB_JSON_LD,
     changefreq: "daily",
     priority: 1,

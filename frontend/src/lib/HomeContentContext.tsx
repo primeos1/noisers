@@ -40,7 +40,7 @@ export interface HomeContentData {
 // mirrors the copy that used to be hardcoded in Hero/StorySection/etc.
 export const DEFAULT_HOME_CONTENT: HomeContentData = {
   hero: {
-    eyebrow: "Est. 2021 · Grassroots five-a-side",
+    eyebrow: "Est. 2025 · Grassroots five-a-side",
     headline: "Vale to zenith.",
     subtext:
       "Noisers FC is a small-sided club built on the same pitch we still play on. Every set, every card, every goal — logged, tracked and built into a squad that keeps climbing.",
@@ -50,7 +50,7 @@ export const DEFAULT_HOME_CONTENT: HomeContentData = {
     eyebrow: "Our story",
     headline: "From the vale, toward the zenith.",
     paragraph1:
-      "Noisers FC started in 2021 as a handful of regulars turning up for the same Saturday set. The name on the badge changed, the pitch didn't — and neither did the plan: play hard, look after each other, and keep the standard climbing every season.",
+      "Noisers FC started in 2025 as a handful of regulars turning up for the same Saturday set. The name on the badge changed, the pitch didn't — and neither did the plan: play hard, look after each other, and keep the standard climbing every season.",
     paragraph2:
       "\"Vale 2 Zenith\" is the club in one line — grounded where we play, ambitious about where we're going. This site is how we run that climb: squad, sets, cards and every goal, all in one place.",
     imageUrl: "",
@@ -62,7 +62,7 @@ export const DEFAULT_HOME_CONTENT: HomeContentData = {
     body: "Every session, whoever's present gets split into balanced six-a-side teams — random, by rating, or by position — then it's first to two goals on a ten-minute clock. Goals, assists and cards all get logged as they happen.",
   },
   footer: {
-    tagline: "Est. 2021 · Vale 2 Zenith. Grassroots five-a-side football, run properly.",
+    tagline: "Est. 2025 · Vale 2 Zenith. Grassroots five-a-side football, run properly.",
     copyright: "Noisers FC. All rights reserved.",
   },
   statsSection: {

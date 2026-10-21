@@ -230,7 +230,7 @@ function WelcomeScene() {
                 </View>
                 <EnterButton label={admitted ? "You're in" : "Enter the ground"} busy={busy && !admitted && mode === 0} onPress={enterAsPlayer} />
               </View>
-              <Stub label="SQUAD · ADMIT ONE · Nº 2021" tear={tear} />
+              <Stub label="SQUAD · ADMIT ONE · Nº 2025" tear={tear} />
               <Stamp progress={stamp} label={stampLabel} />
             </Animated.View>
   
@@ -274,7 +274,7 @@ function WelcomeScene() {
                 </View>
                 <EnterButton label={admitted ? "You're in" : "Sign in"} busy={busy && !admitted && mode === 1} onPress={enterAsStaff} />
               </View>
-              <Stub label="STAFF · ALL AREAS · Nº 2021" tear={tear} />
+              <Stub label="STAFF · ALL AREAS · Nº 2025" tear={tear} />
               <Stamp progress={stamp} label={stampLabel} />
             </Animated.View>
 

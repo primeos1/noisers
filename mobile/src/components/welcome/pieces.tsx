@@ -110,7 +110,7 @@ export function Wordmark({ onCrestPress }: { onCrestPress: () => void }) {
       </View>
       <Animated.View entering={reduced ? undefined : FadeIn.delay(1300).duration(600)} style={styles.mottoRow}>
         <View style={styles.mottoRule} />
-        <Txt style={styles.motto}>FC · VALE 2 ZENITH · EST. 2021</Txt>
+        <Txt style={styles.motto}>FC · VALE 2 ZENITH · EST. 2025</Txt>
         <View style={styles.mottoRule} />
       </Animated.View>
     </View>

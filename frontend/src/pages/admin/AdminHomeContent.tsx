@@ -297,7 +297,7 @@ function StatsEditor() {
     <div className="mt-16 max-w-2xl border-t border-ink-line pt-10">
       <h2 className="font-display text-2xl text-paper">Club in numbers — custom tiles</h2>
       <p className="mt-1 text-sm text-paper-dim">
-        Your own numbers, shown after the live ones (e.g. "3 · Trophies" or "2021 · Founded"). Changes save as you type.
+        Your own numbers, shown after the live ones (e.g. "3 · Trophies" or "2025 · Founded"). Changes save as you type.
       </p>
 
       <div className="mt-4 space-y-2">
