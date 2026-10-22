@@ -450,7 +450,7 @@ class MatchDayFinalizer
      * The team of the match day and the player of the match day: the side
      * that won the day (most wins, then goal difference — the top of
      * teamTable()) with its squad players keeper first, and the day's single
-     * highest-rated player (most goals and assists in weeks 1 and 2 — see
+     * highest-rated player across all sides (most goals and assists in weeks 1 and 2 — see
      * GOALS_RULE_LAST_WEEK), from that day's finished games alone — plus the
      * bad boy of the day, whoever was booked most (ties going to more reds).
      * Null when no game finished. Pure and read-only.
@@ -497,10 +497,10 @@ class MatchDayFinalizer
     /**
      * The team of the week and the player of the week for this match day's
      * week. The team is the best keeper, two defenders, midfielder and two
-     * forwards (TEAM_SLOTS) from the players of the week's two teams of the
-     * match day, each scored on their points added up across both match days
+     * forwards (TEAM_SLOTS) from all players who played that week,
+     * each scored on their points added up across both match days
      * (see weekNumbers()). The player of the week is the week's top-rated
-     * player, whichever side they were on. Like a gameweek, nobody is
+     * player regardless of match-day team selection. Like a gameweek, nobody is
      * picked until both match days have ended: until then `complete` is false,
      * the lineup is empty and there's no player of the week. Pure and
      * read-only — used both to rewrite The Vale on finalize() and to answer
@@ -520,13 +520,7 @@ class MatchDayFinalizer
         }
         $complete = $days->count() >= 2;
         $ranking = self::rankPlayers($days, $squadIds);
-        $pool = [];
-        foreach ($days as $day) {
-            foreach (self::computeTeamOfMatchDay($day, $squadIds)['lineupPlayerIds'] ?? [] as $id) {
-                $pool[$id] = true;
-            }
-        }
-        $lineup = $complete ? self::pickTeam($ranking, $pool) : [];
+        $lineup = $complete ? self::pickTeam($ranking) : [];
 
         // Guests carry no awards.
         $squadStats = array_intersect_key($ranking['stats'], $ranking['players']->all());
@@ -624,9 +618,9 @@ class MatchDayFinalizer
      * @param  array{ranked: int[], points: array<int, float>, stats: array<int, array<string, int>>, players: Collection<int, Player>}  $ranking  as rankPlayers()
      * @return array{playerId: int, position: string, points: float, stats: array<string, int>}|null
      */
-    private static function topPlayer(array $ranking, bool $byGoals = false): ?array
+    private static function topPlayer(array $ranking, bool $byGoals = false, ?array $pool = null): ?array
     {
-        $ids = $ranking['ranked'];
+        $ids = array_values(array_filter($ranking['ranked'], fn ($id) => $pool === null || isset($pool[$id])));
         if ($byGoals) {
             $s = $ranking['stats'];
             $key = fn ($id) => [

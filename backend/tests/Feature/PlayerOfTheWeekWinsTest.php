@@ -126,9 +126,7 @@ class PlayerOfTheWeekWinsTest extends TestCase
         Carbon::setTestNow('2026-10-04 10:00');
         $this->playWeekDay('sun', 'Sun 4 Oct', [$def2, $fwd2], [$def3, $fwd3], [[$fwd2, null]]);
 
-        // Picked from the two days' winning sides (the Reds both times), on
-        // points added up over the week: def2 and fwd2 join from Sunday's;
-        // mid2 was never on a winning side.
+        // Picked from all participants on points added up over the week.
         $six = [$gk, $def1, $def2, $mid1, $fwd1, $fwd2];
         foreach (['wed', 'sun'] as $id) {
             $team = $this->getJson("/api/match-day-events/{$id}/team-of-week")
@@ -195,14 +193,14 @@ class PlayerOfTheWeekWinsTest extends TestCase
             ->assertJsonPath('data.playerOfTheWeek.playerId', $ace->id)
             ->assertJsonPath('data.playerOfTheWeek.timesWon', 2);
 
-        // Profiles carry both honours. The six comes from each week's
-        // winning sides, so only that week's winner makes it.
+        // Profiles carry both honours. Both forwards fit the weekly team,
+        // regardless of which side won.
         $this->getJson("/api/players/{$ace->id}")
             ->assertJsonPath('data.playerOfTheWeekWins', 2)
-            ->assertJsonPath('data.teamOfTheWeekSelections', 2);
+            ->assertJsonPath('data.teamOfTheWeekSelections', 3);
         $this->getJson("/api/players/{$rival->id}")
             ->assertJsonPath('data.playerOfTheWeekWins', 1)
-            ->assertJsonPath('data.teamOfTheWeekSelections', 1);
+            ->assertJsonPath('data.teamOfTheWeekSelections', 3);
 
         // The committee hands this week to someone else: the count follows.
         $this->putJson('/api/vale-content', ['potw_player_id' => $rival->id])
@@ -267,6 +265,38 @@ class PlayerOfTheWeekWinsTest extends TestCase
         $this->getJson("/api/players/{$keeper}")->assertJsonPath('data.playerOfTheWeekWins', 1);
     }
 
+    public function test_awards_consider_players_outside_both_winning_match_day_teams(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $winner = Player::factory()->create(['position' => 'FWD']);
+        $outsider = Player::factory()->create(['position' => 'GK']);
+        $secondWinner = Player::factory()->create(['position' => 'FWD']);
+
+        foreach (range(1, 8) as $day) {
+            $id = "md{$day}";
+            $scorer = $day % 2 === 1 ? $winner : $secondWinner;
+            $this->playWeekDay($id, 'Sun 28 Sept', [$scorer->id], [$outsider->id], [[$scorer->id, null]]);
+            $event = \App\Models\MatchDayEvent::findOrFail($id);
+            $games = $event->games;
+            // The losing keeper outrates both winners and must remain eligible.
+            $games[0]['saves'] = array_fill(0, 100, ['playerId' => $outsider->id, 'teamIndex' => 1]);
+            $event->update(['games' => $games]);
+        }
+
+        foreach (['md2', 'md4', 'md6', 'md8'] as $id) {
+            $response = $this->getJson("/api/match-day-events/{$id}/team-of-week")->assertOk();
+            $expected = in_array($id, ['md2', 'md4'], true) ? $winner->id : $outsider->id;
+            $this->assertSame($expected, $response->json('data.playerOfWeek.playerId'));
+            $this->assertSame($expected, $response->json('data.awards.playerOfTheWeek.playerId'));
+            $this->assertContains($outsider->id, $response->json('data.lineupPlayerIds'));
+            foreach ($response->json('data.matchDays') as $matchDay) {
+                $this->assertNotContains($outsider->id, array_column($matchDay['lineup'], 'playerId'));
+                if (in_array($id, ['md6', 'md8'], true)) {
+                    $this->assertSame($outsider->id, $matchDay['playerOfMatchDay']['playerId']);
+                }
+            }
+        }
+    }
     public function test_each_match_day_names_its_bad_boy(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
