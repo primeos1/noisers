@@ -5,7 +5,7 @@ import { useSquad } from "../../lib/SquadContext";
 import { useSettings } from "../../lib/SettingsContext";
 import { formatNaira } from "../../lib/cards";
 import { eventContributions, eventGoals, eventParticipants } from "../../lib/portal";
-import { participantName, scoreOf, type MatchDayGame, type MatchDayTeam, type ParticipantId } from "../../lib/matchDay";
+import { participantName, penaltyNote, scoreOf, type MatchDayGame, type MatchDayTeam, type ParticipantId } from "../../lib/matchDay";
 import CaptainBand from "../../components/CaptainBand";
 import { CardPips, Empty, Figures, Group, LiveTag, PageTitle, PositionTag, Row } from "../../components/portal/ui";
 
@@ -52,6 +52,7 @@ export function GameCard({ game, number, name }: { game: MatchDayGame; number: n
           </span>
           <span className={`truncate text-right text-[0.95rem] font-semibold ${b > a ? "text-paper" : "text-paper-dim"}`}>{game.teams[1].name}</span>
         </div>
+        {penaltyNote(game) && <p className="mt-1.5 text-center text-xs font-medium text-draw">{penaltyNote(game)}</p>}
         <div className="mt-2 flex items-center justify-center gap-1 text-xs text-mist">
           {timeline.length ? `${open ? "Hide" : "Show"} ${timeline.length} event${timeline.length === 1 ? "" : "s"}` : "No goals or cards"}
           {timeline.length > 0 && (

@@ -9,6 +9,7 @@ import {
   eventParticipants,
   formatNaira,
   participantName,
+  penaltyNote,
   scoreOf,
 } from "../../lib/derive";
 import type { MatchDayGame, MatchDayTeam, ParticipantId, Player } from "../../lib/types";
@@ -60,7 +61,7 @@ function GameCard({ game, number, name }: { game: MatchDayGame; number: number; 
       >
         <View style={styles.gameMeta}>
           <Txt style={text.small}>Game {number}</Txt>
-          {game.status === "live" ? <LiveTag /> : <Txt style={text.small}>Full time</Txt>}
+          {game.status === "live" ? <LiveTag /> : <Txt style={[text.small, penaltyNote(game) ? { color: colors.draw } : null]}>{penaltyNote(game) ?? "Full time"}</Txt>}
         </View>
         <View style={styles.scoreLine}>
           <Txt style={[text.semi, styles.team, a > b ? null : styles.teamDim]} numberOfLines={1}>

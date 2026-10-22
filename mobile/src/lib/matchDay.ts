@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Guest, MatchDayEvent, MatchDayGame, MatchDayTeam, ParticipantId, Player, Position, TeamMode } from "./types";
-import { scoreOf } from "./derive";
+import { penaltyWinnerOf, scoreOf } from "./derive";
 
 // Running a match day from the phone — ported from frontend/src/lib/matchDay.ts
 // and useMatchTimer.ts. If you change how teams are built or the clock
@@ -91,7 +91,8 @@ export interface Rotation {
 // Winner stays on. The randomized team order is the queue: the first two
 // play, the winner stays to face the next in line and the loser goes to the
 // back. A draw sends both off — the challenger first, then the team that was
-// already on (it has played more) — and the next two in line play. The queue
+// already on (it has played more) — and the next two in line play, unless it
+// went to penalties: then the shootout winner stays on as if it had won. The queue
 // is rebuilt from the finished games each time, so correcting or deleting a
 // result fixes the rotation too. Games are matched to teams by name.
 export function nextFixture(groups: MatchDayTeam[], games: MatchDayGame[]): Rotation {
@@ -113,11 +114,12 @@ export function nextFixture(groups: MatchDayTeam[], games: MatchDayGame[]): Rota
 
     const sa = scoreOf(game, 0);
     const sb = scoreOf(game, 1);
-    if (sa === sb) {
+    const pens = penaltyWinnerOf(game);
+    if (sa === sb && pens === null) {
       queue.push(...(holder === a ? [b, a] : [a, b]));
       holder = null;
     } else {
-      const winner: number = sa > sb ? a : b;
+      const winner: number = pens !== null ? (pens === 0 ? a : b) : sa > sb ? a : b;
       queue.push(winner === a ? b : a);
       holder = winner;
     }

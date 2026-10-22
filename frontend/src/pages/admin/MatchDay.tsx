@@ -17,6 +17,7 @@ import {
   isUntouched,
   newGame,
   nextFixture,
+  penaltyNote,
   nextTeamName,
   nextGuestId,
   participantName,
@@ -78,6 +79,8 @@ export default function MatchDay() {
   const [playB, setPlayB] = useState(1);
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  // A level game needs telling whether it went to penalties before it ends.
+  const [settlingDraw, setSettlingDraw] = useState(false);
   // Peek back at the squad and teams mid-game; the game (and its clock,
   // which lives on the game record) carries on untouched.
   const [showSquad, setShowSquad] = useState(false);
@@ -322,8 +325,11 @@ export default function MatchDay() {
     setSubOn("");
   }
 
-  function endGame() {
-    finishLiveGame((g) => g);
+  // A draw can be settled on penalties to decide who stays on; the shootout
+  // isn't recorded, only who won it.
+  function endGame(penaltyWinner: 0 | 1 | null = null) {
+    setSettlingDraw(false);
+    finishLiveGame((g) => ({ ...g, penaltyWinner }));
   }
 
   function endMatchDay() {
@@ -468,6 +474,7 @@ export default function MatchDay() {
               activeEvent.games.map((g) => (
                 <div key={g.id} className="border border-ink-line bg-ink-raised p-4 text-sm">
                   {g.teams[0].name} {scoreOf(g, 0)}–{scoreOf(g, 1)} {g.teams[1].name}
+                  {penaltyNote(g) && <span className="ml-2 text-mist">· {penaltyNote(g)}</span>}
                 </div>
               ))
             )}
@@ -731,6 +738,7 @@ export default function MatchDay() {
                 {pastGames.map((g) => (
                   <div key={g.id} className="border border-ink-line bg-ink-raised p-4 text-sm text-paper-dim">
                     {g.teams[0].name} {scoreOf(g, 0)}–{scoreOf(g, 1)} {g.teams[1].name}
+                    {penaltyNote(g) && <span className="ml-2 text-mist">· {penaltyNote(g)}</span>}
                   </div>
                 ))}
               </div>
@@ -1027,7 +1035,7 @@ export default function MatchDay() {
 
           <button
             type="button"
-            onClick={endGame}
+            onClick={() => (scoreOf(liveGame, 0) === scoreOf(liveGame, 1) ? setSettlingDraw(true) : endGame())}
             className="border border-loss bg-loss px-5 py-2.5 text-sm font-medium text-paper hover:bg-transparent hover:text-loss"
           >
             End match
@@ -1042,6 +1050,46 @@ export default function MatchDay() {
           onClose={() => setAddingPlayer(false)}
           onSubmit={handleAddPlayer}
         />
+      )}
+
+      {settlingDraw && liveGame && (
+        <div className="sheet-backdrop" onClick={() => setSettlingDraw(false)}>
+          <div role="dialog" aria-modal="true" className="sheet md:max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display text-xl text-paper">
+              {liveGame.teams[0].name} {scoreOf(liveGame, 0)}–{scoreOf(liveGame, 1)} {liveGame.teams[1].name}
+            </h2>
+            <p className="mt-2 text-sm text-paper-dim">
+              It's level. If it went to penalties, pick who won the shootout — they stay on. The result still counts
+              as a draw.
+            </p>
+            <div className="mt-6 grid gap-2">
+              {([0, 1] as const).map((side) => (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => endGame(side)}
+                  className="border border-paper px-4 py-2.5 text-sm font-medium text-paper hover:bg-paper hover:text-ink"
+                >
+                  {liveGame.teams[side].name} won on penalties
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => endGame(null)}
+                className="border border-loss bg-loss px-4 py-2.5 text-sm font-medium text-paper hover:bg-transparent hover:text-loss"
+              >
+                End as a draw
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettlingDraw(false)}
+                className="px-4 py-2 text-sm text-paper-dim hover:text-paper"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmEnd && activeEvent && (

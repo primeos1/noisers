@@ -69,6 +69,17 @@ export function scoreOf(game: Pick<MatchDayGame, "goals">, teamIndex: 0 | 1) {
   return game.goals.filter((g) => g.teamIndex === teamIndex).length;
 }
 
+/** The side that won on penalties — only while the score is still level. */
+export function penaltyWinnerOf(game: Pick<MatchDayGame, "goals" | "penaltyWinner">): 0 | 1 | null {
+  const side = game.penaltyWinner;
+  return (side === 0 || side === 1) && scoreOf(game, 0) === scoreOf(game, 1) ? side : null;
+}
+/** "Grey won on penalties", or null when it wasn't settled that way. */
+export function penaltyNote(game: Pick<MatchDayGame, "goals" | "penaltyWinner" | "teams">): string | null {
+  const side = penaltyWinnerOf(game);
+  return side === null ? null : `${game.teams[side].name} won on penalties`;
+}
+
 export function participantName(players: Player[], guests: Guest[], id: ParticipantId): string {
   if (typeof id === "number") {
     const player = players.find((p) => p.id === id);

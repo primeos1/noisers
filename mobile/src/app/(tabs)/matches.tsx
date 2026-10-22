@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useClub } from "../../lib/club";
-import { eventGoals, eventParticipants, participantName, plural, scoreOf, sortEvents } from "../../lib/derive";
+import { eventGoals, eventParticipants, participantName, penaltyNote, plural, scoreOf, sortEvents } from "../../lib/derive";
 import type { MatchDayEvent, MatchDayGame, ParticipantId, Player } from "../../lib/types";
 import { Avatar, Empty, ErrorBanner, LiveTag, Loading, PageTitle, RefCard, Screen, Segmented, Txt, text } from "../../components/ui";
 import { FlipNumber, Glass, PulseRing, Reveal, Tilt } from "../../components/depth";
@@ -232,7 +232,7 @@ function GameDetail({ game, number, event, players }: { game: MatchDayGame; numb
   const [a, b] = [scoreOf(game, 0), scoreOf(game, 1)];
   const name = (id: ParticipantId) => participantName(players, event.guests, id);
   const live = game.status === "live";
-  const outcome = live ? "In play" : a === b ? "Draw" : `${game.teams[a > b ? 0 : 1].name} win`;
+  const outcome = live ? "In play" : a === b ? (penaltyNote(game) ?? "Draw") : `${game.teams[a > b ? 0 : 1].name} win`;
 
   const side = (t: 0 | 1) => (
     <View style={[styles.side, t === 1 ? styles.sideRight : null]}>

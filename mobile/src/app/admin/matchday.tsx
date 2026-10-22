@@ -501,6 +501,11 @@ function LiveGame({
     });
   }
 
+  // A level game needs telling whether it went to penalties before it ends.
+  // The shootout isn't recorded, only who won it — they stay on.
+  const [settlingDraw, setSettlingDraw] = useState(false);
+  const level = scoreOf(game, 0) === scoreOf(game, 1);
+
   const [goalTeam, setGoalTeam] = useState<0 | 1>(0);
   const [ownGoal, setOwnGoal] = useState(false);
   const [scorer, setScorer] = useState<ParticipantId | null>(null);
@@ -744,19 +749,50 @@ function LiveGame({
         <Button label="Substitute" variant="secondary" icon="swap-horizontal" onPress={substitute} disabled={subOff === null || subOn === null} />
       </Section>
 
-      <Button
-        label="End match"
-        variant="danger"
-        icon="flag-outline"
-        onPress={() =>
-          confirm(
-            "End this match?",
-            `${game.teams[0].name} ${scoreOf(game, 0)}–${scoreOf(game, 1)} ${game.teams[1].name} goes in the books.`,
-            "End match",
-            () => finish(),
-          )
-        }
-      />
+      {settlingDraw && level ? (
+        <Section title={`${game.teams[0].name} ${scoreOf(game, 0)}–${scoreOf(game, 1)} ${game.teams[1].name}`} description="It's level. If it went to penalties, pick who won the shootout — they stay on. The result still counts as a draw.">
+          {([0, 1] as const).map((side) => (
+            <View key={side} style={styles.penaltyChoice}>
+              <Button
+                label={`${game.teams[side].name} won on penalties`}
+                variant="secondary"
+                icon="trophy-outline"
+                onPress={() => {
+                  setSettlingDraw(false);
+                  finish((g) => ({ ...g, penaltyWinner: side }));
+                }}
+              />
+            </View>
+          ))}
+          <Button
+            label="End as a draw"
+            variant="danger"
+            icon="flag-outline"
+            onPress={() => {
+              setSettlingDraw(false);
+              finish((g) => ({ ...g, penaltyWinner: null }));
+            }}
+          />
+          <View style={styles.gap} />
+          <Button label="Cancel" variant="secondary" onPress={() => setSettlingDraw(false)} />
+        </Section>
+      ) : (
+        <Button
+          label="End match"
+          variant="danger"
+          icon="flag-outline"
+          onPress={() =>
+            level
+              ? setSettlingDraw(true)
+              : confirm(
+                  "End this match?",
+                  `${game.teams[0].name} ${scoreOf(game, 0)}–${scoreOf(game, 1)} ${game.teams[1].name} goes in the books.`,
+                  "End match",
+                  () => finish(),
+                )
+          }
+        />
+      )}
     </>
   );
 }
@@ -898,6 +934,7 @@ const styles = StyleSheet.create({
   },
   tickOn: { backgroundColor: colors.paper, borderColor: colors.paper },
   gap: { height: space.md },
+  penaltyChoice: { marginBottom: space.md },
   inline: { flexDirection: "row", alignItems: "center", gap: space.md },
   inlineButtons: { flexDirection: "row", gap: space.md, marginBottom: space.lg },
   textButton: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.paper },

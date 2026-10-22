@@ -143,6 +143,11 @@ export interface MatchDayGame {
   clockStartedAt?: number | null;
   /** Seconds of play before the current run. */
   clockElapsed?: number;
+  /**
+   * Which side won a level game on penalties, to settle who stays on. The
+   * shootout itself isn't recorded, so the result still counts as a draw.
+   */
+  penaltyWinner?: 0 | 1 | null;
 }
 
 export interface MatchDayEvent {

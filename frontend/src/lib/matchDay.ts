@@ -72,6 +72,11 @@ export interface MatchDayGame {
   clockStartedAt?: number | null;
   /** Seconds of play accumulated before the current run. */
   clockElapsed?: number;
+  /**
+   * Which side won a level game on penalties, to settle who stays on. The
+   * shootout itself isn't recorded, so the result still counts as a draw.
+   */
+  penaltyWinner?: 0 | 1 | null;
 }
 
 export interface MatchDayEvent {
@@ -380,6 +385,17 @@ export function scoreOf(game: Pick<MatchDayGame, "goals">, teamIndex: 0 | 1) {
   return game.goals.filter((g) => g.teamIndex === teamIndex).length;
 }
 
+/** The side that won on penalties — only while the score is still level. */
+export function penaltyWinnerOf(game: Pick<MatchDayGame, "goals" | "penaltyWinner">): 0 | 1 | null {
+  const side = game.penaltyWinner;
+  return (side === 0 || side === 1) && scoreOf(game, 0) === scoreOf(game, 1) ? side : null;
+}
+/** "Grey won on penalties", or null when it wasn't settled that way. */
+export function penaltyNote(game: Pick<MatchDayGame, "goals" | "penaltyWinner" | "teams">): string | null {
+  const side = penaltyWinnerOf(game);
+  return side === null ? null : `${game.teams[side].name} won on penalties`;
+}
+
 export function newGame(a: MatchDayTeam, b: MatchDayTeam): MatchDayGame {
   return {
     id: `g${Date.now()}`,
@@ -417,7 +433,8 @@ export interface Rotation {
 // Winner stays on. The randomized team order is the queue: the first two
 // play, the winner stays to face the next in line and the loser goes to the
 // back. A draw sends both off — the challenger first, then the team that was
-// already on (it has played more) — and the next two in line play. The queue
+// already on (it has played more) — and the next two in line play, unless it
+// went to penalties: then the shootout winner stays on as if it had won. The queue
 // is rebuilt from the finished games each time, so correcting or deleting a
 // result fixes the rotation too. Games are matched to teams by name.
 export function nextFixture(groups: MatchDayTeam[], games: MatchDayGame[]): Rotation {
@@ -439,11 +456,12 @@ export function nextFixture(groups: MatchDayTeam[], games: MatchDayGame[]): Rota
 
     const sa = scoreOf(game, 0);
     const sb = scoreOf(game, 1);
-    if (sa === sb) {
+    const pens = penaltyWinnerOf(game);
+    if (sa === sb && pens === null) {
       queue.push(...(holder === a ? [b, a] : [a, b]));
       holder = null;
     } else {
-      const winner: number = sa > sb ? a : b;
+      const winner: number = pens !== null ? (pens === 0 ? a : b) : sa > sb ? a : b;
       queue.push(winner === a ? b : a);
       holder = winner;
     }

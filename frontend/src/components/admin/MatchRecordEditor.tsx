@@ -7,6 +7,7 @@ import { useCards } from "../../lib/CardsContext";
 import { useValeContent } from "../../lib/ValeContentContext";
 import {
   participantName,
+  penaltyWinnerOf,
   scoreOf,
   type MatchDayCard,
   type MatchDayEvent,
@@ -216,6 +217,24 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
                   </button>
                 )}
               </div>
+
+              {/* A level game can be settled on penalties — only the winner is kept. */}
+              {game.status === "finished" && scoreOf(game, 0) === scoreOf(game, 1) && (
+                <label className="mt-4 block max-w-xs">
+                  <span className={labelClass}>Penalties</span>
+                  <select
+                    className={`${inputClass} mt-1`}
+                    value={penaltyWinnerOf(game) ?? ""}
+                    onChange={(e) =>
+                      patchGame(game.id, (g) => ({ ...g, penaltyWinner: e.target.value === "" ? null : (Number(e.target.value) as 0 | 1) }))
+                    }
+                  >
+                    <option value="">No penalties — a draw</option>
+                    <option value={0}>{game.teams[0].name} won on penalties</option>
+                    <option value={1}>{game.teams[1].name} won on penalties</option>
+                  </select>
+                </label>
+              )}
 
               {/* Goals */}
               <p className="mt-4 text-sm text-paper">Goals</p>
