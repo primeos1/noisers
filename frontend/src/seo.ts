@@ -49,7 +49,7 @@ export const CLUB_JSON_LD = {
       address: { "@type": "PostalAddress", addressLocality: "Lekki", addressRegion: "Lagos", addressCountry: "NG" },
       areaServed: ["Lekki", "Lagos", "Nigeria"],
       email: "noisersfootball@gmail.com",
-      telephone: "+2347037851468",
+      telephone: "+2348140383301",
       sameAs: ["https://www.instagram.com/noisersfc"],
     },
     {
