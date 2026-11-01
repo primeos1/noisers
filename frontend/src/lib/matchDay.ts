@@ -60,6 +60,14 @@ export interface MatchDaySave {
   penalty?: boolean;
 }
 
+/** One per penalty missed — saved or off target — by whoever took it. */
+export interface MatchDayPenaltyMiss {
+  id: string;
+  teamIndex: 0 | 1;
+  playerId: ParticipantId;
+  minute: number;
+}
+
 export interface MatchDayGame {
   id: string;
   teams: [MatchDayTeam, MatchDayTeam];
@@ -67,6 +75,8 @@ export interface MatchDayGame {
   cards: MatchDayCard[];
   /** Missing on games logged before saves were recorded. */
   saves?: MatchDaySave[];
+  /** Missing on games logged before penalty misses were recorded. */
+  penaltyMisses?: MatchDayPenaltyMiss[];
   status: GameStatus;
   /** Epoch ms when the clock was last started; null/undefined while paused. */
   clockStartedAt?: number | null;

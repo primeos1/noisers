@@ -514,6 +514,8 @@ function LiveGame({
   const [cardPlayer, setCardPlayer] = useState<ParticipantId | null>(null);
   const [cardType, setCardType] = useState<"yellow" | "red">("yellow");
   const [cardReason, setCardReason] = useState("");
+  const [missTeam, setMissTeam] = useState<0 | 1>(0);
+  const [missPlayer, setMissPlayer] = useState<ParticipantId | null>(null);
   const [subTeam, setSubTeam] = useState<0 | 1>(0);
   const [subOff, setSubOff] = useState<ParticipantId | null>(null);
   const [subOn, setSubOn] = useState<ParticipantId | null>(null);
@@ -557,6 +559,13 @@ function LiveGame({
     updateGame((g) => ({ ...g, cards: [...g.cards, card] }));
     setCardPlayer(null);
     setCardReason("");
+  }
+
+  function addPenaltyMiss() {
+    if (missPlayer === null) return;
+    const miss = { id: `p${Date.now()}`, teamIndex: missTeam, playerId: missPlayer, minute: timer.minute };
+    updateGame((g) => ({ ...g, penaltyMisses: [...(g.penaltyMisses ?? []), miss] }));
+    setMissPlayer(null);
   }
 
   function substitute() {
@@ -729,6 +738,46 @@ function LiveGame({
 
       <Section title="Saves" description="Tap + each time a keeper makes a save. Only players listed as GK show here.">
         <SavesCounter game={game} players={players} minute={timer.minute} onChange={(update) => updateGame((g) => ({ ...g, saves: update(g.saves ?? []) }))} />
+      </Section>
+
+      <Section title="Missed penalty" description="Log whoever took a penalty and didn't score — saved or off target.">
+        <Choice<0 | 1>
+          options={teamOptions}
+          value={missTeam}
+          onChange={(t) => {
+            setMissTeam(t);
+            setMissPlayer(null);
+          }}
+        />
+        <Label>Penalty taker</Label>
+        <PeoplePicker ids={game.teams[missTeam].players} value={missPlayer} onChange={setMissPlayer} name={name} />
+        <View style={styles.gap} />
+        <Button label="Add missed penalty" icon="close-circle-outline" onPress={addPenaltyMiss} disabled={missPlayer === null} />
+        {(game.penaltyMisses ?? []).length ? (
+          <View style={styles.log}>
+            {(game.penaltyMisses ?? []).map((m) => (
+              <View key={m.id} style={styles.logRow}>
+                <Txt style={styles.minute}>{`${m.minute}'`}</Txt>
+                <Txt style={[text.dim, styles.flex]}>
+                  {name(m.playerId)}
+                  <Txt style={text.small}> ({game.teams[m.teamIndex].name})</Txt>
+                </Txt>
+                <Pressable
+                  onPress={() =>
+                    confirm("Remove missed penalty?", `${name(m.playerId)}, ${m.minute}'`, "Remove", () =>
+                      updateGame((x) => ({ ...x, penaltyMisses: (x.penaltyMisses ?? []).filter((y) => y.id !== m.id) })),
+                    )
+                  }
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove missed penalty"
+                >
+                  <Ionicons name="close" size={18} color={colors.mist} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </Section>
 
       <Section title="Substitute" description="Swap a tired or injured player for someone on the bench.">

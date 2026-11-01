@@ -17,6 +17,7 @@ use App\Models\PlayerRatingChange;
  *  - a clean sheet rewards the back line only — keepers and defenders;
  *  - each goal the side concedes can cost a little (off by default);
  *  - each save rewards whoever made it, a penalty save by its own weight;
+ *  - each missed penalty costs whoever took it;
  *  - each card costs the player a little, a red more than a yellow.
  *
  * The day's points are scaled so gains shrink as a rating nears the ceiling
@@ -38,7 +39,7 @@ class PlayerRatings
     public const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 
     /** Weight keys, each entered as a positive amount; these are penalties. */
-    public const PENALTIES = ['loss', 'own_goal', 'goal_conceded', 'yellow_card', 'red_card'];
+    public const PENALTIES = ['loss', 'own_goal', 'goal_conceded', 'yellow_card', 'red_card', 'penalty_miss'];
 
     /** The default weights every position shares, before clean sheets. */
     private const BASE = [
@@ -53,6 +54,7 @@ class PlayerRatings
         'penalty_save' => 0.10,
         'yellow_card' => 0.05,
         'red_card' => 0.15,
+        'penalty_miss' => 0.30,
     ];
 
     private const CLEAN_SHEET = ['GK' => 0.15, 'DEF' => 0.12, 'MID' => 0.0, 'FWD' => 0.0];
@@ -193,6 +195,10 @@ class PlayerRatings
 
             foreach (($game['saves'] ?? []) as $save) {
                 $add($save['playerId'] ?? null, ! empty($save['penalty']) ? 'penalty_save' : 'save');
+            }
+
+            foreach (($game['penaltyMisses'] ?? []) as $miss) {
+                $add($miss['playerId'] ?? null, 'penalty_miss');
             }
         }
 

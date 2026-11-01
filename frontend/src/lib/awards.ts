@@ -113,6 +113,7 @@ function dayPoints(event: MatchDayEvent, squad: Map<number, Player>, weights: Re
     }
     for (const card of game.cards) add(card.playerId, card.type === "red" ? "redCard" : "yellowCard");
     for (const save of game.saves ?? []) add(save.playerId, save.penalty ? "penaltySave" : "save");
+    for (const miss of game.penaltyMisses ?? []) add(miss.playerId, "penaltyMiss");
   }
   return points;
 }

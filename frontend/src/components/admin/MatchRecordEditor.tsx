@@ -13,6 +13,7 @@ import {
   type MatchDayEvent,
   type MatchDayGame,
   type MatchDayGoal,
+  type MatchDayPenaltyMiss,
   type ParticipantId,
 } from "../../lib/matchDay";
 
@@ -44,7 +45,7 @@ function teamOf(game: MatchDayGame, id: ParticipantId): 0 | 1 {
 
 /**
  * Edits an ended match day's record — its details, and each game's goals,
- * cards and saves — or deletes games outright. Nothing is saved until "Save
+ * cards, saves and missed penalties — or deletes games outright. Nothing is saved until "Save
  * changes"; the server then brings the stats, fines, ratings and The Vale
  * in line with the corrected record.
  */
@@ -120,6 +121,12 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
       minute: 0,
     };
     patchGame(game.id, (g) => ({ ...g, cards: [...g.cards, card] }));
+  }
+
+  function addPenaltyMiss(game: MatchDayGame) {
+    const playerId = game.teams[0].players[0] ?? game.teams[1].players[0];
+    const miss: MatchDayPenaltyMiss = { id: newId("p"), teamIndex: teamOf(game, playerId), playerId, minute: 0 };
+    patchGame(game.id, (g) => ({ ...g, penaltyMisses: [...(g.penaltyMisses ?? []), miss] }));
   }
 
   async function handleSave() {
@@ -369,13 +376,57 @@ export default function MatchRecordEditor({ event, onClose }: { event: MatchDayE
                   onChange={(update) => patchGame(game.id, (g) => ({ ...g, saves: update(g.saves ?? []) }))}
                 />
               </div>
+
+              {/* Missed penalties */}
+              <p className="mt-4 text-sm text-paper">Missed penalties</p>
+              {(game.penaltyMisses ?? []).length === 0 && <p className="mt-1 text-xs text-mist">No missed penalties.</p>}
+              <ul className="mt-2 space-y-2">
+                {(game.penaltyMisses ?? []).map((miss) => (
+                  <li key={miss.id} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg bg-ink-raised p-2">
+                    <select
+                      aria-label="Penalty taker"
+                      className={inputClass}
+                      value={encode(miss.playerId)}
+                      onChange={(e) => {
+                        const playerId = decode(e.target.value)!;
+                        patchGame(game.id, (g) => ({
+                          ...g,
+                          penaltyMisses: (g.penaltyMisses ?? []).map((m) => (m.id === miss.id ? { ...m, playerId, teamIndex: teamOf(g, playerId) } : m)),
+                        }));
+                      }}
+                    >
+                      {game.teams.map((team) => (
+                        <optgroup key={team.name} label={team.name}>
+                          {team.players.map((id) => (
+                            <option key={encode(id)} value={encode(id)}>
+                              {name(id)}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => patchGame(game.id, (g) => ({ ...g, penaltyMisses: (g.penaltyMisses ?? []).filter((x) => x.id !== miss.id) }))}
+                      className="justify-self-end px-2 text-xs text-paper-dim hover:text-loss"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {everyone.length > 0 && (
+                <button type="button" onClick={() => addPenaltyMiss(game)} className="mt-2 text-xs text-paper-dim underline underline-offset-4 hover:text-paper">
+                  + Add missed penalty
+                </button>
+              )}
             </li>
           );
         })}
       </ol>
 
       <p className="mt-5 text-xs text-mist">
-        Saving updates everything this match day counted towards: appearances, goals, assists, clean sheets and saves, cards
+        Saving updates everything this match day counted towards: appearances, goals, assists, clean sheets and saves, missed penalties, cards
         and fines (paid fines stay paid), player ratings, and The Vale if it's showing this match day.
         {deletedCount > 0 && (
           <span className="text-loss">

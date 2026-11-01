@@ -93,6 +93,8 @@ export default function MatchDay() {
   const [cardPlayer, setCardPlayer] = useState<ParticipantId | "">("");
   const [cardType, setCardType] = useState<"yellow" | "red">("yellow");
   const [cardReason, setCardReason] = useState("");
+  const [missTeam, setMissTeam] = useState<0 | 1>(0);
+  const [missPlayer, setMissPlayer] = useState<ParticipantId | "">("");
   const [subTeam, setSubTeam] = useState<0 | 1>(0);
   const [subOff, setSubOff] = useState<ParticipantId | "">("");
   const [subOn, setSubOn] = useState<ParticipantId | "">("");
@@ -307,6 +309,17 @@ export default function MatchDay() {
 
   function removeCard(id: string) {
     updateLiveGame((g) => ({ ...g, cards: g.cards.filter((c) => c.id !== id) }));
+  }
+
+  function addPenaltyMiss() {
+    if (!liveGame || missPlayer === "") return;
+    const miss = { id: `p${Date.now()}`, teamIndex: missTeam, playerId: missPlayer, minute: timer.minute };
+    updateLiveGame((g) => ({ ...g, penaltyMisses: [...(g.penaltyMisses ?? []), miss] }));
+    setMissPlayer("");
+  }
+
+  function removePenaltyMiss(id: string) {
+    updateLiveGame((g) => ({ ...g, penaltyMisses: (g.penaltyMisses ?? []).filter((m) => m.id !== id) }));
   }
 
   function substitute() {
@@ -975,6 +988,63 @@ export default function MatchDay() {
                 onChange={(update) => updateLiveGame((g) => ({ ...g, saves: update(g.saves ?? []) }))}
               />
             </div>
+          </div>
+
+          <div className="bg-ink border border-ink-line p-4 md:p-6">
+            <h2 className="font-display text-xl text-paper">Missed penalty</h2>
+            <p className="mt-1 text-sm text-mist">Log whoever took a penalty and didn't score — saved or off target.</p>
+            <div className="mt-4 flex gap-2">
+              {([0, 1] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    setMissTeam(t);
+                    setMissPlayer("");
+                  }}
+                  className={`flex-1 border px-3 py-2 text-sm ${
+                    missTeam === t ? "border-paper bg-paper text-ink" : "border-ink-line text-paper-dim hover:text-paper"
+                  }`}
+                >
+                  {liveGame.teams[t].name}
+                </button>
+              ))}
+            </div>
+            <select
+              className={`${inputClass} mt-3`}
+              value={missPlayer}
+              onChange={(e) => setMissPlayer(e.target.value ? parseParticipant(e.target.value) : "")}
+            >
+              <option value="">Penalty taker…</option>
+              {liveGame.teams[missTeam].players.map((id) => (
+                <option key={String(id)} value={String(id)}>
+                  {name(id)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={addPenaltyMiss}
+              disabled={missPlayer === ""}
+              className="mt-3 border border-paper bg-paper px-4 py-2 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
+            >
+              Add missed penalty
+            </button>
+
+            {(liveGame.penaltyMisses ?? []).length > 0 && (
+              <ul className="mt-5 space-y-2 text-sm">
+                {(liveGame.penaltyMisses ?? []).map((m) => (
+                  <li key={m.id} className="flex items-center justify-between border-b border-ink-line pb-2">
+                    <span className="text-paper-dim">
+                      {m.minute}' — {name(m.playerId)} <span className="text-mist">({liveGame.teams[m.teamIndex].name})</span>
+                    </span>
+                    <button type="button" onClick={() => removePenaltyMiss(m.id)} className="text-mist hover:text-loss">
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="bg-ink border border-ink-line p-6">

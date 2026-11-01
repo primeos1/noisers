@@ -19,6 +19,7 @@ export interface ApiPlayer {
   cleanSheets: number;
   saves?: number;
   penaltySaves?: number;
+  penaltyMisses?: number;
   yellowCards?: number;
   redCards?: number;
   playerOfTheWeekWins?: number;
@@ -43,6 +44,7 @@ function fromApi(p: ApiPlayer): Player {
     cleanSheets: p.cleanSheets,
     saves: p.saves ?? 0,
     penaltySaves: p.penaltySaves ?? 0,
+    penaltyMisses: p.penaltyMisses ?? 0,
     yellowCards: p.yellowCards ?? 0,
     redCards: p.redCards ?? 0,
     playerOfTheWeekWins: p.playerOfTheWeekWins ?? 0,

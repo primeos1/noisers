@@ -62,6 +62,7 @@ const ratingWeightRows: { key: RatingWeightKey; label: string; suffix: "+" | "�
   [
     { key: "yellowCard", label: "Yellow", suffix: "−" },
     { key: "redCard", label: "Red card", suffix: "−" },
+    { key: "penaltyMiss", label: "Pen. miss", suffix: "−" },
   ],
 ];
 

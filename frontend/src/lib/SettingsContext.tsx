@@ -13,12 +13,13 @@ export type RatingWeightKey =
   | "goalConceded"
   | "save"
   | "penaltySave"
+  | "penaltyMiss"
   | "ownGoal"
   | "yellowCard"
   | "redCard";
 
 /** Every weight is entered as a positive amount; these ones are taken away. */
-export const RATING_PENALTIES: RatingWeightKey[] = ["loss", "goalConceded", "ownGoal", "yellowCard", "redCard"];
+export const RATING_PENALTIES: RatingWeightKey[] = ["loss", "goalConceded", "ownGoal", "yellowCard", "redCard", "penaltyMiss"];
 
 export type PositionWeights = Record<RatingWeightKey, number>;
 
@@ -39,7 +40,7 @@ export interface ClubSettings {
 }
 
 // Mirrors PlayerRatings::defaultPositionWeights() on the backend.
-const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, save: 0.03, penaltySave: 0.1, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15 };
+const baseWeights = { win: 0.1, loss: 0.1, goal: 0.12, assist: 0.08, goalConceded: 0, save: 0.03, penaltySave: 0.1, ownGoal: 0.08, yellowCard: 0.05, redCard: 0.15, penaltyMiss: 0.3 };
 
 /** The rating-weight fields, restorable as a group from Settings. */
 export const DEFAULT_RATING_WEIGHTS = {

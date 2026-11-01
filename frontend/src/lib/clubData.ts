@@ -34,6 +34,8 @@ export interface Player {
   saves: number;
   /** Penalties saved — already included in saves. */
   penaltySaves?: number;
+  /** Penalties taken and missed. */
+  penaltyMisses?: number;
   yellowCards: number;
   redCards: number;
   /** Times named player of the week / picked in the team of the week (from the API only). */

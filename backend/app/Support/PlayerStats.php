@@ -6,7 +6,7 @@ use App\Models\Player;
 
 /**
  * Computes per-player (keyed by player id) Match Day stats (appearances/goals/assists/
- * clean sheets/saves/penalty saves/cards) by scanning finished games across all match day events.
+ * clean sheets/saves/penalty saves/penalty misses/cards) by scanning finished games across all match day events.
  * Computed on read rather than stored, since event volume for a grassroots
  * club is small enough that this stays cheap and avoids a recalculation
  * step every time a match day is edited.
@@ -20,14 +20,14 @@ class PlayerStats
      *
      * @param  iterable<\App\Models\MatchDayEvent>  $events
      * @param  array<int, int>  $noCleanSheetIds
-     * @return array<int, array{appearances: int, goals: int, assists: int, cleanSheets: int, saves: int, penaltySaves: int, yellowCards: int, redCards: int}>
+     * @return array<int, array{appearances: int, goals: int, assists: int, cleanSheets: int, saves: int, penaltySaves: int, penaltyMisses: int, yellowCards: int, redCards: int}>
      */
     public static function computeAll(iterable $events, array $noCleanSheetIds = []): array
     {
         $stats = [];
 
         $ensure = function (int $playerId) use (&$stats) {
-            $stats[$playerId] ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'saves' => 0, 'penaltySaves' => 0, 'yellowCards' => 0, 'redCards' => 0];
+            $stats[$playerId] ??= ['appearances' => 0, 'goals' => 0, 'assists' => 0, 'cleanSheets' => 0, 'saves' => 0, 'penaltySaves' => 0, 'penaltyMisses' => 0, 'yellowCards' => 0, 'redCards' => 0];
         };
 
         foreach ($events as $event) {
@@ -91,6 +91,16 @@ class PlayerStats
                     if (! empty($save['penalty'])) {
                         $stats[$playerId]['penaltySaves']++;
                     }
+                }
+
+                // One entry per penalty missed (saved or off target), by whoever took it.
+                foreach (($game['penaltyMisses'] ?? []) as $miss) {
+                    $playerId = $miss['playerId'] ?? null;
+                    if (! is_int($playerId)) {
+                        continue;
+                    }
+                    $ensure($playerId);
+                    $stats[$playerId]['penaltyMisses']++;
                 }
 
                 foreach ($teams as $teamIndex => $team) {

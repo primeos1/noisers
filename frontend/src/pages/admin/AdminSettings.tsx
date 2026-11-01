@@ -210,6 +210,7 @@ const ratingWeightRows: { key: RatingWeightKey; label: string; hint: string }[] 
   { key: "goalConceded", label: "Goal conceded", hint: "Each goal the team lets in" },
   { key: "save", label: "Save", hint: "Each save in goal" },
   { key: "penaltySave", label: "Penalty save", hint: "Each penalty saved (instead of a save)" },
+  { key: "penaltyMiss", label: "Penalty miss", hint: "Each penalty missed or saved" },
   { key: "ownGoal", label: "Own goal", hint: "Each own goal" },
   { key: "yellowCard", label: "Yellow card", hint: "Each yellow" },
   { key: "redCard", label: "Red card", hint: "Each red" },

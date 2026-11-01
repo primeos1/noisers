@@ -123,6 +123,27 @@ class PlayerRatingsTest extends TestCase
         $this->assertSame(1, $stats[5]['penaltySaves']);
     }
 
+    public function test_a_missed_penalty_costs_whoever_took_it(): void
+    {
+        $game = $this->game([]);
+        $game['penaltyMisses'] = [
+            ['id' => 'm1', 'teamIndex' => 0, 'playerId' => 9],
+            ['id' => 'm2', 'teamIndex' => 0, 'playerId' => 9],
+            ['id' => 'm3', 'teamIndex' => 1, 'playerId' => 5],
+            ['id' => 'm4', 'teamIndex' => 0, 'playerId' => 'guest-1'],
+        ];
+
+        $p = $this->points([$game]);
+        $this->assertEqualsWithDelta(-0.30 * 2, $p[9], 1e-9);  // draw, two misses
+        $this->assertEqualsWithDelta(0.12 - 0.30, $p[5], 1e-9); // draw, DEF clean sheet, a miss
+        $this->assertArrayNotHasKey('guest-1', $p);
+
+        $stats = PlayerStats::computeAll([new MatchDayEvent(['games' => [$game]])]);
+        $this->assertSame(2, $stats[9]['penaltyMisses']);
+        $this->assertSame(1, $stats[5]['penaltyMisses']);
+        $this->assertSame(0, $stats[1]['penaltyMisses']);
+    }
+
     public function test_each_position_uses_its_own_weights(): void
     {
         $weights = PlayerRatings::defaultPositionWeights();

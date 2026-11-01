@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
 import { participantName, plural, scoreOf } from "../../lib/derive";
-import type { MatchDayCard, MatchDayGame, MatchDayGoal, ParticipantId } from "../../lib/types";
+import type { MatchDayCard, MatchDayGame, MatchDayGoal, MatchDayPenaltyMiss, ParticipantId } from "../../lib/types";
 import { Choice, FormError, Hint, Intro, Label, Section, TextField, confirm } from "../../components/form";
 import { Button, Empty, RefCard, Screen, Segmented, Txt, text } from "../../components/ui";
 import SavesCounter from "../../components/SavesCounter";
@@ -22,7 +22,7 @@ function teamOf(game: MatchDayGame, id: ParticipantId): 0 | 1 {
 
 /**
  * Edits an ended match day's record (Settings → Match records): its details,
- * each game's goals, cards and saves, or deleting games outright. Nothing is saved
+ * each game's goals, cards, saves and missed penalties, or deleting games outright. Nothing is saved
  * until "Save changes"; the server then brings stats, fines, ratings and
  * The Vale in line with the corrected record. Same as the web's
  * MatchRecordEditor.
@@ -103,6 +103,20 @@ function Editor({ eventId }: { eventId: string }) {
     setOpen(card.id);
   }
 
+  function addPenaltyMiss(game: MatchDayGame) {
+    const playerId = game.teams[0].players[0] ?? game.teams[1].players[0];
+    const miss: MatchDayPenaltyMiss = { id: newId("p"), teamIndex: teamOf(game, playerId), playerId, minute: 0 };
+    patchGame(game.id, (g) => ({ ...g, penaltyMisses: [...(g.penaltyMisses ?? []), miss] }));
+    setOpen(miss.id);
+  }
+
+  function patchPenaltyMiss(gameId: string, missId: string, playerId: ParticipantId) {
+    patchGame(gameId, (g) => ({
+      ...g,
+      penaltyMisses: (g.penaltyMisses ?? []).map((m) => (m.id === missId ? { ...m, playerId, teamIndex: teamOf(g, playerId) } : m)),
+    }));
+  }
+
   function deleteGame(game: MatchDayGame, index: number) {
     confirm(
       "Delete this game?",
@@ -146,7 +160,7 @@ function Editor({ eventId }: { eventId: string }) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={100}>
       <Screen>
-        <Intro>Fix goals, cards and saves, or delete games that shouldn’t count. Stats, fines, ratings and The Vale update when you save.</Intro>
+        <Intro>Fix goals, cards, saves and missed penalties, or delete games that shouldn’t count. Stats, fines, ratings and The Vale update when you save.</Intro>
 
         <Section title="Details">
           <TextField label="Title" value={title} onChangeText={setTitle} />
@@ -296,12 +310,50 @@ function Editor({ eventId }: { eventId: string }) {
 
               <Label>Saves</Label>
               <SavesCounter game={game} players={players} minute={0} onChange={(update) => patchGame(game.id, (g) => ({ ...g, saves: update(g.saves ?? []) }))} />
+
+              <Label>Missed penalties</Label>
+              {(game.penaltyMisses ?? []).length === 0 ? <Txt style={[text.small, styles.none]}>No missed penalties.</Txt> : null}
+              {(game.penaltyMisses ?? []).map((miss) => {
+                const expanded = open === miss.id;
+                return (
+                  <View key={miss.id} style={styles.item}>
+                    <Pressable onPress={() => setOpen(expanded ? null : miss.id)} accessibilityRole="button" style={styles.itemHead}>
+                      <Txt style={[text.semi, styles.flex]} numberOfLines={1}>
+                        {name(miss.playerId)}
+                      </Txt>
+                      <Txt style={text.small}>{game.teams[miss.teamIndex].name}</Txt>
+                    </Pressable>
+                    {expanded ? (
+                      <View style={styles.itemBody}>
+                        <Label>Penalty taker</Label>
+                        <Choice<ParticipantId>
+                          options={everyone.map((p) => ({ value: p, label: name(p) }))}
+                          value={miss.playerId}
+                          onChange={(v) => patchPenaltyMiss(game.id, miss.id, v)}
+                        />
+                        <Pressable
+                          onPress={() => patchGame(game.id, (g) => ({ ...g, penaltyMisses: (g.penaltyMisses ?? []).filter((x) => x.id !== miss.id) }))}
+                          accessibilityRole="button"
+                          hitSlop={8}
+                        >
+                          <Txt style={styles.danger}>Remove missed penalty</Txt>
+                        </Pressable>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+              {everyone.length > 0 ? (
+                <Pressable onPress={() => addPenaltyMiss(game)} accessibilityRole="button" hitSlop={8} style={styles.add}>
+                  <Txt style={styles.link}>+ Add missed penalty</Txt>
+                </Pressable>
+              ) : null}
             </Section>
           );
         })}
 
         <Hint>
-          Saving updates appearances, goals, assists, clean sheets and saves, cards and fines (paid fines stay paid), player ratings, and The Vale if it’s
+          Saving updates appearances, goals, assists, clean sheets and saves, missed penalties, cards and fines (paid fines stay paid), player ratings, and The Vale if it’s
           showing this match day.
         </Hint>
         {deleted > 0 ? <Hint tone={colors.loss}>{plural(deleted, "game")} will be deleted, with their goals, cards and saves.</Hint> : null}
