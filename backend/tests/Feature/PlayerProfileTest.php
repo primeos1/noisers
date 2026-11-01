@@ -153,4 +153,17 @@ class PlayerProfileTest extends TestCase
             'secondary_position' => 'FWD',
         ])->assertOk()->assertJsonPath('data.secondaryPosition', null);
     }
+
+    public function test_player_can_delete_their_profile_with_the_passcode(): void
+    {
+        $player = $this->player();
+
+        $this->postJson("/api/players/{$player->id}/profile/delete", ['passcode' => 'nope'])
+            ->assertUnprocessable()->assertJsonValidationErrors('passcode');
+        $this->assertModelExists($player);
+
+        $this->postJson("/api/players/{$player->id}/profile/delete", ['passcode' => 'vale2zenith'])
+            ->assertNoContent();
+        $this->assertModelMissing($player);
+    }
 }

@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../lib/auth";
 import { useClub } from "../lib/club";
 import { apiFetch, errorMessage } from "../lib/api";
+import { PRIVACY_URL } from "../lib/config";
 import { positionLabel, positions } from "../lib/derive";
 import { appendImage, pickImage, type PickedImage } from "../lib/media";
 import type { Membership, Player, Position } from "../lib/types";
@@ -205,6 +207,9 @@ export default function JoinScreen() {
 
         <FormError message={error} />
         <Button label="Join the squad" icon="checkmark" variant="gold" busy={busy} onPress={submit} />
+        <Pressable onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => undefined)} hitSlop={8} accessibilityRole="link">
+          <Txt style={[text.small, styles.privacy]}>By joining you agree to our privacy policy.</Txt>
+        </Pressable>
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -228,4 +233,5 @@ const styles = StyleSheet.create({
   done: { alignItems: "center", paddingTop: space.xxl, gap: space.md },
   doneTitle: { fontFamily: fonts.displayHeavy, fontSize: 34, lineHeight: 36, color: colors.paper, textAlign: "center", marginTop: space.lg },
   doneAction: { alignSelf: "stretch", marginTop: space.lg },
+  privacy: { textAlign: "center", marginTop: space.md, textDecorationLine: "underline" },
 });

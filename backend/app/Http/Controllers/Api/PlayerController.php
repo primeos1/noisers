@@ -189,6 +189,29 @@ class PlayerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    /**
+     * A player deleting their own profile from the app — the same passcode
+     * gate as updateProfile. App Store rules require in-app deletion.
+     */
+    public function destroyProfile(Request $request, Player $player)
+    {
+        $staff = $request->user('sanctum')?->isCommittee() ?? false;
+
+        $data = $request->validate([
+            'passcode' => [$staff ? 'nullable' : 'required', 'string', 'max:64'],
+        ]);
+
+        if (! $staff && ! ClubSetting::current()->checkPlayerPasscode($data['passcode'])) {
+            throw ValidationException::withMessages([
+                'passcode' => ["That passcode isn't right — check with the committee."],
+            ]);
+        }
+
+        $player->delete();
+
+        return response()->noContent();
+    }
+
     public function destroy(Player $player)
     {
         $this->authorize('delete', $player);

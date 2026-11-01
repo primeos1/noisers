@@ -35,6 +35,7 @@ import PlayerProfile from "./pages/PlayerProfile";
 import Noisers from "./pages/Noisers";
 import AdminAvailability from "./pages/admin/AdminAvailability";
 import NotFound from "./pages/NotFound";
+import Privacy from "./pages/Privacy";
 import { screenKey } from "./lib/screenKey";
 import { useSeo } from "./lib/useSeo";
 import { metaForPath } from "./seo";
@@ -79,6 +80,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/player-login" element={<PlayerLogin />} />
       <Route path="/join" element={<JoinSquad />} />
+      <Route path="/privacy" element={<Privacy />} />
 
       <Route
         path="/portal"

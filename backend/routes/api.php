@@ -71,6 +71,8 @@ Route::post('/players/join', [PlayerController::class, 'join'])->middleware('thr
 // A player editing their own profile and photo — the same passcode gate as
 // /join, or a committee token. POST because it may carry a file.
 Route::post('/players/{player}/profile', [PlayerController::class, 'updateProfile'])->middleware('throttle:10,1');
+// ...and deleting it, which the App Store requires be possible in-app.
+Route::post('/players/{player}/profile/delete', [PlayerController::class, 'destroyProfile'])->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

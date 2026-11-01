@@ -41,3 +41,6 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
 
 /** The public web site — used for links the committee shares, like /join. */
 export const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || "https://noisersfc.com").replace(/\/+$/, "");
+
+/** Linked from the app (and the App Store listing). */
+export const PRIVACY_URL = `${SITE_URL}/privacy`;

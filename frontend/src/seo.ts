@@ -130,6 +130,13 @@ export const PAGES: SitemapPage[] = [
     priority: 0.6,
   },
   {
+    path: "/privacy",
+    title: "Privacy Policy | Noisers FC",
+    description: "What the Noisers FC website and app collect, how it's used, and how to delete your data.",
+    changefreq: "monthly",
+    priority: 0.2,
+  },
+  {
     path: "/executives",
     title: "The Executives — Club Leadership | Noisers FC",
     description: "Meet the executives who run Noisers FC, the five-a-side football club in Lekki, Lagos.",

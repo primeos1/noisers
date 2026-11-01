@@ -60,6 +60,25 @@ class MatchDayEditTest extends TestCase
         $this->putJson('/api/match-day-events/md', ['status' => 'ended'])->assertOk();
     }
 
+    public function test_penalty_winner_is_saved_without_changing_draw_stats_or_ratings(): void
+    {
+        $game = $this->game('g1', []);
+        $this->endedMatchDay([$game]);
+        $event = MatchDayEvent::findOrFail('md');
+        $stats = PlayerStats::computeAll([$event]);
+        $ratings = PlayerRatingChange::orderBy('player_id')->pluck('points', 'player_id')->all();
+
+        foreach ([0, 1, null] as $winner) {
+            $game['penaltyWinner'] = $winner;
+            $this->putJson('/api/match-day-events/md', ['games' => [$game]])
+                ->assertOk()
+                ->assertJsonPath('data.games.0.penaltyWinner', $winner)
+                ->assertJsonPath('data.games.0.goals', []);
+            $this->assertSame($stats, PlayerStats::computeAll([$event->fresh()]));
+            $this->assertSame($ratings, PlayerRatingChange::orderBy('player_id')->pluck('points', 'player_id')->all());
+        }
+    }
+
     public function test_the_team_draw_method_is_saved_and_shown_publicly(): void
     {
         $this->postJson('/api/match-day-events', [

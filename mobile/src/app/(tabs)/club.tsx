@@ -6,7 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../lib/auth";
 import { useClub } from "../../lib/club";
 import { apiFetch } from "../../lib/api";
-import { API_URL, SITE_URL } from "../../lib/config";
+import * as WebBrowser from "expo-web-browser";
+import { API_URL, PRIVACY_URL, SITE_URL } from "../../lib/config";
 import { CLUB_EMAIL, INSTAGRAM_HANDLE, INSTAGRAM_URL, WHATSAPP_NUMBER, WHATSAPP_URL } from "../../lib/contact";
 import { LinearGradient } from "expo-linear-gradient";
 import { cardDate, formatNaira, outstandingFines, participantName, plural, scoreOf, sortEvents } from "../../lib/derive";
@@ -103,6 +104,7 @@ function SquadMember() {
       </Glass>
       <View style={styles.spacer} />
       <Group>
+        <PrivacyRow />
         <Row
           onPress={() => confirm("Leave Noisers?", "You'll need the squad passcode to get back in.", "Leave", leave)}
           chevron={false}
@@ -111,8 +113,17 @@ function SquadMember() {
           <Txt style={[text.body, styles.flex, { color: colors.loss }]}>Leave (forget the passcode)</Txt>
         </Row>
       </Group>
-      <Txt style={[text.small, styles.server]}>Server: {API_URL}</Txt>
+      {__DEV__ ? <Txt style={[text.small, styles.server]}>Server: {API_URL}</Txt> : null}
     </>
+  );
+}
+
+function PrivacyRow() {
+  return (
+    <Row onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => undefined)} chevron={false}>
+      <Ionicons name="shield-checkmark-outline" size={18} color={colors.paperDim} />
+      <Txt style={[text.body, styles.flex]}>Privacy policy</Txt>
+    </Row>
   );
 }
 
@@ -295,6 +306,7 @@ function Dashboard() {
       </Group>
 
       <Group title="Account">
+        <PrivacyRow />
         <Row onPress={refresh} chevron={false}>
           <Ionicons name="refresh" size={18} color={colors.paperDim} />
           <Txt style={[text.body, styles.flex]}>Reload club data</Txt>
@@ -308,7 +320,8 @@ function Dashboard() {
         </Row>
       </Group>
       <Txt style={[text.small, styles.server]}>
-        {user ? `${user.name} · ${user.role === "admin" ? "Admin" : "Committee"} · ` : ""}Server: {API_URL}
+        {user ? `${user.name} · ${user.role === "admin" ? "Admin" : "Committee"}` : ""}
+        {__DEV__ ? `${user ? " · " : ""}Server: ${API_URL}` : ""}
       </Txt>
     </>
   );

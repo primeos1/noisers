@@ -10,7 +10,7 @@ import { resolveMediaUrl } from "../lib/config";
 import { positionLabel, positions } from "../lib/derive";
 import { appendImage, pickImage, type PickedImage } from "../lib/media";
 import type { Player, Position } from "../lib/types";
-import { Choice, FormError, Hint, Label, NumberField, TextField } from "../components/form";
+import { Choice, confirm, FormError, Hint, Label, NumberField, TextField } from "../components/form";
 import { Button, Empty, Screen, Txt, text } from "../components/ui";
 import { colors, radius, space } from "../theme";
 
@@ -22,7 +22,7 @@ import { colors, radius, space } from "../theme";
  */
 export default function EditProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { players, replacePlayer } = useClub();
+  const { players, replacePlayer, refresh } = useClub();
   const { status, squadPasscode, rememberSquadPasscode } = useAuth();
   const player = players.find((p) => p.id === Number(id));
   const staff = status === "signedIn";
@@ -105,6 +105,36 @@ export default function EditProfileScreen() {
         setPasscode("");
       }
       setError(errorMessage(err, "Couldn't save your profile."));
+      setBusy(false);
+    }
+  }
+
+  function confirmDelete() {
+    confirm(
+      "Delete your profile?",
+      "This removes your profile, photo and contact details from Noisers FC. It can't be undone.",
+      "Delete",
+      deleteProfile,
+    );
+  }
+
+  async function deleteProfile() {
+    if (!player) return;
+    const code = askPasscode ? passcode.trim() : (squadPasscode ?? "");
+    if (!staff && !code) return setError("Type the squad passcode to delete your profile.");
+
+    setBusy(true);
+    setError("");
+    try {
+      await apiFetch(`/players/${player.id}/profile/delete`, { method: "POST", body: staff ? {} : { passcode: code } });
+      await refresh();
+      router.dismissAll();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422 && /passcode/i.test(err.message)) {
+        setAskPasscode(true);
+        setPasscode("");
+      }
+      setError(errorMessage(err, "Couldn't delete your profile."));
       setBusy(false);
     }
   }
@@ -192,6 +222,8 @@ export default function EditProfileScreen() {
         <FormError message={error} />
         {numberOwner ? <Hint tone={colors.loss}>Number {number} is taken by {numberOwner.name}. Pick another number.</Hint> : null}
         <Button label="Save profile" onPress={submit} busy={busy} />
+        <View style={styles.deleteGap} />
+        <Button label="Delete my profile" variant="danger" icon="trash-outline" onPress={confirmDelete} disabled={busy} />
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -203,4 +235,5 @@ const styles = StyleSheet.create({
   photo: { width: 96, height: 96, borderRadius: radius.md },
   photoEmpty: { backgroundColor: colors.inkRaised, borderWidth: 1, borderColor: colors.inkLine, alignItems: "center", justifyContent: "center" },
   remove: { color: colors.loss, marginTop: space.xs },
+  deleteGap: { height: space.md },
 });

@@ -71,6 +71,11 @@ export default function Footer() {
                   Join the squad
                 </Link>
               </li>
+              <li>
+                <Link to="/privacy" className="hover:text-paper">
+                  Privacy policy
+                </Link>
+              </li>
             </ul>
           </div>
 
