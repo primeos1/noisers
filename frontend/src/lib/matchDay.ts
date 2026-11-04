@@ -375,7 +375,39 @@ function nameTeams(players: Player[], rosters: ParticipantId[][]): MatchDayTeam[
   const locked = new Set<string>([BIBS]);
   if (pinToColour(players, teams, named(players, "rozay"), GREY, locked)) locked.add(GREY);
   pinToColour(players, teams, named(players, "muyiwa tender"), BLACK, locked);
+
+  const pinned = [named(players, "rozay"), named(players, "muyiwa tender")]
+    .filter((p): p is Player => !!p)
+    .map((p) => p.id);
+  keepTogether(players, teams, named(players, "ose miles"), named(players, "king jerry"), pinned);
   return teams;
+}
+
+// Ose Miles and King Jerry always play on the same team. If the draw splits
+// them, one trades places with the most similar player on the other's team
+// (same membership, then position, then closest rating) — never with a
+// player pinned to a colour, so Rozay and Muyiwa stay put.
+function keepTogether(players: Player[], teams: MatchDayTeam[], a: Player | undefined, b: Player | undefined, pinned: number[]) {
+  if (!a || !b) return;
+  const ta = teams.findIndex((t) => t.players.includes(a.id));
+  const tb = teams.findIndex((t) => t.players.includes(b.id));
+  if (ta < 0 || tb < 0 || ta === tb) return;
+
+  const move = (mover: Player, from: number, to: number, stay: number) => {
+    const candidates = teams[to].players.filter((id) => id !== stay && !(typeof id === "number" && pinned.includes(id)));
+    if (candidates.length === 0) return false;
+    const squad = candidates
+      .map((id) => players.find((p) => p.id === id))
+      .filter((p): p is Player => !!p);
+    const score = (p: Player) =>
+      (p.membership === mover.membership ? 0 : 10000) + (p.position === mover.position ? 0 : 1000) + Math.abs(p.rating - mover.rating);
+    const partner = squad.length > 0 ? squad.reduce((x, y) => (score(y) < score(x) ? y : x)).id : candidates[0];
+    teams[from].players = teams[from].players.map((id) => (id === mover.id ? partner : id));
+    teams[to].players = teams[to].players.map((id) => (id === partner ? mover.id : id));
+    return true;
+  };
+
+  if (!move(b, tb, ta, a.id)) move(a, ta, tb, b.id);
 }
 
 export const TEAM_NAMES = ["Team Black", "Team Blue", "Team Green", "Team Grey", "Team White Stripes", "Team Bibs"] as const;
