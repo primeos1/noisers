@@ -19,7 +19,15 @@ export const CLUB_ORDER: ClubId[] = ["bulwark", "citadel", "islanders", "sentine
 const POT_SIZE = CLUB_ORDER.length;
 
 const TEAMMATE_NAMES = new Set(["kingjery", "kingjerry", "osemiles", "ebenezer", "scottie", "scotty"]);
-const isLockedTeammate = (player: Entrant) => TEAMMATE_NAMES.has(player.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
+const normalizedName = (player: Entrant) => player.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+const isLockedTeammate = (player: Entrant) => TEAMMATE_NAMES.has(normalizedName(player));
+
+// Permanent league transfers, applied after the seeded draw and teammate rule.
+const PERMANENT_CLUBS: Readonly<Partial<Record<string, ClubId>>> = {
+  obetayo: "sentinel",
+  shubby: "coastal",
+  george: "islanders",
+};
 
 /** A club rating as the squad pages show it: 7.46. */
 export const fmt = (rating: number) => rating.toFixed(2);
@@ -161,13 +169,18 @@ export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawRe
       if (replacement) replacement.club = teammate.club;
       teammate.club = club;
     }
+  }
 
-    // The live reveal, final squads and verification all consume these picks.
-    for (const id of CLUB_ORDER) squads[id] = [];
-    for (const pick of picks) {
-      squads[pick.club].push(pick.player);
-      rounds[pick.round].order[pick.slot] = pick.club;
-    }
+  for (const pick of picks) {
+    const permanentClub = PERMANENT_CLUBS[normalizedName(pick.player)];
+    if (permanentClub) pick.club = permanentClub;
+  }
+
+  // The live reveal, final squads and verification all consume these picks.
+  for (const id of CLUB_ORDER) squads[id] = [];
+  for (const pick of picks) {
+    squads[pick.club].push(pick.player);
+    rounds[pick.round].order[pick.slot] = pick.club;
   }
   return { rounds, picks, squads };
 }

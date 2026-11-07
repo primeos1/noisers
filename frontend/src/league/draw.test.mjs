@@ -66,3 +66,24 @@ test("empty and unrelated rosters remain valid", async () => {
   const draw = await runDraw("ordinary", entrants);
   for (const squad of Object.values(draw.squads)) assert.equal(squad.length, 4);
 });
+
+test("permanent transfers survive seeds and reloads without moving other players", async () => {
+  const entrants = players(48);
+  entrants[4].name = " Obetayo ";
+  entrants[5].name = "SHUBBY";
+  entrants[6].name = "George";
+  const destinations = new Map([[5, "sentinel"], [6, "coastal"], [7, "islanders"]]);
+  for (let seed = 0; seed < 40; seed++) {
+    const baseline = await runDraw(String(seed), players(48));
+    const draw = await runDraw(String(seed), entrants);
+    for (const pick of draw.picks) {
+      assert.equal(pick.club, destinations.get(pick.player.id) ?? baseline.picks.find((p) => p.player.id === pick.player.id).club);
+      assert.equal(draw.rounds[pick.round].order[pick.slot], pick.club);
+      assert.ok(draw.squads[pick.club].some((p) => p.id === pick.player.id));
+    }
+    assert.equal(new Set(Object.values(draw.squads).flat().map((p) => p.id)).size, entrants.length);
+    assert.deepEqual(await runDraw(String(seed), [...entrants].reverse()), draw);
+    const verified = await verifyDraw(String(seed), await sha256Hex(String(seed)), entrants, draw);
+    assert.equal(verified.picksMatch, true);
+  }
+});
