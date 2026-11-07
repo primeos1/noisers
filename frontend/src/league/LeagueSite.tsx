@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import logo from "../assets/brand/logo-white.png";
 import { clockTime, clubs, KICK_OFF, type ClubId } from "../lib/league";
 import { ClubBadge, Shirt } from "./ClubBadge";
+import { CaptainBadge } from "./CaptainBadge";
 import { clubById, defaultNight, GAMES, nightDate, SEASON, standings, topScorers, useLeague, useResultsByNo, type LeagueData } from "./data";
 import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
 import DrawStage from "./DrawStage";
@@ -402,7 +403,7 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
                     {[...squad].sort((a, b) => b.rating - a.rating).map((p) => (
                       <li key={p.id}>
                         <span className="nl-slot-pos">{p.position}</span>
-                        {p.name}
+                        {p.name}<CaptainBadge name={p.name} />
                         <span className="nl-ovr">{fmt(p.rating)}</span>
                       </li>
                     ))}

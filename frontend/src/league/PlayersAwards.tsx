@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import defaultPhoto from "../assets/player-default.svg";
 import { clubs, type ClubId } from "../lib/league";
 import { ClubBadge, Shirt } from "./ClubBadge";
+import { CaptainBadge } from "./CaptainBadge";
 import { clubById, nightDate, type LeagueData } from "./data";
 import { fmt, type DrawResult, type Entrant } from "./draw";
 import { AWARDS, champions, leagueStats, race, type LeagueStats, type PlayerLine } from "./stats";
@@ -51,7 +52,7 @@ function EmptyPlayers({ entrants, loading }: { entrants: Entrant[]; loading: boo
             <span className="nl-pwho">
               <Face player={p} />
               <span className="nl-pname">
-                <strong>{p.name}</strong>
+                <strong>{p.name}<CaptainBadge name={p.name} /></strong>
                 <small>Club to be drawn · {p.position} · {fmt(p.rating)}</small>
               </span>
             </span>
@@ -124,7 +125,7 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
                 <span className="nl-pwho">
                   <Face player={l.player} />
                   <span className="nl-pname">
-                    <strong>{l.player.name}</strong>
+                    <strong>{l.player.name}<CaptainBadge name={l.player.name} /></strong>
                     <small>
                       <ClubBadge id={l.club} size={14} /> {clubById.get(l.club)!.short} · {l.player.position} · {fmt(l.player.rating)}
                     </small>

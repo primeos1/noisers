@@ -6,6 +6,7 @@ import { BEATS, buildTimeline, CLUB_ORDER, COUNT_FROM, countAt, fmt, momentAt, r
 const photoOf = (p: Entrant) => p.photoUrl || defaultPhoto;
 import { clubById } from "./data";
 import { ClubBadge } from "./ClubBadge";
+import { CaptainBadge } from "./CaptainBadge";
 
 /* --------------------------------------------------------------- sound */
 
@@ -336,7 +337,7 @@ export default function DrawStage(props: DrawStageProps) {
               {latest.map((p) => (
                 <li key={p.n} className={p.n === newest ? "is-new" : ""}>
                   <img src={photoOf(p.player)} alt="" className="nl-face" width={32} height={32} />
-                  <span className="nl-latest-name">{p.player.name}</span>
+                  <span className="nl-latest-name">{p.player.name}<CaptainBadge name={p.player.name} /></span>
                   <ClubBadge id={p.club} size={22} />
                   <span className="nl-ovr">{fmt(p.player.rating)}</span>
                 </li>
@@ -368,7 +369,7 @@ export default function DrawStage(props: DrawStageProps) {
                       {p ? (
                         <>
                           <img src={photoOf(p.player)} alt="" className="nl-face is-tiny" width={22} height={22} />
-                          <span className="nl-slot-name">{p.player.name}</span>
+                          <span className="nl-slot-name">{p.player.name}<CaptainBadge name={p.player.name} /></span>
                           <span className="nl-ovr">{fmt(p.player.rating)}</span>
                         </>
                       ) : (
@@ -449,7 +450,7 @@ function DrawCard({ pick, beat, count, potLabel }: { pick: DrawResult["picks"][n
           <div className="nl-card-who">
             {beat >= 4 ? (
               <>
-                <p className="nl-card-name">{pick.player.name}</p>
+                <p className="nl-card-name">{pick.player.name}<CaptainBadge name={pick.player.name} /></p>
                 <p className="nl-card-club">
                   <ClubBadge id={pick.club} size={20} /> {club.name}
                 </p>

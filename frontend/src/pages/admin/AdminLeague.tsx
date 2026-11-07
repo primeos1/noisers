@@ -5,6 +5,7 @@ import { clockTime, type ClubId } from "../../lib/league";
 import { clubById, fetchLeague, GAMES, nightDate, SEASON, useResultsByNo, type LeagueData } from "../../league/data";
 import { buildPots, fmt, runDraw, type DrawResult, type Entrant } from "../../league/draw";
 import { ClubBadge } from "../../league/ClubBadge";
+import { CaptainBadge } from "../../league/CaptainBadge";
 import { leagueUrl } from "../../league/url";
 
 type Tab = "players" | "draw" | "matchday";
@@ -348,7 +349,7 @@ function DrawTab({ data, act }: { data: LeagueData; act: Act }) {
                 {draw.squads[id].map((p) => (
                   <li key={p.id} className="flex justify-between gap-2">
                     <span className="truncate">
-                      <span className="text-xs text-mist">{p.position}</span> {p.name}
+                      <span className="text-xs text-mist">{p.position}</span> {p.name}<CaptainBadge name={p.name} />
                     </span>
                     <span className="font-display text-paper">{fmt(p.rating)}</span>
                   </li>
