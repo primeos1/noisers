@@ -52,7 +52,8 @@ http
       // favicon) are served as they are.
       const [pathname, query] = (req.url ?? "/").split("?");
       if (!path.extname(pathname)) req.url = `/league.html${query ? `?${query}` : ""}`;
-      return handler(req, res, { public: dist, headers });
+      // cleanUrls off, or serve-handler 301s /league.html to /league and loops.
+      return handler(req, res, { public: dist, headers, cleanUrls: false });
     }
     return handler(req, res, {
       public: dist,
