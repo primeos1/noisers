@@ -76,6 +76,8 @@ export interface DrawStageProps {
   speed: number;
   hash: string | null;
   mode: "official" | "demo" | "none";
+  /** Practice draws are off once the official one has started. */
+  allowDemo: boolean;
   entrantCount: number;
   now: () => number;
   onStartDemo: () => void;
@@ -401,13 +403,17 @@ export default function DrawStage(props: DrawStageProps) {
               </select>
             </label>
           </>
+        ) : !props.allowDemo ? (
+          <p>The official draw is on. Share the link so everyone watches the same picks at the same time.</p>
         ) : (
           <p>Want to see how it works? Run a practice draw. It starts in 5 seconds and doesn't change anything.</p>
         )}
         <div className="nl-demo-actions">
-          <button type="button" className="nl-btn" onClick={props.onStartDemo}>
-            Start a demo draw
-          </button>
+          {props.allowDemo && (
+            <button type="button" className="nl-btn" onClick={props.onStartDemo}>
+              Start a demo draw
+            </button>
+          )}
           <button type="button" className="nl-btn is-ghost" onClick={copyLink}>
             {copied ? "Link copied" : "Copy watch link"}
           </button>

@@ -121,41 +121,70 @@ export default function LeagueSite() {
 
   const anyMatchLive = !!data?.results.some((r) => r.status === "live");
   const officialStart = data?.draw ? Date.parse(data.draw.startsAt) : null;
+  const officialSpeed = data?.draw?.speed ?? 1;
+
+  // Where the official draw is: still to come (practice draws allowed),
+  // playing (practice off), or done (the draw screen goes for good).
+  useTicker(1000);
+  const officialEnd = official && officialStart != null ? officialStart + (buildTimeline(official).total / officialSpeed) * 1000 : null;
+  const stage: "open" | "live" | "done" =
+    officialStart == null || now() < officialStart ? "open" : officialEnd != null && now() >= officialEnd ? "done" : "live";
+
+  // A practice draw gives way to the real one.
+  useEffect(() => {
+    if (stage !== "open" && demo) leaveDemo();
+  }, [stage, demo, leaveDemo]);
+  const showDemo = stage === "open" ? demo : null;
+
+  const fairPlay = (
+    <FairPlay
+      seed={showDemo ? showDemo.seed : (data?.draw?.seed ?? "")}
+      hash={showDemo ? (demoHash ?? "") : (data?.draw?.hash ?? "")}
+      entrants={showDemo ? demoEntrants : officialEntrants}
+      expected={showDemo ? demoDraw : official}
+      isDemo={!!showDemo}
+    />
+  );
 
   return (
     <div className="nl-root">
-      <Nav live={drawLive || anyMatchLive} />
-      <Hero data={data} />
+      <Nav live={drawLive || anyMatchLive} done={stage === "done"} drawLive={drawLive} />
+      <Hero data={data} done={stage === "done"} />
       {error && !data && <p className="nl-error" role="alert">{error} Refresh to try again.</p>}
 
-      <DrawStage
-        result={demo ? demoDraw : official}
-        startMs={demo ? demo.start : officialStart}
-        speed={demo ? demo.speed : (data?.draw?.speed ?? 1)}
-        hash={demo ? demoHash : (data?.draw?.hash ?? null)}
-        mode={demo ? "demo" : data?.draw ? "official" : "none"}
-        entrantCount={data?.entrants.length ?? 0}
-        now={now}
-        onStartDemo={startDemo}
-        onSpeed={changeSpeed}
-        onLeaveDemo={leaveDemo}
-        watchLink={watchLink}
-        onLive={setDrawLive}
-      />
-
-      <Clubs official={official} startMs={officialStart} speed={data?.draw?.speed ?? 1} now={now} />
-      <Fixtures data={data} />
-      <Table data={data} />
-      <FinishedDraw official={official} startMs={officialStart} speed={data?.draw?.speed ?? 1} now={now}>
-        {(draw) => <PlayersAwards draw={draw} data={data} />}
-      </FinishedDraw>
-      <FairPlay
-        seed={demo ? demo.seed : (data?.draw?.seed ?? "")}
-        hash={demo ? (demoHash ?? "") : (data?.draw?.hash ?? "")}
-        entrants={demo ? demoEntrants : officialEntrants}
-        expected={demo ? demoDraw : official}
-        isDemo={!!demo}
-      />
+      {stage === "done" ? (
+        // The official league page: the draw is history.
+        <>
+          <Fixtures data={data} />
+          <Table data={data} />
+          <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} />
+          <PlayersAwards draw={official} data={data} />
+          {fairPlay}
+        </>
+      ) : (
+        <>
+          <DrawStage
+            result={showDemo ? demoDraw : official}
+            startMs={showDemo ? showDemo.start : officialStart}
+            speed={showDemo ? showDemo.speed : officialSpeed}
+            hash={showDemo ? demoHash : (data?.draw?.hash ?? null)}
+            mode={showDemo ? "demo" : data?.draw ? "official" : "none"}
+            allowDemo={stage === "open"}
+            entrantCount={data?.entrants.length ?? 0}
+            now={now}
+            onStartDemo={startDemo}
+            onSpeed={changeSpeed}
+            onLeaveDemo={leaveDemo}
+            watchLink={watchLink}
+            onLive={setDrawLive}
+          />
+          <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} />
+          <Fixtures data={data} />
+          <Table data={data} />
+          <PlayersAwards draw={null} data={data} />
+          {fairPlay}
+        </>
+      )}
 
       <footer className="nl-footer">
         <img src={logo} alt="" width={36} height={36} />
@@ -169,7 +198,16 @@ export default function LeagueSite() {
 
 /* ------------------------------------------------------------------ nav */
 
-const sections = [
+const leagueSections = [
+  ["fixtures", "Fixtures"],
+  ["table", "Table"],
+  ["clubs", "Clubs"],
+  ["players", "Players"],
+  ["awards", "Awards"],
+  ["fair-play", "Fair Play"],
+] as const;
+
+const drawSections = [
   ["draw", "The Draw"],
   ["clubs", "Clubs"],
   ["fixtures", "Fixtures"],
@@ -179,7 +217,8 @@ const sections = [
   ["fair-play", "Fair Play"],
 ] as const;
 
-function Nav({ live }: { live: boolean }) {
+function Nav({ live, done, drawLive }: { live: boolean; done: boolean; drawLive: boolean }) {
+  const sections = done ? leagueSections : drawSections;
   return (
     <header className="nl-nav">
       <a href="#top" className="nl-brand">
@@ -187,7 +226,7 @@ function Nav({ live }: { live: boolean }) {
         <span>The Noisers League</span>
       </a>
       {live && (
-        <a href="#draw" className="nl-live-pill">
+        <a href={drawLive ? "#draw" : "#fixtures"} className="nl-live-pill">
           Live
         </a>
       )}
@@ -206,7 +245,7 @@ function Nav({ live }: { live: boolean }) {
 
 /* ----------------------------------------------------------------- hero */
 
-function Hero({ data }: { data: LeagueData | null }) {
+function Hero({ data, done }: { data: LeagueData | null; done: boolean }) {
   useTicker(1000);
   const left = Math.max(0, KICK_OFF.getTime() - Date.now());
   const parts = [
@@ -252,7 +291,9 @@ function Hero({ data }: { data: LeagueData | null }) {
           )}
         </div>
 
-        {drawAt && (
+        {done && <NextUp data={data} />}
+
+        {!done && drawAt && (
           <a href="#draw" className="nl-draw-notice">
             The draw goes live {drawAt}. Watch it here.
           </a>
@@ -270,12 +311,32 @@ function Hero({ data }: { data: LeagueData | null }) {
   );
 }
 
-/** Hands over the official draw only once it has finished playing, so nothing below spoils it. */
-function FinishedDraw(props: { official: DrawResult | null; startMs: number | null; speed: number; now: () => number; children: (draw: DrawResult | null) => React.ReactNode }) {
-  useTicker(5000);
-  const { official, startMs, speed, now } = props;
-  const done = official && startMs != null && now() >= startMs + (buildTimeline(official).total / speed) * 1000;
-  return <>{props.children(done ? official : null)}</>;
+/** The live game, or the next one to be played. */
+function NextUp({ data }: { data: LeagueData | null }) {
+  const results = useResultsByNo(data?.results);
+  const live = GAMES.filter((g) => results.get(g.no)?.status === "live");
+  const next = GAMES.find((g) => (results.get(g.no)?.status ?? "scheduled") === "scheduled");
+  const show = live.length ? live : next ? [next] : [];
+  if (!show.length) return <p className="nl-nextup-label">Season one is complete. See the awards below.</p>;
+  return (
+    <a href="#fixtures" className="nl-nextup">
+      <p className="nl-nextup-label">
+        {live.length ? <span className="nl-live-pill">Live now</span> : `Next up: Sunday ${show[0].night}, ${nightDate(show[0].night)}, ${clockTime(show[0].start)}`}
+      </p>
+      {show.map((g) => {
+        const r = results.get(g.no);
+        return (
+          <div key={g.no} className="nl-nextup-game">
+            <ClubBadge id={g.home} size={36} />
+            <span><b className="is-long">{clubById.get(g.home)!.name}</b><b className="is-short">{clubById.get(g.home)!.short}</b></span>
+            <strong>{r && r.status !== "scheduled" ? `${r.homeScore} – ${r.awayScore}` : "vs"}</strong>
+            <span><b className="is-long">{clubById.get(g.away)!.name}</b><b className="is-short">{clubById.get(g.away)!.short}</b></span>
+            <ClubBadge id={g.away} size={36} />
+          </div>
+        );
+      })}
+    </a>
+  );
 }
 
 /* ---------------------------------------------------------------- clubs */
