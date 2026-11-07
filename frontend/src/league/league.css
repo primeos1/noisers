@@ -531,3 +531,18 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
   .nl-nextup-game .is-long { display: none; }
   .nl-nextup-game .is-short { display: inline; }
 }
+
+/* pages of their own (players, awards) */
+.nl-page { padding-top: 48px; min-height: 60vh; }
+.nl-nav nav a[aria-current="page"] { color: var(--gold); background: rgb(201 168 90 / .12); }
+.nl-notice { margin: -8px 0 14px; }
+.nl-prow.is-static { cursor: default; }
+.nl-prow.is-static:hover { background: none; }
+.nl-empty-cell { color: #4a5675; }
+.nl-ghost { display: inline-block; flex: none; border-radius: 50%; background: var(--panel-2); box-shadow: inset 0 0 0 1.5px var(--line); }
+.nl-ghost-line { display: block; width: 9em; height: 10px; border-radius: 5px; background: var(--panel-2); }
+.nl-ghost-shirt { display: block; height: 84px; border-radius: 14px; border: 1.5px dashed var(--line); }
+.nl-award-rest li.nl-empty-cell { color: #4a5675; }
+
+/* club cards without a motto: name sits level with the shirt */
+.nl-club { grid-template-columns: 96px 1fr; }

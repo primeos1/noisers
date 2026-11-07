@@ -5,7 +5,7 @@ import { ClubBadge, Shirt } from "./ClubBadge";
 import { clubById, defaultNight, GAMES, nightDate, SEASON, standings, topScorers, useLeague, useResultsByNo, type LeagueData } from "./data";
 import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
 import DrawStage from "./DrawStage";
-import PlayersAwards from "./PlayersAwards";
+import { AwardsPage, PlayersPage } from "./PlayersAwards";
 
 const MAIN_SITE = "https://noisersfc.com";
 
@@ -65,7 +65,24 @@ function useDraw(seed: string | null | undefined, entrants: Entrant[] | null) {
 const lagosTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" });
 
+type Page = "home" | "players" | "awards";
+
+function currentPage(): Page {
+  const path = window.location.pathname.replace(/\/+$/, "").toLowerCase();
+  return path === "/players" ? "players" : path === "/awards" ? "awards" : "home";
+}
+
+const pageTitles: Record<Page, string> = {
+  home: "The Noisers League",
+  players: "Players | The Noisers League",
+  awards: "Awards | The Noisers League",
+};
+
 export default function LeagueSite() {
+  const [page] = useState<Page>(currentPage);
+  useEffect(() => {
+    document.title = pageTitles[page];
+  }, [page]);
   const { data, error, now } = useLeague();
   const [demo, setDemo] = useState<Demo | null>(readDemo);
   const [demoHash, setDemoHash] = useState<string | null>(null);
@@ -146,11 +163,35 @@ export default function LeagueSite() {
     />
   );
 
+  const footer = (
+    <footer className="nl-footer">
+      <img src={logo} alt="" width={36} height={36} />
+      <p>
+        The Noisers League is played by the squad of <a href={MAIN_SITE}>Noisers FC</a>, Lekki, Lagos.
+      </p>
+    </footer>
+  );
+  const errorNote = error && !data && <p className="nl-error" role="alert">{error} Refresh to try again.</p>;
+
+  // Players and Awards are pages of their own; the squads only reach them
+  // once the official draw has played, so they can't spoil it.
+  if (page !== "home") {
+    const draw = stage === "done" ? official : null;
+    return (
+      <div className="nl-root">
+        <Nav live={anyMatchLive} done={stage === "done"} drawLive={false} page={page} />
+        {errorNote}
+        {page === "players" ? <PlayersPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
+        {footer}
+      </div>
+    );
+  }
+
   return (
     <div className="nl-root">
-      <Nav live={drawLive || anyMatchLive} done={stage === "done"} drawLive={drawLive} />
+      <Nav live={drawLive || anyMatchLive} done={stage === "done"} drawLive={drawLive} page={page} />
       <Hero data={data} done={stage === "done"} />
-      {error && !data && <p className="nl-error" role="alert">{error} Refresh to try again.</p>}
+      {errorNote}
 
       {stage === "done" ? (
         // The official league page: the draw is history.
@@ -158,7 +199,6 @@ export default function LeagueSite() {
           <Fixtures data={data} />
           <Table data={data} />
           <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} />
-          <PlayersAwards draw={official} data={data} />
           {fairPlay}
         </>
       ) : (
@@ -181,30 +221,22 @@ export default function LeagueSite() {
           <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} />
           <Fixtures data={data} />
           <Table data={data} />
-          <PlayersAwards draw={null} data={data} />
           {fairPlay}
         </>
       )}
 
-      <footer className="nl-footer">
-        <img src={logo} alt="" width={36} height={36} />
-        <p>
-          The Noisers League is played by the squad of <a href={MAIN_SITE}>Noisers FC</a>, Lekki, Lagos.
-        </p>
-      </footer>
+      {footer}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ nav */
 
+// Sections of the home page, then the two pages of their own.
 const leagueSections = [
   ["fixtures", "Fixtures"],
   ["table", "Table"],
   ["clubs", "Clubs"],
-  ["players", "Players"],
-  ["awards", "Awards"],
-  ["fair-play", "Fair Play"],
 ] as const;
 
 const drawSections = [
@@ -212,29 +244,34 @@ const drawSections = [
   ["clubs", "Clubs"],
   ["fixtures", "Fixtures"],
   ["table", "Table"],
-  ["players", "Players"],
-  ["awards", "Awards"],
-  ["fair-play", "Fair Play"],
 ] as const;
 
-function Nav({ live, done, drawLive }: { live: boolean; done: boolean; drawLive: boolean }) {
-  const sections = done ? leagueSections : drawSections;
+function Nav({ live, done, drawLive, page }: { live: boolean; done: boolean; drawLive: boolean; page: Page }) {
+  const home = page === "home" ? "" : "/";
+  const links: { href: string; label: string; current?: boolean }[] = [
+    ...(done ? leagueSections : drawSections).map(([id, label]) => ({ href: `${home}#${id}`, label })),
+    { href: "/players", label: "Players", current: page === "players" },
+    { href: "/awards", label: "Awards", current: page === "awards" },
+    { href: `${home}#fair-play`, label: "Fair Play" },
+  ];
   return (
     <header className="nl-nav">
-      <a href="#top" className="nl-brand">
+      <a href={page === "home" ? "#top" : "/"} className="nl-brand">
         <img src={logo} alt="Noisers FC" width={30} height={30} />
         <span>The Noisers League</span>
       </a>
       {live && (
-        <a href={drawLive ? "#draw" : "#fixtures"} className="nl-live-pill">
+        <a href={`${home}${drawLive ? "#draw" : "#fixtures"}`} className="nl-live-pill">
           Live
         </a>
       )}
       <nav aria-label="Sections">
         <ul>
-          {sections.map(([id, label]) => (
-            <li key={id}>
-              <a href={`#${id}`}>{label}</a>
+          {links.map((l) => (
+            <li key={l.href}>
+              <a href={l.href} aria-current={l.current ? "page" : undefined}>
+                {l.label}
+              </a>
             </li>
           ))}
         </ul>
@@ -357,7 +394,6 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
               <Shirt id={c.id} className="nl-club-shirt" />
               <div>
                 <h3 className="nl-club-name">{c.name}</h3>
-                <p className="nl-club-motto">{c.motto}</p>
               </div>
               {squad ? (
                 <div className="nl-club-squad">

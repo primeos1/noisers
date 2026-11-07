@@ -4,7 +4,7 @@ import { clubs, type ClubId } from "../lib/league";
 import { ClubBadge, Shirt } from "./ClubBadge";
 import { clubById, nightDate, type LeagueData } from "./data";
 import { fmt, type DrawResult, type Entrant } from "./draw";
-import { AWARDS, champions, leagueStats, race, type PlayerLine } from "./stats";
+import { AWARDS, champions, leagueStats, race, type LeagueStats, type PlayerLine } from "./stats";
 
 export const photoOf = (p: Entrant) => p.photoUrl || defaultPhoto;
 
@@ -14,35 +14,83 @@ function Face({ player, size = 36 }: { player: Entrant; size?: number }) {
 
 const plural = (n: number, word: string) => `${n} ${n === 1 ? word.replace(/s$/, "") : word}`;
 
-/** Both sections, sharing one pass over the results. */
-export default function PlayersAwards({ draw, data }: { draw: DrawResult | null; data: LeagueData | null }) {
-  const stats = useMemo(() => (draw && data ? leagueStats(draw, data) : null), [draw, data]);
-  return (
-    <>
-      <section id="players" className="nl-section" aria-labelledby="players-title">
-        <h2 id="players-title" className="nl-h2">Players</h2>
-        <p className="nl-lede">
-          Every player's league numbers, game by game. These are league-only: they don't touch anyone's Noisers rating or stats.
-        </p>
-        {stats ? <PlayerList stats={stats} /> : <p className="nl-muted">Player numbers start once the squads are drawn.</p>}
-      </section>
-
-      <section id="awards" className="nl-section" aria-labelledby="awards-title">
-        <h2 id="awards-title" className="nl-h2">Awards</h2>
-        <p className="nl-lede">
-          {stats?.seasonOver
-            ? "The season is over. These are the winners."
-            : "The races so far. Every award is decided when the last game of Sunday 5 ends."}
-        </p>
-        {stats && data ? <AwardGrid stats={stats} data={data} /> : <p className="nl-muted">The races open after the draw.</p>}
-      </section>
-    </>
-  );
+function useStats(draw: DrawResult | null, data: LeagueData | null) {
+  return useMemo(() => (draw && data ? leagueStats(draw, data) : null), [draw, data]);
 }
 
 /* --------------------------------------------------------------- players */
 
-function PlayerList({ stats }: { stats: ReturnType<typeof leagueStats> }) {
+export function PlayersPage({ draw, data }: { draw: DrawResult | null; data: LeagueData | null }) {
+  const stats = useStats(draw, data);
+  return (
+    <section id="players" className="nl-section nl-page" aria-labelledby="players-title">
+      <h1 id="players-title" className="nl-h2">Players</h1>
+      <p className="nl-lede">
+        Every player's league numbers, game by game. These are league-only: they don't touch anyone's Noisers rating or stats.
+      </p>
+      {stats ? (
+        <PlayerList stats={stats} />
+      ) : (
+        <EmptyPlayers entrants={data?.entrants ?? []} loading={!data} />
+      )}
+    </section>
+  );
+}
+
+/** Before the draw: everyone who's in, with their slots still empty. */
+function EmptyPlayers({ entrants, loading }: { entrants: Entrant[]; loading: boolean }) {
+  const rows = [...entrants].sort((a, b) => a.name.localeCompare(b.name));
+  const ghosts = loading || rows.length === 0 ? 8 : 0;
+  return (
+    <>
+      <p className="nl-muted nl-notice">Clubs are filled at the draw. Numbers appear here from the first game on 15 November.</p>
+      <div className="nl-players">
+        <PlayerHead />
+        {rows.map((p) => (
+          <div key={p.id} className="nl-prow is-static">
+            <span className="nl-pwho">
+              <Face player={p} />
+              <span className="nl-pname">
+                <strong>{p.name}</strong>
+                <small>Club to be drawn · {p.position} · {fmt(p.rating)}</small>
+              </span>
+            </span>
+            {Array.from({ length: 6 }, (_, i) => (
+              <span key={i} className={`nl-empty-cell ${i >= 4 ? "is-wide" : ""}`}>–</span>
+            ))}
+          </div>
+        ))}
+        {Array.from({ length: ghosts }, (_, i) => (
+          <div key={`g${i}`} className="nl-prow is-static" aria-hidden="true">
+            <span className="nl-pwho">
+              <span className="nl-face nl-ghost" />
+              <span className="nl-ghost-line" />
+            </span>
+            {Array.from({ length: 6 }, (_, j) => (
+              <span key={j} className={`nl-empty-cell ${j >= 4 ? "is-wide" : ""}`}>–</span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function PlayerHead() {
+  return (
+    <div className="nl-prow nl-prow-head" aria-hidden="true">
+      <span>Player</span>
+      <span>P</span>
+      <span>W-D-L</span>
+      <span>G</span>
+      <span>A</span>
+      <span className="is-wide">CS</span>
+      <span className="is-wide">POTN</span>
+    </div>
+  );
+}
+
+function PlayerList({ stats }: { stats: LeagueStats }) {
   const [club, setClub] = useState<ClubId | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<number | null>(null);
@@ -67,37 +115,32 @@ function PlayerList({ stats }: { stats: ReturnType<typeof leagueStats> }) {
       </div>
 
       <div className="nl-players">
-        <div className="nl-prow nl-prow-head" aria-hidden="true">
-          <span>Player</span>
-          <span>P</span>
-          <span>W-D-L</span>
-          <span>G</span>
-          <span>A</span>
-          <span className="is-wide">CS</span>
-          <span className="is-wide">POTN</span>
-        </div>
-        {rows.map((l) => (
-          <div key={l.player.id} className={`nl-pentry ${open === l.player.id ? "is-open" : ""}`}>
-            <button type="button" className="nl-prow" aria-expanded={open === l.player.id} onClick={() => setOpen(open === l.player.id ? null : l.player.id)}>
-              <span className="nl-pwho">
-                <Face player={l.player} />
-                <span className="nl-pname">
-                  <strong>{l.player.name}</strong>
-                  <small>
-                    <ClubBadge id={l.club} size={14} /> {clubById.get(l.club)!.short} · {l.player.position} · {fmt(l.player.rating)}
-                  </small>
+        <PlayerHead />
+        {rows.map((l) => {
+          const none = !stats.started;
+          return (
+            <div key={l.player.id} className={`nl-pentry ${open === l.player.id ? "is-open" : ""}`}>
+              <button type="button" className="nl-prow" aria-expanded={open === l.player.id} onClick={() => setOpen(open === l.player.id ? null : l.player.id)}>
+                <span className="nl-pwho">
+                  <Face player={l.player} />
+                  <span className="nl-pname">
+                    <strong>{l.player.name}</strong>
+                    <small>
+                      <ClubBadge id={l.club} size={14} /> {clubById.get(l.club)!.short} · {l.player.position} · {fmt(l.player.rating)}
+                    </small>
+                  </span>
                 </span>
-              </span>
-              <span>{l.played}</span>
-              <span>{`${l.won}-${l.drawn}-${l.lost}`}</span>
-              <span className="is-strong">{l.goals}</span>
-              <span className="is-strong">{l.assists}</span>
-              <span className="is-wide">{l.player.position === "GK" ? l.cleanSheets : "–"}</span>
-              <span className="is-wide">{l.nights}</span>
-            </button>
-            {open === l.player.id && <PlayerDetail line={l} />}
-          </div>
-        ))}
+                <span className={none ? "nl-empty-cell" : ""}>{none ? "–" : l.played}</span>
+                <span className={none ? "nl-empty-cell" : ""}>{none ? "–" : `${l.won}-${l.drawn}-${l.lost}`}</span>
+                <span className={none ? "nl-empty-cell" : "is-strong"}>{none ? "–" : l.goals}</span>
+                <span className={none ? "nl-empty-cell" : "is-strong"}>{none ? "–" : l.assists}</span>
+                <span className={`is-wide ${none ? "nl-empty-cell" : ""}`}>{none || l.player.position !== "GK" ? "–" : l.cleanSheets}</span>
+                <span className={`is-wide ${none ? "nl-empty-cell" : ""}`}>{none ? "–" : l.nights}</span>
+              </button>
+              {open === l.player.id && <PlayerDetail line={l} />}
+            </div>
+          );
+        })}
         {rows.length === 0 && <p className="nl-muted nl-pad">No one matches that.</p>}
       </div>
       <p className="nl-muted nl-note">P played, CS clean sheets (keepers), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
@@ -149,89 +192,140 @@ function PlayerDetail({ line }: { line: PlayerLine }) {
 
 /* ---------------------------------------------------------------- awards */
 
-function AwardGrid({ stats, data }: { stats: ReturnType<typeof leagueStats>; data: LeagueData }) {
-  const top = champions(data);
-  const decided = stats.seasonOver;
-  const champ = clubById.get(top.club)!;
-  return (
-    <div className="nl-awards">
-      <article className="nl-award is-champion" style={{ "--c1": champ.colours.primary } as React.CSSProperties}>
-        <p className="nl-award-name">League Champions</p>
-        <p className="nl-muted">{decided ? "Top of the table after 45 games." : "Top of the table right now."}</p>
-        {stats.started ? (
-          <div className="nl-champ">
-            <Shirt id={top.club} className="nl-champ-shirt" />
-            <div>
-              <p className="nl-award-leader">{champ.name}</p>
-              <p className="nl-muted">
-                {top.pts} pts from {top.p} games
-              </p>
-              {decided && <span className="nl-award-tag">Champions</span>}
-            </div>
-          </div>
-        ) : (
-          <p className="nl-award-empty">Decided over five Sundays.</p>
-        )}
-      </article>
+export function AwardsPage({ draw, data }: { draw: DrawResult | null; data: LeagueData | null }) {
+  const stats = useStats(draw, data);
+  const top = data && stats?.started ? champions(data) : null;
+  const decided = !!stats?.seasonOver;
+  const champ = top ? clubById.get(top.club)! : null;
 
-      {AWARDS.map((def) => {
-        const list = race(stats, def);
-        const [lead, ...rest] = list;
-        return (
-          <article key={def.id} className="nl-award">
-            <p className="nl-award-name">{def.award}</p>
-            <p className="nl-muted">{def.blurb}</p>
-            {lead ? (
-              <>
-                <div className="nl-award-lead">
-                  <Face player={lead.player} size={56} />
-                  <div>
-                    <p className="nl-award-leader">{lead.player.name}</p>
-                    <p className="nl-muted">
-                      <ClubBadge id={lead.club} size={14} /> {clubById.get(lead.club)!.name}
+  return (
+    <section id="awards" className="nl-section nl-page" aria-labelledby="awards-title">
+      <h1 id="awards-title" className="nl-h2">Awards</h1>
+      <p className="nl-lede">
+        {decided ? "The season is over. These are the winners." : "Every award is decided when the last game of Sunday 5 ends. Until then, these are the races."}
+      </p>
+      <div className="nl-awards">
+        <article className="nl-award is-champion" style={champ ? ({ "--c1": champ.colours.primary } as React.CSSProperties) : undefined}>
+          <p className="nl-award-name">League Champions</p>
+          <p className="nl-muted">{decided ? "Top of the table after 45 games." : "The club top of the table."}</p>
+          {top && champ ? (
+            <div className="nl-champ">
+              <Shirt id={top.club} className="nl-champ-shirt" />
+              <div>
+                <p className="nl-award-leader">{champ.name}</p>
+                <p className="nl-muted">
+                  {top.pts} pts from {top.p} games
+                </p>
+                {decided && <span className="nl-award-tag">Champions</span>}
+              </div>
+            </div>
+          ) : (
+            <div className="nl-champ">
+              <span className="nl-champ-shirt nl-ghost-shirt" aria-hidden="true" />
+              <div>
+                <p className="nl-award-leader nl-empty-cell">To be decided</p>
+                <p className="nl-muted">0 pts</p>
+              </div>
+            </div>
+          )}
+        </article>
+
+        {AWARDS.map((def) => {
+          const list = stats ? race(stats, def) : [];
+          const [lead, ...rest] = list;
+          return (
+            <article key={def.id} className="nl-award">
+              <p className="nl-award-name">{def.award}</p>
+              <p className="nl-muted">{def.blurb}</p>
+              {lead ? (
+                <>
+                  <div className="nl-award-lead">
+                    <Face player={lead.player} size={56} />
+                    <div>
+                      <p className="nl-award-leader">{lead.player.name}</p>
+                      <p className="nl-muted">
+                        <ClubBadge id={lead.club} size={14} /> {clubById.get(lead.club)!.name}
+                      </p>
+                    </div>
+                    <p className="nl-award-value">
+                      {def.value(lead)}
+                      <small>{def.stat}</small>
                     </p>
                   </div>
-                  <p className="nl-award-value">
-                    {def.value(lead)}
-                    <small>{def.stat}</small>
-                  </p>
-                </div>
-                {decided && <span className="nl-award-tag">Winner</span>}
-                {rest.length > 0 && (
-                  <ol className="nl-award-rest" start={2}>
-                    {rest.map((l) => (
-                      <li key={l.player.id}>
-                        <span>{l.player.name}</span>
-                        <strong>{def.value(l)}</strong>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </>
-            ) : (
-              <p className="nl-award-empty">{def.id === "potn" ? "The first winner is named when Sunday 1 ends." : "Nobody's on the board yet."}</p>
-            )}
-          </article>
-        );
-      })}
+                  {decided && <span className="nl-award-tag">Winner</span>}
+                  <RunnersUp rest={rest.map((l) => ({ id: l.player.id, name: l.player.name, value: def.value(l) }))} />
+                </>
+              ) : (
+                <>
+                  <div className="nl-award-lead" aria-label="No leader yet">
+                    <span className="nl-face nl-ghost" style={{ width: 56, height: 56 }} />
+                    <div>
+                      <p className="nl-award-leader nl-empty-cell">Open</p>
+                      <p className="nl-muted">No one yet</p>
+                    </div>
+                    <p className="nl-award-value nl-empty-cell">
+                      0<small>{def.stat}</small>
+                    </p>
+                  </div>
+                  <RunnersUp rest={[]} />
+                </>
+              )}
+            </article>
+          );
+        })}
 
-      {stats.nightWinners.length > 0 && (
         <article className="nl-award is-wide">
           <p className="nl-award-name">Players of the Night</p>
+          <p className="nl-muted">The best player of each Sunday, named when its last game ends.</p>
           <ol className="nl-nights">
-            {stats.nightWinners.map((w) => (
-              <li key={w.night}>
-                <span className="nl-muted">Sunday {w.night}</span>
-                <Face player={w.line.player} size={30} />
-                <strong>{w.line.player.name}</strong>
-                <span className="nl-muted">
-                  {plural(w.goals, "goals")}, {plural(w.assists, "assists")}
-                </span>
-              </li>
-            ))}
+            {[1, 2, 3, 4, 5].map((night) => {
+              const w = stats?.nightWinners.find((x) => x.night === night);
+              return (
+                <li key={night}>
+                  <span className="nl-muted">
+                    Sunday {night}, {nightDate(night)}
+                  </span>
+                  {w ? (
+                    <>
+                      <Face player={w.line.player} size={30} />
+                      <strong>{w.line.player.name}</strong>
+                      <span className="nl-muted">
+                        {plural(w.goals, "goals")}, {plural(w.assists, "assists")}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="nl-face nl-ghost" style={{ width: 30, height: 30 }} />
+                      <span className="nl-empty-cell">To be decided</span>
+                    </>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </article>
-      )}
-    </div>
+      </div>
+    </section>
+  );
+}
+
+/** Places 2-4, with empty slots until someone fills them. */
+function RunnersUp({ rest }: { rest: { id: number; name: string; value: number }[] }) {
+  return (
+    <ol className="nl-award-rest" start={2}>
+      {[0, 1, 2].map((i) => {
+        const r = rest[i];
+        return r ? (
+          <li key={r.id}>
+            <span>{r.name}</span>
+            <strong>{r.value}</strong>
+          </li>
+        ) : (
+          <li key={`e${i}`} className="nl-empty-cell">
+            <span>–</span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
