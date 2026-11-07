@@ -3,7 +3,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Squad from "./pages/Squad";
 import TheVale from "./pages/TheVale";
-import League from "./pages/League";
+import LeagueRedirect from "./pages/LeagueRedirect";
 import Highlights from "./pages/Highlights";
 import Executives from "./pages/Executives";
 import Awards from "./pages/Awards";
@@ -31,6 +31,7 @@ import AdminHomeContent from "./pages/admin/AdminHomeContent";
 import AdminVale from "./pages/admin/AdminVale";
 import AdminHighlights from "./pages/admin/AdminHighlights";
 import AdminExecutives from "./pages/admin/AdminExecutives";
+import AdminLeague from "./pages/admin/AdminLeague";
 import PlayerProfile from "./pages/PlayerProfile";
 import Noisers from "./pages/Noisers";
 import AdminAvailability from "./pages/admin/AdminAvailability";
@@ -70,7 +71,7 @@ export default function App() {
       <Route path="/squad" element={<Squad />} />
       <Route path="/squad/:id" element={<PlayerProfile />} />
       <Route path="/the-vale" element={<TheVale />} />
-      <Route path="/league" element={<League />} />
+      <Route path="/league/*" element={<LeagueRedirect />} />
       <Route path="/highlights" element={<Highlights />} />
       <Route path="/executives" element={<Executives />} />
       <Route path="/awards" element={<Awards />} />
@@ -116,6 +117,7 @@ export default function App() {
         <Route path="vale" element={<AdminVale />} />
         <Route path="highlights" element={<AdminHighlights />} />
         <Route path="executives" element={<AdminExecutives />} />
+        <Route path="league" element={<AdminLeague />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
 

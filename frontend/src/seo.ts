@@ -81,14 +81,7 @@ export const PAGES: SitemapPage[] = [
     changefreq: "daily",
     priority: 0.9,
   },
-  {
-    path: "/league",
-    title: "The Noisers League — Teams, Fixtures & Table | Noisers FC",
-    description:
-      "Six squads, six colours, one table. Fixtures, results, standings and league leaders from the Noisers League, five-a-side football in Lekki, Lagos.",
-    changefreq: "daily",
-    priority: 0.9,
-  },
+  // /league now lives at league.noisersfc.com (league.html, start.js redirects).
   {
     path: "/the-vale",
     title: "The Vale — Team & Player of the Week | Noisers FC",

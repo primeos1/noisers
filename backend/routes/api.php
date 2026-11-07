@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\GoalEventController;
 use App\Http\Controllers\Api\HighlightController;
 use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\HomeStatController;
+use App\Http\Controllers\Api\LeagueController;
 use App\Http\Controllers\Api\MatchDayEventController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NoisersController;
@@ -61,6 +62,9 @@ Route::get('/player-absences', [PlayerAbsenceController::class, 'index']);
 
 // Noisers — the club blog, written on read from match days, cards and absences.
 Route::get('/noisers', [NoisersController::class, 'index']);
+
+// The Noisers League (league.noisersfc.com) — public read, committee write below.
+Route::get('/league', [LeagueController::class, 'show']);
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
@@ -140,6 +144,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/player-absences', [PlayerAbsenceController::class, 'store']);
     Route::put('/player-absences/{playerAbsence}', [PlayerAbsenceController::class, 'update']);
     Route::delete('/player-absences/{playerAbsence}', [PlayerAbsenceController::class, 'destroy']);
+
+    Route::put('/league/entrants', [LeagueController::class, 'updateEntrants']);
+    Route::post('/league/draw', [LeagueController::class, 'scheduleDraw']);
+    Route::delete('/league/draw', [LeagueController::class, 'cancelDraw']);
+    Route::put('/league/matchday', [LeagueController::class, 'updateMatchday']);
+    Route::put('/league/matches/{matchNo}', [LeagueController::class, 'updateMatch'])->whereNumber('matchNo');
+    Route::post('/league/matches/{matchNo}/goals', [LeagueController::class, 'storeGoal'])->whereNumber('matchNo');
+    Route::delete('/league/goals/{goal}', [LeagueController::class, 'destroyGoal']);
 
     Route::apiResource('training-sessions', TrainingSessionController::class);
 

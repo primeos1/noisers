@@ -106,11 +106,34 @@ function seoPlugin(apiUrl: string): Plugin {
   }
 }
 
+// league.noisersfc.com is its own page (league.html). In dev, open it at
+// league.localhost:5173 — any path on that host serves the league page.
+function leagueHostPlugin(): Plugin {
+  return {
+    name: 'noisers-league-host',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const host = req.headers.host ?? ''
+        const accept = req.headers.accept ?? ''
+        if (host.startsWith('league.') && accept.includes('text/html') && !path.extname((req.url ?? '/').split('?')[0])) {
+          req.url = '/league.html' + (req.url?.includes('?') ? req.url.slice(req.url.indexOf('?')) : '')
+        }
+        next()
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
   const apiUrl = env.VITE_API_URL || 'https://api.noisersfc.com/api'
   return {
-    plugins: [react(), tailwindcss(), seoPlugin(apiUrl)],
+    plugins: [react(), tailwindcss(), seoPlugin(apiUrl), leagueHostPlugin()],
+    build: {
+      rollupOptions: {
+        input: { main: path.resolve(__dirname, 'index.html'), league: path.resolve(__dirname, 'league.html') },
+      },
+    },
   }
 })

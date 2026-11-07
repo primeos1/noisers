@@ -28,13 +28,37 @@ function hasPage(url) {
   return file.startsWith(dist + path.sep) && existsSync(file);
 }
 
+// The league has its own subdomain, served from league.html by this same
+// service; the old /league page on the main site sends people there.
+const isLeagueHost = (host) => /^league\./i.test(host ?? "");
+
+function leagueRedirect(req) {
+  const host = (req.headers.host ?? "").replace(/^www\./i, "");
+  const pathname = (req.url ?? "/").split("?")[0].replace(/\/+$/, "");
+  if (isLeagueHost(host) || !/^\/league(\/.*)?$/i.test(pathname)) return null;
+  const local = /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
+  return local ? `http://league.${host.replace("127.0.0.1", "localhost")}/` : `https://league.${host.split(":")[0]}/`;
+}
+
 http
-  .createServer((req, res) =>
-    handler(req, res, {
+  .createServer((req, res) => {
+    const to = leagueRedirect(req);
+    if (to) {
+      res.writeHead(301, { Location: to });
+      return res.end();
+    }
+    if (isLeagueHost(req.headers.host)) {
+      // Every page on the subdomain is the league page; real files (assets,
+      // favicon) are served as they are.
+      const [pathname, query] = (req.url ?? "/").split("?");
+      if (!path.extname(pathname)) req.url = `/league.html${query ? `?${query}` : ""}`;
+      return handler(req, res, { public: dist, headers });
+    }
+    return handler(req, res, {
       public: dist,
       cleanUrls: true,
       headers,
       rewrites: hasPage(req.url) ? [] : [{ source: "**", destination: "/index.html" }],
-    }),
-  )
+    });
+  })
   .listen(port, () => console.log(`Serving dist on port ${port}`));

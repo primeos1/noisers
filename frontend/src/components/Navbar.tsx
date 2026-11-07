@@ -38,7 +38,7 @@ const tabLinks = publicLinks.filter((l) => !moreRoutes.includes(l.to));
 const moreLinks = publicLinks.filter((l) => moreRoutes.includes(l.to));
 
 const moreNotes: Record<string, string> = {
-  "/league": "Six clubs, six kits, one table",
+  "/league": "The draw, fixtures and table",
   "/highlights": "Goals, saves and match day clips",
   "/executives": "The committee that runs the club",
   "/awards": "The race for every honour",
@@ -169,7 +169,7 @@ export default function Navbar() {
                       </span>
                       {(awards || link.to === "/league") && (
                         <span className="rounded-full bg-justice/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-justice">
-                          {awards ? "New" : "Soon"}
+                          {awards ? "New" : "Live"}
                         </span>
                       )}
                       <ChevronRightIcon className="h-4 w-4 text-mist" />
