@@ -51,7 +51,22 @@ class LeagueTest extends TestCase
 
         // Too late to quietly redo it.
         $this->deleteJson('/api/league/draw')->assertUnprocessable();
-        $this->deleteJson('/api/league/draw?force=1')->assertOk()->assertJsonPath('data.draw', null);
+        $this->deleteJson('/api/league/draw?force=1')->assertUnprocessable();
+        $this->putJson('/api/league/entrants', ['player_ids' => []])->assertUnprocessable();
+        $this->postJson('/api/league/draw', ['starts_at' => '2026-11-09T20:00:00Z'])->assertUnprocessable();
+        $locked = $this->getJson('/api/league')->assertOk()->json('data');
+        $this->assertSame($after['draw'], $locked['draw']);
+        $this->assertSame($after['entrants'], $locked['entrants']);
+    }
+
+    public function test_a_pending_draw_can_still_be_cancelled(): void
+    {
+        $this->travelTo('2026-11-07 12:00:00');
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $players = Player::factory()->count(6)->create();
+        $this->putJson('/api/league/entrants', ['player_ids' => $players->pluck('id')->all()])->assertOk();
+        $this->postJson('/api/league/draw', ['starts_at' => '2026-11-08T20:00:00Z'])->assertCreated();
+        $this->deleteJson('/api/league/draw')->assertOk()->assertJsonPath('data.draw', null);
     }
 
     public function test_sealing_needs_six_players_and_a_future_start(): void

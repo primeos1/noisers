@@ -98,17 +98,14 @@ class LeagueController extends Controller
         return response()->json(['data' => $this->payload($state->refresh())], 201);
     }
 
-    /**
-     * Cancel the draw. Once it has started the seed is public, so wiping it
-     * needs `force` — the admin is told everyone has already seen it.
-     */
+    /** Cancel a pending draw. Revealed official teams are permanently locked. */
     public function cancelDraw(Request $request)
     {
         $this->authorizeCommittee($request);
         $state = LeagueState::current();
 
-        if ($state->drawRevealed() && ! $request->boolean('force')) {
-            throw ValidationException::withMessages(['draw' => 'This draw has already happened in public. Confirm to cancel it anyway.']);
+        if ($state->drawRevealed()) {
+            throw ValidationException::withMessages(['draw' => 'The official teams are locked. A revealed draw cannot be cancelled or redrawn.']);
         }
 
         $state->update([

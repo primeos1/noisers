@@ -274,13 +274,11 @@ function DrawTab({ data, act }: { data: LeagueData; act: Act }) {
   }
 
   async function cancel() {
-    const revealed = data.draw?.revealed;
-    const msg = revealed
-      ? "The draw has already happened in public and everyone has seen the squads. Cancel it and wipe the squads anyway?"
-      : "Cancel the draw? The fingerprint is withdrawn and you can change who's in.";
+    if (data.draw?.revealed) return;
+    const msg = "Cancel the draw? The fingerprint is withdrawn and you can change who's in.";
     if (!window.confirm(msg)) return;
     setBusy(true);
-    await act(`/league/draw${revealed ? "?force=1" : ""}`, "DELETE");
+    await act("/league/draw", "DELETE");
     setBusy(false);
   }
 
@@ -314,7 +312,7 @@ function DrawTab({ data, act }: { data: LeagueData; act: Act }) {
   return (
     <section className="mt-8">
       <div className="grid gap-px bg-ink-line sm:grid-cols-3">
-        <Stat label="Status" value={data.draw.revealed ? "Revealed" : "Sealed"} />
+        <Stat label="Status" value={data.draw.revealed ? "Teams locked" : "Sealed"} />
         <Stat label="Starts" value={starts.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} />
         <Stat label="Players" value={data.entrants.length} />
       </div>
@@ -330,10 +328,14 @@ function DrawTab({ data, act }: { data: LeagueData; act: Act }) {
         <a href={leagueUrl("#draw")} target="_blank" rel="noreferrer" className={btnPrimary}>
           Watch the draw
         </a>
-        <button type="button" className={btnDanger} onClick={cancel} disabled={busy}>
-          Cancel the draw
-        </button>
+        {!data.draw.revealed && (
+          <button type="button" className={btnDanger} onClick={cancel} disabled={busy}>
+            Cancel the draw
+          </button>
+        )}
       </div>
+
+      {data.draw.revealed && <p className="mt-3 text-sm text-paper-dim">The official teams are locked. This draw cannot be cancelled or redrawn.</p>}
 
       {draw && (
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
