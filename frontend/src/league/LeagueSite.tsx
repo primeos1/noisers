@@ -72,7 +72,9 @@ export default function LeagueSite() {
 
   const officialEntrants = data?.draw ? data.entrants : null;
   const official = useDraw(data?.draw?.seed, officialEntrants);
-  const demoEntrants = demo ? (demo.pl === "live" && data && data.entrants.length >= 6 ? data.entrants : DEMO_PLAYERS) : null;
+  // Demos run on the real league players (faces and ratings) whenever there
+  // are enough of them; the stand-ins only cover an empty league.
+  const demoEntrants = demo && data ? (data.entrants.length >= 6 ? data.entrants : DEMO_PLAYERS) : null;
   const demoDraw = useDraw(demo?.seed, demoEntrants);
 
   useEffect(() => {
