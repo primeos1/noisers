@@ -5,6 +5,7 @@ import { ClubBadge, Shirt } from "./ClubBadge";
 import { clubById, defaultNight, GAMES, nightDate, SEASON, standings, topScorers, useLeague, useResultsByNo, type LeagueData } from "./data";
 import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
 import DrawStage from "./DrawStage";
+import PlayersAwards from "./PlayersAwards";
 
 const MAIN_SITE = "https://noisersfc.com";
 
@@ -145,6 +146,9 @@ export default function LeagueSite() {
       <Clubs official={official} startMs={officialStart} speed={data?.draw?.speed ?? 1} now={now} />
       <Fixtures data={data} />
       <Table data={data} />
+      <FinishedDraw official={official} startMs={officialStart} speed={data?.draw?.speed ?? 1} now={now}>
+        {(draw) => <PlayersAwards draw={draw} data={data} />}
+      </FinishedDraw>
       <FairPlay
         seed={demo ? demo.seed : (data?.draw?.seed ?? "")}
         hash={demo ? (demoHash ?? "") : (data?.draw?.hash ?? "")}
@@ -170,6 +174,8 @@ const sections = [
   ["clubs", "Clubs"],
   ["fixtures", "Fixtures"],
   ["table", "Table"],
+  ["players", "Players"],
+  ["awards", "Awards"],
   ["fair-play", "Fair Play"],
 ] as const;
 
@@ -262,6 +268,14 @@ function Hero({ data }: { data: LeagueData | null }) {
       </div>
     </section>
   );
+}
+
+/** Hands over the official draw only once it has finished playing, so nothing below spoils it. */
+function FinishedDraw(props: { official: DrawResult | null; startMs: number | null; speed: number; now: () => number; children: (draw: DrawResult | null) => React.ReactNode }) {
+  useTicker(5000);
+  const { official, startMs, speed, now } = props;
+  const done = official && startMs != null && now() >= startMs + (buildTimeline(official).total / speed) * 1000;
+  return <>{props.children(done ? official : null)}</>;
 }
 
 /* ---------------------------------------------------------------- clubs */

@@ -432,3 +432,82 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
   .nl-card-wrap { animation: none; transition: opacity .3s; }
   .nl-card { transition-duration: .01s; }
 }
+
+/* -------------------------------------------------------------- players */
+.nl-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.nl-filters input { flex: 1 1 200px; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+.nl-filters input:focus { border-color: var(--gold); outline: none; }
+.nl-chip-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.nl-chip-row::-webkit-scrollbar { display: none; }
+.nl-chip-row button {
+  flex: none; display: flex; align-items: center; gap: 6px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px 5px 6px;
+  font: 400 1rem/1 var(--display); letter-spacing: .04em;
+}
+.nl-chip-row button:first-child { padding-left: 12px; font-family: var(--body); font-size: .85rem; font-weight: 600; }
+.nl-chip-row button[aria-pressed="true"] { border-color: var(--gold); background: rgb(201 168 90 / .14); color: var(--gold); }
+.nl-chip-row span { padding-top: 2px; }
+
+.nl-players { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.nl-prow {
+  display: grid; grid-template-columns: minmax(0, 1fr) 40px 70px 40px 40px 44px 52px; align-items: center; gap: 6px;
+  width: 100%; padding: 9px 14px; background: none; border: 0; border-top: 1px solid var(--line); text-align: center; cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.nl-prow:hover { background: var(--panel-2); }
+.nl-prow-head { cursor: default; border-top: 0; color: var(--mist); font-size: .75rem; font-weight: 600; }
+.nl-prow-head:hover { background: none; }
+.nl-prow-head span:first-child { text-align: left; }
+.nl-prow .is-strong { font: 400 1.3rem/1 var(--display); color: var(--gold); padding-top: 2px; }
+.nl-pwho { display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; }
+.nl-pname { min-width: 0; display: grid; }
+.nl-pname strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nl-pname small { display: flex; align-items: center; gap: 5px; color: var(--mist); font-size: .75rem; white-space: nowrap; }
+.nl-pentry.is-open > .nl-prow { background: var(--panel-2); }
+.nl-pdetail { padding: 6px 14px 16px 60px; background: var(--panel-2); }
+.nl-pstats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.nl-pstats div { background: var(--navy); border-radius: 10px; padding: 6px 12px; }
+.nl-pstats dt { color: var(--mist); font-size: .7rem; }
+.nl-pstats dd { margin: 0; font: 400 1.5rem/1 var(--display); }
+.nl-pgames { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.nl-pgames li { display: grid; grid-template-columns: 38px 44px minmax(0, 1fr) auto 48px; align-items: center; gap: 8px; font-size: .85rem; }
+.nl-res { text-align: center; border-radius: 6px; font-weight: 700; font-size: .72rem; padding: 3px 0; background: var(--line); }
+.nl-res.is-w { background: rgb(47 163 95 / .25); color: #6fdc9a; }
+.nl-res.is-l { background: rgb(255 59 78 / .18); color: #ff8a96; }
+.nl-res.is-live { background: var(--live); color: #fff; }
+.nl-pgame-score { font: 400 1.1rem/1 var(--display); padding-top: 2px; }
+.nl-pgame-opp { display: flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.nl-pgame-mine { color: var(--gold); font-weight: 600; font-size: .8rem; }
+.nl-pad { padding: 16px; }
+@media (max-width: 640px) {
+  .nl-prow { grid-template-columns: minmax(0, 1fr) 30px 56px 30px 30px; padding: 9px 10px; }
+  .nl-prow .is-wide { display: none; }
+  .nl-pdetail { padding: 6px 10px 14px; }
+  .nl-pgames li { grid-template-columns: 34px 40px minmax(0, 1fr); }
+  .nl-pgame-mine { grid-column: 2 / -1; }
+  .nl-pgames li > .nl-muted { display: none; }
+}
+
+/* --------------------------------------------------------------- awards */
+.nl-awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.nl-award { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.nl-award.is-wide { grid-column: 1 / -1; }
+.nl-award.is-champion { border-color: var(--gold); background: linear-gradient(160deg, rgb(201 168 90 / .14), var(--panel) 60%); }
+.nl-award-name { font: 400 1.7rem/1 var(--display); letter-spacing: .02em; margin: 0 0 4px; color: var(--gold); }
+.nl-award-lead { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.nl-award-lead .nl-face { box-shadow: 0 0 0 2px var(--gold); }
+.nl-award-lead > div { flex: 1; min-width: 0; }
+.nl-award-lead .nl-muted { display: flex; align-items: center; gap: 5px; font-size: .8rem; }
+.nl-award-leader { margin: 0; font-weight: 700; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nl-award-value { margin: 0; text-align: right; font: 400 2.4rem/1 var(--display); }
+.nl-award-value small { display: block; font: 500 .7rem/1.2 var(--body); color: var(--mist); }
+.nl-award-tag { position: absolute; top: 16px; right: 16px; background: var(--gold); color: var(--navy); font-weight: 700; font-size: .72rem; border-radius: 999px; padding: 3px 9px; }
+.nl-award-rest { margin: 12px 0 0; padding: 10px 0 0 22px; border-top: 1px solid var(--line); display: grid; gap: 4px; font-size: .88rem; color: var(--mist); }
+.nl-award-rest li { padding-left: 2px; }
+.nl-award-rest strong { float: right; color: var(--paper); font-weight: 600; }
+.nl-award-empty { margin: 16px 0 0; color: var(--mist); font-style: italic; font-size: .9rem; }
+.nl-champ { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.nl-champ-shirt { width: 84px; flex: none; }
+.nl-nights { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.nl-nights li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nl-nights li > .nl-muted:first-child { width: 72px; }
