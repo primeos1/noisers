@@ -1,4 +1,4 @@
-const CAPTAINS = new Set(["kelvinalli", "rozay", "kentos", "obetayo", "ojayakanugbo", "ojay", "kachi"]);
+const CAPTAINS = new Set(["kelvinali", "kelvinalli", "rozay", "kentos", "obetayo", "ojayakanugbo", "ojay", "kachi"]);
 
 export function CaptainBadge({ name }: { name: string }) {
   if (!CAPTAINS.has(name.toLowerCase().replace(/[^a-z0-9]/g, ""))) return null;
