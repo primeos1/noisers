@@ -18,6 +18,9 @@ export interface Entrant {
 export const CLUB_ORDER: ClubId[] = ["bulwark", "citadel", "islanders", "sentinel", "castellers", "coastal"];
 const POT_SIZE = CLUB_ORDER.length;
 
+const TEAMMATE_NAMES = new Set(["kingjery", "osemiles", "ebenezer", "scottie"]);
+const isLockedTeammate = (player: Entrant) => TEAMMATE_NAMES.has(player.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
+
 /** A club rating as the squad pages show it: 7.46. */
 export const fmt = (rating: number) => rating.toFixed(2);
 
@@ -123,7 +126,8 @@ export interface DrawResult {
 /**
  * Each round: shuffle who picks when, then each club draws a random player
  * still in the pot. When a pot is short, the clubs with the fewest players
- * so far go first, so squads never differ by more than one.
+ * so far go first. The league's fixed teammate group is then kept together,
+ * exchanging places with other players where possible to retain squad sizes.
  */
 export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawResult> {
   const rand = await seededRandom(seed);
@@ -143,6 +147,27 @@ export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawRe
       picks.push({ n: picks.length, round: rounds.length, slot, club, player });
     });
     rounds.push({ pot, order });
+  }
+
+  const teammates = picks.filter((pick) => isLockedTeammate(pick.player));
+  if (teammates.length > 1) {
+    // Keep their first drawn club. Prefer exchanging players in the same role
+    // so the keeper allocation survives whenever the group allows it.
+    const club = teammates[0].club;
+    for (const teammate of teammates) {
+      if (teammate.club === club) continue;
+      const candidates = picks.filter((pick) => pick.club === club && !isLockedTeammate(pick.player));
+      const replacement = candidates.find((pick) => (pick.player.position === "GK") === (teammate.player.position === "GK")) ?? candidates[0];
+      if (replacement) replacement.club = teammate.club;
+      teammate.club = club;
+    }
+
+    // The live reveal, final squads and verification all consume these picks.
+    for (const id of CLUB_ORDER) squads[id] = [];
+    for (const pick of picks) {
+      squads[pick.club].push(pick.player);
+      rounds[pick.round].order[pick.slot] = pick.club;
+    }
   }
   return { rounds, picks, squads };
 }

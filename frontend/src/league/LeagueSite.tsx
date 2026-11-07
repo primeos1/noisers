@@ -607,6 +607,7 @@ function FairPlay(props: { seed: string; hash: string; entrants: Entrant[] | nul
             <p>
               At the start of the draw the seed is made public. Every phone runs the same draw from it, so everyone sees the
               same pick at the same second.
+              {" "}King Jery, Ose Miles, Ebenezer and Scottie stay on the same team whenever they enter the league.
             </p>
           </li>
           <li>

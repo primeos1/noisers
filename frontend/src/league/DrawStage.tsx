@@ -315,7 +315,7 @@ export default function DrawStage(props: DrawStageProps) {
                 Rated {fmt(round.pot.low)}–{fmt(round.pot.high)}
               </p>
               <p className="nl-overlay-sub">
-                {round.order.length === 6 ? "Every club gets exactly one" : `${round.order.length} players, so the smallest squads pick first`}
+                {new Set(round.order).size < round.order.length ? "Fixed teammates stay together" : round.order.length === 6 ? "Every club gets exactly one" : `${round.order.length} players, so the smallest squads pick first`}
               </p>
             </div>
           )}
