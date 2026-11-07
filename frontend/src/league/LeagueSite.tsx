@@ -359,7 +359,6 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
                 <h3 className="nl-club-name">{c.name}</h3>
                 <p className="nl-club-motto">{c.motto}</p>
               </div>
-              <p className="nl-club-meaning">{c.meaning}</p>
               {squad ? (
                 <div className="nl-club-squad">
                   <p className="nl-muted">Squad, average {avg}</p>
