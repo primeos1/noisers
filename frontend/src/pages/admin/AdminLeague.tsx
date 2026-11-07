@@ -439,13 +439,13 @@ function MatchRow(props: {
           Game {no}
         </span>
         <span className="flex flex-1 items-center justify-end gap-2 text-right text-sm text-paper">
-          {clubById.get(home)!.name} <ClubBadge id={home} size={28} />
+          {clubById.get(home)!.name} <CrestButton id={home} open={adding === "home"} disabled={status === "final"} onClick={() => setAdding(adding === "home" ? null : "home")} />
         </span>
         <span className="w-20 text-center font-display text-3xl text-paper">
           {status === "scheduled" ? <span className="text-lg text-mist">vs</span> : `${result!.homeScore}–${result!.awayScore}`}
         </span>
         <span className="flex flex-1 items-center gap-2 text-sm text-paper">
-          <ClubBadge id={away} size={28} /> {clubById.get(away)!.name}
+          <CrestButton id={away} open={adding === "away"} disabled={status === "final"} onClick={() => setAdding(adding === "away" ? null : "away")} /> {clubById.get(away)!.name}
         </span>
       </div>
 
@@ -516,6 +516,23 @@ function MatchRow(props: {
         />
       )}
     </li>
+  );
+}
+
+/** A club's crest in a match row: tap it to add a goal for that club. */
+function CrestButton({ id, open, disabled, onClick }: { id: ClubId; open: boolean; disabled: boolean; onClick: () => void }) {
+  if (disabled) return <ClubBadge id={id} size={28} />;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={open}
+      aria-label={`Add a ${clubById.get(id)!.name} goal`}
+      title={`Add a ${clubById.get(id)!.short} goal`}
+      className={`inline-flex rounded-full transition-transform hover:scale-110 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper ${open ? "ring-2 ring-paper ring-offset-2 ring-offset-ink-raised" : ""}`}
+    >
+      <ClubBadge id={id} size={28} />
+    </button>
   );
 }
 
