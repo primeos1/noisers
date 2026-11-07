@@ -3,7 +3,7 @@ import logo from "../assets/brand/logo-white.png";
 import { clockTime, clubs, KICK_OFF, type ClubId } from "../lib/league";
 import { ClubBadge, Shirt } from "./ClubBadge";
 import { clubById, defaultNight, GAMES, nightDate, SEASON, standings, topScorers, useLeague, useResultsByNo, type LeagueData } from "./data";
-import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, ovr, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
+import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
 import DrawStage from "./DrawStage";
 
 const MAIN_SITE = "https://noisersfc.com";
@@ -274,7 +274,7 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
       <div className="nl-clubs">
         {clubs.map((c) => {
           const squad = finished ? official.squads[c.id] : null;
-          const avg = squad?.length ? Math.round(squad.reduce((s, p) => s + ovr(p.rating), 0) / squad.length) : null;
+          const avg = squad?.length ? fmt(squad.reduce((s, p) => s + p.rating, 0) / squad.length) : null;
           return (
             <article key={c.id} className="nl-club" style={{ "--c1": c.colours.primary, "--glow": c.colours.glow } as React.CSSProperties}>
               <Shirt id={c.id} className="nl-club-shirt" />
@@ -291,7 +291,7 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
                       <li key={p.id}>
                         <span className="nl-slot-pos">{p.position}</span>
                         {p.name}
-                        <span className="nl-ovr">{ovr(p.rating)}</span>
+                        <span className="nl-ovr">{fmt(p.rating)}</span>
                       </li>
                     ))}
                   </ul>

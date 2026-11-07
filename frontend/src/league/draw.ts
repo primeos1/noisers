@@ -18,7 +18,8 @@ export interface Entrant {
 export const CLUB_ORDER: ClubId[] = ["bulwark", "citadel", "islanders", "sentinel", "castellers", "coastal"];
 const POT_SIZE = CLUB_ORDER.length;
 
-export const ovr = (rating: number) => Math.round(rating * 10);
+/** A club rating as the squad pages show it: 7.46. */
+export const fmt = (rating: number) => rating.toFixed(2);
 
 /* ------------------------------------------------------------------ hashing */
 
@@ -90,8 +91,8 @@ export function buildPots(entrants: Entrant[]): Pot[] {
     label: g.keepers ? "Keepers' pot" : `Pot ${i + 1}`,
     keepers: g.keepers,
     players: g.players,
-    low: ovr(Math.min(...g.players.map((p) => p.rating))),
-    high: ovr(Math.max(...g.players.map((p) => p.rating))),
+    low: Math.min(...g.players.map((p) => p.rating)),
+    high: Math.max(...g.players.map((p) => p.rating)),
   }));
 }
 
@@ -216,12 +217,14 @@ export function rouletteAt(t: number, waiting: ClubId[], target: ClubId): { club
   return { club: waiting[step % waiting.length], step };
 }
 
-/** The rating shown on the card while it counts up from 40. */
+export const COUNT_FROM = 4;
+
+/** The rating shown on the card while it counts up from 4.00, to the hundredth. */
 export function countAt(t: number, target: number) {
-  if (t < BEATS.countFrom) return 40;
+  if (t < BEATS.countFrom) return COUNT_FROM;
   if (t >= BEATS.countTo) return target;
   const p = (t - BEATS.countFrom) / (BEATS.countTo - BEATS.countFrom);
-  return Math.round(40 + (target - 40) * (1 - Math.pow(1 - p, 2)));
+  return Math.round((COUNT_FROM + (target - COUNT_FROM) * (1 - Math.pow(1 - p, 2))) * 100) / 100;
 }
 
 /* ------------------------------------------------------------------- verify */

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { ClubId } from "../lib/league";
-import { BEATS, buildTimeline, CLUB_ORDER, countAt, momentAt, ovr, rouletteAt, type DrawResult, type Moment } from "./draw";
+import defaultPhoto from "../assets/player-default.svg";
+import { BEATS, buildTimeline, CLUB_ORDER, COUNT_FROM, countAt, fmt, momentAt, rouletteAt, type DrawResult, type Entrant, type Moment } from "./draw";
+
+const photoOf = (p: Entrant) => p.photoUrl || defaultPhoto;
 import { clubById } from "./data";
 import { ClubBadge } from "./ClubBadge";
 
@@ -117,7 +120,7 @@ export default function DrawStage(props: DrawStageProps) {
           let beat = 0;
           let lit: ClubId | null = null;
           let step = 0;
-          let count = 40;
+          let count = COUNT_FROM;
           if (moment.phase === "pick") {
             const pick = result.picks[moment.pick];
             const round = result.rounds[moment.round];
@@ -125,12 +128,12 @@ export default function DrawStage(props: DrawStageProps) {
             const r = rouletteAt(moment.t, round.order.slice(pick.slot), pick.club);
             lit = r.club;
             step = r.step;
-            count = countAt(moment.t, ovr(pick.player.rating));
+            count = countAt(moment.t, pick.player.rating);
           }
           v = { moment, beat, lit, step, count, countdown };
         } else {
           // Official draw whose seed isn't public yet.
-          v = { moment: { phase: "before", untilStart: Math.max(0, -elapsed), done: 0 }, beat: 0, lit: null, step: 0, count: 40, countdown };
+          v = { moment: { phase: "before", untilStart: Math.max(0, -elapsed), done: 0 }, beat: 0, lit: null, step: 0, count: COUNT_FROM, countdown };
         }
       }
       const key = v ? viewKey(v) : "none";
@@ -151,9 +154,18 @@ export default function DrawStage(props: DrawStageProps) {
     if (!p || !view || view.moment.phase !== "pick" || p.moment.phase !== "pick") return;
     if (p.moment.pick !== view.moment.pick) return;
     if (view.step !== p.step && view.beat === 0) synth.current.tick();
-    if (view.count !== p.count && view.beat === 3) synth.current.tick(true);
+    // A tick per tenth, not per hundredth, or it's a buzz.
+    if (Math.floor(view.count * 10) !== Math.floor(p.count * 10) && view.beat === 3) synth.current.tick(true);
     if (view.beat === 4 && p.beat < 4) synth.current.chime();
   }, [view]);
+
+  // Load every face before the draw needs it, so cards never flip to a blank.
+  useEffect(() => {
+    result?.picks.forEach((p) => {
+      const img = new Image();
+      img.src = photoOf(p.player);
+    });
+  }, [result]);
 
   const phase = view?.moment.phase ?? "none";
   const live = phase === "intro" || phase === "title" || phase === "pick";
@@ -246,7 +258,7 @@ export default function DrawStage(props: DrawStageProps) {
             <p className="nl-pot-label">
               {round ? (
                 <>
-                  <strong>{round.pot.label}</strong> rated {round.pot.low}–{round.pot.high}
+                  <strong>{round.pot.label}</strong> rated {fmt(round.pot.low)}–{fmt(round.pot.high)}
                 </>
               ) : (
                 "The pots"
@@ -298,7 +310,7 @@ export default function DrawStage(props: DrawStageProps) {
             <div className="nl-overlay nl-title-card" key={`t${roundNo}`}>
               <p className="nl-overlay-big">{round.pot.label}</p>
               <p className="nl-title-meta">
-                Rated {round.pot.low}–{round.pot.high}
+                Rated {fmt(round.pot.low)}–{fmt(round.pot.high)}
               </p>
               <p className="nl-overlay-sub">
                 {round.order.length === 6 ? "Every club gets exactly one" : `${round.order.length} players, so the smallest squads pick first`}
@@ -321,9 +333,10 @@ export default function DrawStage(props: DrawStageProps) {
             <ol>
               {latest.map((p) => (
                 <li key={p.n} className={p.n === newest ? "is-new" : ""}>
-                  <ClubBadge id={p.club} size={26} />
+                  <img src={photoOf(p.player)} alt="" className="nl-face" width={32} height={32} />
                   <span className="nl-latest-name">{p.player.name}</span>
-                  <span className="nl-ovr">{ovr(p.player.rating)}</span>
+                  <ClubBadge id={p.club} size={22} />
+                  <span className="nl-ovr">{fmt(p.player.rating)}</span>
                 </li>
               ))}
             </ol>
@@ -335,14 +348,14 @@ export default function DrawStage(props: DrawStageProps) {
         {CLUB_ORDER.map((id) => {
           const c = clubById.get(id)!;
           const squad = placed.filter((p) => p.club === id);
-          const avg = squad.length ? Math.round(squad.reduce((s, p) => s + ovr(p.player.rating), 0) / squad.length) : null;
+          const avg = squad.length ? squad.reduce((s, p) => s + p.player.rating, 0) / squad.length : null;
           return (
             <div key={id} className="nl-board-col">
               <div className="nl-board-head">
                 <ClubBadge id={id} size={30} />
                 <div>
                   <p className="nl-board-name">{c.name}</p>
-                  <p className="nl-muted">{avg != null ? `Avg ${avg}` : "Waiting"}</p>
+                  <p className="nl-muted">{avg != null ? `Avg ${fmt(avg)}` : "Waiting"}</p>
                 </div>
               </div>
               <ol className="nl-slots">
@@ -352,9 +365,9 @@ export default function DrawStage(props: DrawStageProps) {
                     <li key={i} className={`nl-slot ${p ? "is-filled" : ""} ${p && p.n === newest && phase !== "after" ? "is-new" : ""}`}>
                       {p ? (
                         <>
-                          <span className="nl-slot-pos">{p.player.position}</span>
+                          <img src={photoOf(p.player)} alt="" className="nl-face is-tiny" width={22} height={22} />
                           <span className="nl-slot-name">{p.player.name}</span>
-                          <span className="nl-ovr">{ovr(p.player.rating)}</span>
+                          <span className="nl-ovr">{fmt(p.player.rating)}</span>
                         </>
                       ) : (
                         <span className="nl-slot-empty" />
@@ -420,17 +433,23 @@ function DrawCard({ pick, beat, count, potLabel }: { pick: DrawResult["picks"][n
           <span>N</span>
         </div>
         <div className="nl-card-face nl-card-front">
-          <p className="nl-card-pos">{pick.player.position}</p>
+          {/* A silhouette until the reveal, then the face. */}
+          <div className="nl-card-photo">
+            <img src={photoOf(pick.player)} alt={beat >= 4 ? pick.player.name : ""} />
+            <span className="nl-card-pos">{pick.player.position}</span>
+          </div>
           <p className="nl-card-pot">{potLabel}</p>
-          <p className="nl-card-ovr">{beat >= 3 ? count : 40}</p>
+          <p className="nl-card-ovr">{fmt(beat >= 3 ? count : COUNT_FROM)}</p>
           <div className="nl-card-who">
-            {beat >= 4 && (
+            {beat >= 4 ? (
               <>
                 <p className="nl-card-name">{pick.player.name}</p>
                 <p className="nl-card-club">
-                  <ClubBadge id={pick.club} size={22} /> {club.name}
+                  <ClubBadge id={pick.club} size={20} /> {club.name}
                 </p>
               </>
+            ) : (
+              <p className="nl-card-name is-hidden">Who is it?</p>
             )}
           </div>
           {beat >= 4 && <span className="nl-shine" aria-hidden="true" />}

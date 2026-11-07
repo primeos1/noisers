@@ -3,7 +3,7 @@ import { apiFetch } from "../../lib/api";
 import { useSquad } from "../../lib/SquadContext";
 import { clockTime, type ClubId } from "../../lib/league";
 import { clubById, fetchLeague, GAMES, nightDate, SEASON, useResultsByNo, type LeagueData } from "../../league/data";
-import { buildPots, ovr, runDraw, type DrawResult, type Entrant } from "../../league/draw";
+import { buildPots, fmt, runDraw, type DrawResult, type Entrant } from "../../league/draw";
 import { ClubBadge } from "../../league/ClubBadge";
 import { leagueUrl } from "../../league/url";
 
@@ -188,7 +188,7 @@ function PlayersTab({ data, act }: { data: LeagueData; act: Act }) {
                     {p.membership === "guest" ? " · guest" : ""}
                   </span>
                 </span>
-                <span className="font-display text-xl text-paper-dim">{ovr(p.rating)}</span>
+                <span className="font-display text-xl text-paper-dim">{fmt(p.rating)}</span>
               </label>
               {on && p.position !== "GK" && (
                 <button
@@ -348,7 +348,7 @@ function DrawTab({ data, act }: { data: LeagueData; act: Act }) {
                     <span className="truncate">
                       <span className="text-xs text-mist">{p.position}</span> {p.name}
                     </span>
-                    <span className="font-display text-paper">{ovr(p.rating)}</span>
+                    <span className="font-display text-paper">{fmt(p.rating)}</span>
                   </li>
                 ))}
               </ul>

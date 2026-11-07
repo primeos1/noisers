@@ -152,7 +152,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 
 .nl-stage {
   position: relative; overflow: hidden;
-  min-height: 500px; border-radius: 18px;
+  min-height: 560px; border-radius: 18px;
   background:
     radial-gradient(60% 50% at 50% 100%, rgb(30 120 70 / .28), transparent 70%),
     linear-gradient(180deg, #0e1528, #0a1020);
@@ -199,8 +199,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 
 /* the drawn card */
 .nl-card-wrap {
-  position: absolute; z-index: 3; left: 50%; top: 45%;
-  width: 200px; height: 280px; margin: -140px 0 0 -100px;
+  position: absolute; z-index: 3; left: 50%; top: 48%;
+  width: 220px; height: 320px; margin: -160px 0 0 -110px;
   perspective: 900px;
   animation: nl-pull .7s cubic-bezier(.2, .9, .3, 1.2) both;
   transition: transform .55s cubic-bezier(.6, 0, .8, .3), opacity .55s;
@@ -220,16 +220,29 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .nl-card-front {
   transform: rotateY(180deg);
   display: flex; flex-direction: column; align-items: center; text-align: center;
-  padding: 18px 14px 14px;
+  padding: 0 0 12px;
   background: linear-gradient(170deg, #1f2b4b, #10172b 70%);
   box-shadow: inset 0 0 0 3px var(--gold), 0 20px 50px rgb(0 0 0 / .6);
   transition: box-shadow .4s;
 }
 .nl-card.is-revealed .nl-card-front { box-shadow: inset 0 0 0 3px var(--glow), 0 0 50px color-mix(in srgb, var(--glow) 45%, transparent), 0 20px 50px rgb(0 0 0 / .6); }
-.nl-card-pos { font: 400 2.2rem/1 var(--display); margin: 0; color: var(--gold); letter-spacing: .04em; }
-.nl-card-pot { margin: 2px 0 0; font-size: .75rem; color: var(--mist); }
-.nl-card-ovr { font: 400 5.2rem/1 var(--display); margin: 10px 0 0; font-variant-numeric: tabular-nums; }
-.nl-card-who { min-height: 64px; margin-top: auto; }
+.nl-card-photo { position: relative; width: 100%; height: 150px; overflow: hidden; border-radius: 14px 14px 0 0; background: #0d1426; }
+.nl-card-photo img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center 20%;
+  filter: grayscale(1) brightness(.22) blur(7px); transform: scale(1.12);
+  transition: filter .5s ease-out, opacity .5s, transform .6s ease-out;
+}
+.nl-card.is-revealed .nl-card-photo img { filter: none; opacity: 1; transform: none; }
+.nl-card-photo::after { content: ""; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(transparent, #1c2746); }
+.nl-card-pos {
+  position: absolute; z-index: 1; top: 8px; left: 8px;
+  font: 400 1.35rem/1 var(--display); letter-spacing: .04em; color: var(--navy);
+  background: var(--gold); border-radius: 6px; padding: 4px 7px 2px;
+}
+.nl-card-pot { margin: 6px 0 0; font-size: .72rem; color: var(--mist); }
+.nl-card-ovr { font: 400 3.6rem/1 var(--display); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.nl-card-who { min-height: 52px; margin-top: auto; padding: 0 10px; }
+.nl-card-name.is-hidden { color: var(--mist); font-weight: 500; animation: none; }
 .nl-card-name { font-weight: 800; font-size: 1.05rem; line-height: 1.2; margin: 0; animation: nl-rise .35s ease-out both; }
 .nl-card-club { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 6px 0 0; font-size: .82rem; color: var(--mist); animation: nl-rise .35s .1s ease-out both; }
 @keyframes nl-rise { from { opacity: 0; transform: translateY(8px); } }
@@ -266,6 +279,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .nl-latest ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .nl-latest li { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; background: var(--panel-2); font-size: .9rem; }
 .nl-latest li.is-new { animation: nl-flash 1.6s ease-out; }
+.nl-face { flex: none; width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--panel); box-shadow: 0 0 0 1.5px var(--line); }
+.nl-face.is-tiny { width: 22px; height: 22px; }
 .nl-latest-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nl-ovr { font: 400 1.15rem/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; padding-top: 2px; }
 @keyframes nl-flash { 0%, 30% { background: rgb(201 168 90 / .4); box-shadow: inset 0 0 0 1.5px var(--gold); } 100% { background: var(--panel-2); box-shadow: inset 0 0 0 1.5px transparent; } }
@@ -280,12 +295,12 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .nl-board-name { margin: 0; font-weight: 700; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nl-board-head .nl-muted { font-size: .75rem; }
 .nl-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.nl-slot { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 7px; border-radius: 7px; background: var(--panel-2); font-size: .8rem; }
+.nl-slot { display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px; border-radius: 7px; background: var(--panel-2); font-size: .8rem; }
 .nl-slot-empty { flex: 1; height: 2px; background: var(--line); border-radius: 2px; }
 .nl-slot.is-new { animation: nl-flash 1.6s ease-out; }
 .nl-slot-pos { font-size: .65rem; font-weight: 700; color: var(--mist); width: 26px; flex: none; }
 .nl-slot-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nl-slot .nl-ovr { font-size: 1rem; }
+.nl-slot .nl-ovr { font-size: .95rem; }
 
 /* demo controls */
 .nl-demo {
