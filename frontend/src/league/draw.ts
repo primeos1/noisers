@@ -18,7 +18,7 @@ export interface Entrant {
 export const CLUB_ORDER: ClubId[] = ["bulwark", "citadel", "islanders", "sentinel", "castellers", "coastal"];
 const POT_SIZE = CLUB_ORDER.length;
 
-const TEAMMATE_NAMES = new Set(["kingjery", "osemiles", "ebenezer", "scottie"]);
+const TEAMMATE_NAMES = new Set(["kingjery", "kingjerry", "osemiles", "ebenezer", "scottie", "scotty"]);
 const isLockedTeammate = (player: Entrant) => TEAMMATE_NAMES.has(player.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
 
 /** A club rating as the squad pages show it: 7.46. */

@@ -46,6 +46,20 @@ test("partial groups and normalized names stay together and verify", async () =>
   assert.equal(verified.picksMatch, true);
 });
 
+test("King Jerry and Scotty join Ose Miles and Ebenezer with either spelling", async () => {
+  for (const king of ["King Jery", "King Jerry"]) {
+    for (const scotty of ["Scottie", "Scotty"]) {
+      const entrants = players(48);
+      entrants[0].name = king;
+      entrants[3].name = scotty;
+      for (let seed = 0; seed < 40; seed++) {
+        const draw = await runDraw(String(seed), entrants);
+        assert.equal(new Set(draw.picks.filter((p) => p.player.id <= 4).map((p) => p.club)).size, 1);
+      }
+    }
+  }
+});
+
 test("empty and unrelated rosters remain valid", async () => {
   assert.equal((await runDraw("empty", [])).picks.length, 0);
   const entrants = players(24).map((p) => ({ ...p, name: `Player ${p.id}` }));
