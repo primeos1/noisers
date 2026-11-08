@@ -604,14 +604,6 @@ function FairPlay(props: { seed: string; hash: string; entrants: Entrant[] | nul
             </p>
           </li>
           <li>
-            <h3>Revealed</h3>
-            <p>
-              At the start of the draw the seed is made public. Every phone runs the same draw from it, so everyone sees the
-              same pick at the same second.
-              {" "}King Jery, Ose Miles, Ebenezer and Scottie stay on the same team whenever they enter the league.
-            </p>
-          </li>
-          <li>
             <h3>Checked</h3>
             <p>
               Hash the seed and it must match the fingerprint published beforehand. Re-run the draw with it and every pick must
@@ -630,7 +622,7 @@ function FairPlay(props: { seed: string; hash: string; entrants: Entrant[] | nul
           <h3 className="nl-h3">Verify the draw{props.isDemo ? " (demo)" : ""}</h3>
           <label>
             Seed
-            <input value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="Revealed when the draw starts" spellCheck={false} />
+            <input value={seed} onChange={(e) => setSeed(e.target.value)} spellCheck={false} />
           </label>
           <label>
             Published fingerprint
