@@ -30,8 +30,9 @@ export interface PlayerLine {
   goals: number;
   assists: number;
   ownGoals: number;
-  /** Keepers only: finished games their club didn't concede. */
+  /** Defenders and keepers: finished games their club didn't concede. */
   cleanSheets: number;
+  saves: number;
   hatTricks: number;
   /** Sundays they were Player of the Night. */
   nights: number;
@@ -61,7 +62,7 @@ export function leagueStats(draw: DrawResult, data: LeagueData): LeagueStats {
 
   for (const [club, squad] of Object.entries(draw.squads) as [ClubId, Entrant[]][]) {
     for (const player of squad) {
-      const line: PlayerLine = { player, club, played: 0, won: 0, drawn: 0, lost: 0, goals: 0, assists: 0, ownGoals: 0, cleanSheets: 0, hatTricks: 0, nights: 0, matches: [] };
+      const line: PlayerLine = { player, club, played: 0, won: 0, drawn: 0, lost: 0, goals: 0, assists: 0, ownGoals: 0, cleanSheets: 0, saves: 0, hatTricks: 0, nights: 0, matches: [] };
       for (const g of GAMES) {
         if (g.home !== club && g.away !== club) continue;
         const home = g.home === club;
@@ -78,13 +79,14 @@ export function leagueStats(draw: DrawResult, data: LeagueData): LeagueStats {
           assists: 0,
           ownGoals: 0,
         };
+        if (player.position === "GK" && m.status !== "scheduled") line.saves += r?.saves?.[player.id] ?? 0;
         line.matches.push(m);
         if (m.status === "final") {
           line.played++;
           if (m.for > m.against) line.won++;
           else if (m.for < m.against) line.lost++;
           else line.drawn++;
-          if (m.against === 0 && player.position === "GK") line.cleanSheets++;
+          if (m.against === 0 && ["GK", "DEF"].includes(player.position)) line.cleanSheets++;
         }
       }
       lines.push(line);

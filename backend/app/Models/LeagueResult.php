@@ -12,6 +12,7 @@ class LeagueResult extends Model
     {
         return [
             'match_no' => 'integer',
+            'saves' => 'array',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];

@@ -9,6 +9,7 @@ export type MatchStatus = "scheduled" | "live" | "final";
 export interface LeagueResult {
   matchNo: number;
   status: MatchStatus;
+  saves?: Record<string, number>;
   homeScore: number;
   awayScore: number;
   startedAt: string | null;

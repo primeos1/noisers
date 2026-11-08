@@ -136,12 +136,30 @@ class LeagueController extends Controller
     {
         $this->authorizeCommittee($request);
         $this->checkMatchNo($matchNo);
-        $data = $request->validate(['status' => ['required', 'in:scheduled,live,final']]);
+        $data = $request->validate([
+            'status' => ['required', 'in:scheduled,live,final'],
+            'saves' => ['sometimes', 'array'],
+            'saves.*' => ['integer', 'min:0', 'max:1000'],
+        ]);
+        if (isset($data['saves'])) {
+            $state = LeagueState::current();
+            $keepers = collect($state->draw_entrants ?? $this->entrantPlayers($state->entrant_ids ?? [], $state->keeper_ids ?? []))
+                ->where('position', 'GK')->pluck('id')->all();
+            foreach (array_keys($data['saves']) as $id) {
+                if (! in_array((int) $id, $keepers, true)) {
+                    throw ValidationException::withMessages(['saves' => 'Saves must belong to league keepers.']);
+                }
+            }
+        }
 
         DB::transaction(function () use ($matchNo, $data) {
             $result = LeagueResult::firstOrNew(['match_no' => $matchNo]);
             $result->status = $data['status'];
+            if (isset($data['saves'])) {
+                $result->saves = $data['saves'];
+            }
             if ($data['status'] === 'scheduled') {
+                $result->saves = [];
                 $result->started_at = null;
                 $result->finished_at = null;
                 LeagueGoal::where('match_no', $matchNo)->delete();
@@ -196,6 +214,7 @@ class LeagueController extends Controller
 
             return [
                 'matchNo' => $r->match_no,
+                'saves' => (object) ($r->saves ?? []),
                 'status' => $r->status,
                 'homeScore' => $mine->where('side', 'home')->count(),
                 'awayScore' => $mine->where('side', 'away')->count(),

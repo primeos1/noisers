@@ -12,6 +12,22 @@ class LeagueTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_league_keeper_saves_are_stored_validated_and_reset(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+        $keeper = Player::factory()->create(['position' => 'GK']);
+        $defender = Player::factory()->create(['position' => 'DEF']);
+        $this->putJson('/api/league/entrants', ['player_ids' => [$keeper->id, $defender->id], 'keeper_ids' => [$keeper->id]])->assertOk();
+        $this->putJson('/api/league/matches/1', ['status' => 'live', 'saves' => [$keeper->id => 7]])
+            ->assertOk()->assertJsonPath('data.results.0.saves.'.$keeper->id, 7);
+        $this->putJson('/api/league/matches/1', ['status' => 'final'])
+            ->assertOk()->assertJsonPath('data.results.0.saves.'.$keeper->id, 7);
+        $this->putJson('/api/league/matches/1', ['status' => 'final', 'saves' => [$defender->id => 2]])->assertUnprocessable();
+        $this->putJson('/api/league/matches/1', ['status' => 'final', 'saves' => [$keeper->id => -1]])->assertUnprocessable();
+        $this->putJson('/api/league/matches/1', ['status' => 'scheduled'])->assertOk();
+        $this->assertEmpty($this->getJson('/api/league')->json('data.results.0.saves'));
+    }
+
     public function test_writes_need_a_committee_sign_in(): void
     {
         $this->putJson('/api/league/entrants', ['player_ids' => []])->assertUnauthorized();

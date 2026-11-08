@@ -135,7 +135,7 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
                 <span className={none ? "nl-empty-cell" : ""}>{none ? "–" : `${l.won}-${l.drawn}-${l.lost}`}</span>
                 <span className={none ? "nl-empty-cell" : "is-strong"}>{none ? "–" : l.goals}</span>
                 <span className={none ? "nl-empty-cell" : "is-strong"}>{none ? "–" : l.assists}</span>
-                <span className={`is-wide ${none ? "nl-empty-cell" : ""}`}>{none || l.player.position !== "GK" ? "–" : l.cleanSheets}</span>
+                <span className={`is-wide ${none ? "nl-empty-cell" : ""}`}>{none || !["GK", "DEF"].includes(l.player.position) ? "–" : l.cleanSheets}</span>
                 <span className={`is-wide ${none ? "nl-empty-cell" : ""}`}>{none ? "–" : l.nights}</span>
               </button>
               {open === l.player.id && <PlayerDetail line={l} />}
@@ -144,7 +144,7 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
         })}
         {rows.length === 0 && <p className="nl-muted nl-pad">No one matches that.</p>}
       </div>
-      <p className="nl-muted nl-note">P played, CS clean sheets (keepers), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
+      <p className="nl-muted nl-note">P played, CS clean sheets (defenders and keepers), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
     </>
   );
 }
@@ -158,8 +158,8 @@ function PlayerDetail({ line }: { line: PlayerLine }) {
         <div><dt>Goals</dt><dd>{line.goals}</dd></div>
         <div><dt>Assists</dt><dd>{line.assists}</dd></div>
         <div><dt>Wins</dt><dd>{line.won}</dd></div>
-        {line.player.position === "GK" && <div><dt>Clean sheets</dt><dd>{line.cleanSheets}</dd></div>}
-        <div><dt>Hat-tricks</dt><dd>{line.hatTricks}</dd></div>
+        {["GK", "DEF"].includes(line.player.position) && <div><dt>Clean sheets</dt><dd>{line.cleanSheets}</dd></div>}
+        {line.player.position === "GK" && <div><dt>Saves</dt><dd>{line.saves}</dd></div>}
         {line.ownGoals > 0 && <div><dt>Own goals</dt><dd>{line.ownGoals}</dd></div>}
       </dl>
       {played.length === 0 ? (

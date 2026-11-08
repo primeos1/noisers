@@ -498,12 +498,29 @@ function MatchRow(props: {
           <button
             type="button"
             className={btnDanger}
-            onClick={() => window.confirm("Reset this game? Its goals are removed.") && act(path, "PUT", { status: "scheduled" })}
+            onClick={() => window.confirm("Reset this game? Its goals and saves are removed.") && act(path, "PUT", { status: "scheduled" })}
           >
             Reset
           </button>
         )}
       </div>
+
+      {status !== "scheduled" && draw && (
+        <form className="mt-3 flex flex-wrap items-end gap-3" key={JSON.stringify(result?.saves)} onSubmit={(event) => {
+          event.preventDefault();
+          const fields = new FormData(event.currentTarget);
+          const saves = Object.fromEntries([...fields.entries()].map(([id, value]) => [id, Number(value)]));
+          void act(path, "PUT", { status, saves });
+        }}>
+          {[...draw.squads[home], ...draw.squads[away]].filter((p) => p.position === "GK").map((p) => (
+            <label key={p.id} className="text-xs text-mist">
+              {p.name} saves
+              <input className="ml-2 w-20 border border-ink-line bg-ink p-2 text-paper" type="number" name={String(p.id)} min={0} max={1000} step={1} required defaultValue={result?.saves?.[p.id] ?? 0} />
+            </label>
+          ))}
+          <button type="submit" className={btnGhost}>Save keeper stats</button>
+        </form>
+      )}
 
       {adding && (
         <GoalForm
