@@ -8,6 +8,7 @@ use App\Http\Resources\CardResource;
 use App\Models\Card;
 use App\Models\MatchDayEvent;
 use App\Support\MatchDayFinalizer;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -66,6 +67,7 @@ class CardController extends Controller
             'type' => ['sometimes', 'in:yellow,red'],
             'reason' => ['nullable', 'string', 'max:255'],
             'fine_amount' => ['sometimes', 'numeric', 'min:0'],
+            'amount_paid' => ['sometimes', 'numeric', 'min:0'],
             'paid' => ['sometimes', 'boolean'],
             'occurred_on' => ['nullable', 'date'],
         ]);
@@ -73,6 +75,48 @@ class CardController extends Controller
         $card->update($validated);
 
         return new CardResource($card->load('player'));
+    }
+
+    /**
+     * Records money a player has handed over towards their fines. It clears
+     * their oldest cards first; anything left goes part-way on the next one.
+     */
+    public function pay(Request $request)
+    {
+        $this->authorize('create', Card::class);
+
+        $validated = $request->validate([
+            'player_id' => ['required', 'integer', 'exists:players,id'],
+            'amount' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        $cards = DB::transaction(function () use ($validated) {
+            $owing = Card::where('player_id', $validated['player_id'])
+                ->where('paid', false)
+                ->orderBy('occurred_on')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $left = (float) $validated['amount'];
+            $touched = new EloquentCollection;
+            foreach ($owing as $card) {
+                if ($left <= 0) {
+                    break;
+                }
+                $put = min($left, $card->outstanding());
+                if ($put <= 0) {
+                    continue;
+                }
+                $card->update(['amount_paid' => (float) $card->amount_paid + $put]);
+                $left -= $put;
+                $touched->push($card);
+            }
+
+            return $touched;
+        });
+
+        return CardResource::collection($cards->load('player'));
     }
 
     /**

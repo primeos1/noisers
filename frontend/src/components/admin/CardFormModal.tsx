@@ -89,6 +89,7 @@ export default function CardFormModal({
         type,
         reason: reason.trim(),
         fine: fineAmounts[type],
+        amountPaid: 0,
         paid: false,
         date: isoDateLabel(date),
         occurredOn: date,

@@ -6,7 +6,7 @@ import { useSquad } from "../lib/SquadContext";
 import { useCards } from "../lib/CardsContext";
 import { useMatchDay } from "../lib/MatchDayContext";
 import { allGames, scoreOf, type MatchDayGame } from "../lib/matchDay";
-import { formatNaira } from "../lib/cards";
+import { formatNaira, paymentStatus } from "../lib/cards";
 import { isKeeper, isStockPhoto, keepsCleanSheets, positionNames, savesLabel } from "../lib/clubData";
 import MembershipBadge from "../components/MembershipBadge";
 import { CrownIcon, TrophyIcon } from "../components/icons";
@@ -181,7 +181,7 @@ export default function PlayerProfile() {
                         <td className="px-4 py-3 text-paper-dim">{formatNaira(card.fine)}</td>
                         <td className="px-4 py-3">
                           <span className={card.paid ? "text-win" : "text-paper-dim"}>
-                            {card.paid ? "Paid" : "Unpaid"}
+                            {paymentStatus(card)}
                           </span>
                         </td>
                       </tr>

@@ -8,7 +8,7 @@ import { useHomeContent } from "../../lib/HomeContentContext";
 import { scoreOf } from "../../lib/matchDay";
 import { topByStat } from "../../lib/clubData";
 import { photos } from "../../lib/photos";
-import { outstandingFines, recentCards, formatNaira } from "../../lib/cards";
+import { outstandingFines, paymentStatus, recentCards, formatNaira } from "../../lib/cards";
 import { useCards } from "../../lib/CardsContext";
 import {
   CalendarIcon,
@@ -246,10 +246,10 @@ export default function AdminHome() {
                       <p className="text-sm tabular-nums text-paper">{formatNaira(card.fine)}</p>
                       <span
                         className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[0.65rem] font-medium ${
-                          card.paid ? "bg-win/15 text-win" : "bg-loss/15 text-loss"
+                          card.paid ? "bg-win/15 text-win" : card.amountPaid > 0 ? "bg-draw/15 text-draw" : "bg-loss/15 text-loss"
                         }`}
                       >
-                        {card.paid ? "Paid" : "Unpaid"}
+                        {paymentStatus(card)}
                       </span>
                     </div>
                   </li>

@@ -157,7 +157,7 @@ export function playerGameLog(events: MatchDayEvent[], playerId: number): GameLo
 export function cardCounts(cards: Card[], playerId: number) {
   const mine = cards.filter((c) => c.playerId === playerId);
   const total = mine.reduce((s, c) => s + c.fineAmount, 0);
-  const paid = mine.filter((c) => c.paid).reduce((s, c) => s + c.fineAmount, 0);
+  const paid = mine.reduce((s, c) => s + c.fineAmount - owedOn(c), 0);
   const unpaid = mine.filter((c) => !c.paid);
   return {
     cards: mine,
@@ -173,8 +173,24 @@ export function cardCounts(cards: Card[], playerId: number) {
   };
 }
 
+/** What's still owed on one card. */
+export function owedOn(card: Card) {
+  return card.paid ? 0 : Math.max(card.fineAmount - (card.amountPaid ?? 0), 0);
+}
+
 export function outstandingFines(cards: Card[]) {
-  return cards.filter((c) => !c.paid).reduce((sum, c) => sum + c.fineAmount, 0);
+  return cards.reduce((sum, c) => sum + owedOn(c), 0);
+}
+
+export function collectedFines(cards: Card[]) {
+  return cards.reduce((sum, c) => sum + c.fineAmount - owedOn(c), 0);
+}
+
+/** "Paid", "Unpaid", or "₦1,000 of ₦2,000 paid" for a part-paid fine. */
+export function paymentStatus(card: Card, unpaid = "Unpaid") {
+  if (card.paid) return "Paid";
+  if (card.amountPaid > 0) return `${formatNaira(card.amountPaid)} of ${formatNaira(card.fineAmount)} paid`;
+  return unpaid;
 }
 
 export interface Contribution {

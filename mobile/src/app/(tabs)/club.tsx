@@ -10,7 +10,7 @@ import * as WebBrowser from "expo-web-browser";
 import { API_URL, PRIVACY_URL, SITE_URL } from "../../lib/config";
 import { CLUB_EMAIL, INSTAGRAM_HANDLE, INSTAGRAM_URL, WHATSAPP_NUMBER, WHATSAPP_URL } from "../../lib/contact";
 import { LinearGradient } from "expo-linear-gradient";
-import { cardDate, formatNaira, outstandingFines, participantName, plural, scoreOf, sortEvents } from "../../lib/derive";
+import { cardDate, formatNaira, outstandingFines, owedOn, participantName, plural, scoreOf, sortEvents } from "../../lib/derive";
 import { SignInForm } from "../../components/SignInForm";
 import { confirm } from "../../components/form";
 import { Avatar, Bar, Button, Group, IconTile, PageTitle, RefCard, Row, Screen, SectionHeader, Txt, text } from "../../components/ui";
@@ -261,7 +261,7 @@ function Dashboard() {
                   {[c.reason, cardDate(c)].filter(Boolean).join(", ")}
                 </Txt>
               </View>
-              <Txt style={[text.small, { color: c.paid ? colors.win : colors.loss }]}>{c.paid ? "Paid" : formatNaira(c.fineAmount)}</Txt>
+              <Txt style={[text.small, { color: c.paid ? colors.win : colors.loss }]}>{c.paid ? "Paid" : formatNaira(owedOn(c))}</Txt>
             </Row>
           ))
         )}

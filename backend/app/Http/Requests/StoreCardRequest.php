@@ -21,6 +21,7 @@ class StoreCardRequest extends FormRequest
             'type' => ['required', 'in:yellow,red'],
             'reason' => ['nullable', 'string', 'max:255'],
             'fine_amount' => ['required', 'numeric', 'min:0'],
+            'amount_paid' => ['sometimes', 'numeric', 'min:0'],
             'paid' => ['boolean'],
             'occurred_on' => ['nullable', 'date'],
         ];

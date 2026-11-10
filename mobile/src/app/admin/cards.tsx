@@ -4,7 +4,7 @@ import { router, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useClub } from "../../lib/club";
 import { errorMessage } from "../../lib/api";
-import { cardDate, formatNaira, outstandingFines, participantName } from "../../lib/derive";
+import { cardDate, collectedFines, formatNaira, outstandingFines, owedOn, participantName } from "../../lib/derive";
 import type { Card } from "../../lib/types";
 import { CardPips, Empty, ErrorBanner, Figures, Group, Row, Screen, Segmented, Txt, text } from "../../components/ui";
 import { colors, radius, space } from "../../theme";
@@ -19,17 +19,20 @@ interface CardGroup {
   yellows: number;
   reds: number;
   fine: number;
+  /** Still owed across the group — less than `fine` once something's been paid. */
+  owed: number;
   paid: boolean;
 }
 
 function groupCards(cards: Card[]): CardGroup[] {
   const groups = new Map<number, CardGroup>();
   for (const card of cards) {
-    const group = groups.get(card.playerId) ?? { playerId: card.playerId, cards: [], yellows: 0, reds: 0, fine: 0, paid: true };
+    const group = groups.get(card.playerId) ?? { playerId: card.playerId, cards: [], yellows: 0, reds: 0, fine: 0, owed: 0, paid: true };
     group.cards.push(card);
     if (card.type === "red") group.reds += 1;
     else group.yellows += 1;
     group.fine += card.fineAmount;
+    group.owed += owedOn(card);
     group.paid &&= card.paid;
     groups.set(card.playerId, group);
   }
@@ -55,18 +58,34 @@ export default function CardsScreen() {
     filter === "all" ? true : filter === "paid" ? c.paid : filter === "unpaid" ? !c.paid : c.type === filter,
   );
   const groups = groupCards(visible);
-  const collected = cards.filter((c) => c.paid).reduce((s, c) => s + c.fineAmount, 0);
+  const collected = collectedFines(cards);
   const nameOf = (c: Card) => (c.playerId != null ? participantName(players, [], c.playerId) : "Unknown player");
 
   // A partly paid group gets marked fully paid; a fully paid one goes back to owing.
-  async function togglePaid(group: CardGroup) {
+  async function setGroupPaid(group: CardGroup, paid: boolean) {
     setError("");
-    const paid = !group.paid;
     try {
       await Promise.all(group.cards.filter((c) => c.paid !== paid).map((c) => setCardPaid(c.id, paid)));
     } catch (err) {
       setError(errorMessage(err, "Couldn't update that card."));
     }
+  }
+
+  // Owing players can pay some or all of it; a cleared player can be put back to owing.
+  function choosePayment(group: CardGroup) {
+    const name = nameOf(group.cards[0]);
+    if (group.paid) {
+      Alert.alert(name, "All fines paid.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Mark as owing", style: "destructive", onPress: () => setGroupPaid(group, false) },
+      ]);
+      return;
+    }
+    Alert.alert(name, `Owes ${formatNaira(group.owed)}.`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Part payment…", onPress: () => router.push({ pathname: "/admin/card-payment", params: { playerId: String(group.playerId) } }) },
+      { text: "Paid in full", onPress: () => setGroupPaid(group, true) },
+    ]);
   }
 
   // Deletes one card at a time — the latest in the group.
@@ -131,14 +150,14 @@ export default function CardsScreen() {
       {visible.length === 0 ? (
         <Empty>{filter === "unpaid" ? "Everyone's paid up." : "No cards match this filter."}</Empty>
       ) : (
-        <Group aside="Tap to mark paid, long-press to delete">
+        <Group aside="Tap to record a payment, long-press to delete">
           {groups.map((g) => (
             <Row
               key={g.playerId}
-              onPress={() => togglePaid(g)}
+              onPress={() => choosePayment(g)}
               onLongPress={() => confirmRemove(g)}
               chevron={false}
-              accessibilityLabel={`${nameOf(g.cards[0])}, ${g.yellows} yellow, ${g.reds} red, ${g.paid ? "paid" : "not paid"}`}
+              accessibilityLabel={`${nameOf(g.cards[0])}, ${g.yellows} yellow, ${g.reds} red, ${g.paid ? "paid" : `owes ${formatNaira(g.owed)}`}`}
             >
               <CardPips yellow={g.yellows} red={g.reds} />
               <View style={styles.flex}>
@@ -150,10 +169,16 @@ export default function CardsScreen() {
                 </Txt>
               </View>
               <View style={styles.amount}>
-                <Txt style={[text.semi, text.tabular]}>{formatNaira(g.fine)}</Txt>
-                <View style={[styles.status, g.paid ? styles.statusPaid : styles.statusUnpaid]}>
-                  <Ionicons name={g.paid ? "checkmark" : "time-outline"} size={12} color={g.paid ? colors.win : colors.loss} />
-                  <Txt style={[text.small, { color: g.paid ? colors.win : colors.loss }]}>{g.paid ? "Paid" : "Unpaid"}</Txt>
+                <Txt style={[text.semi, text.tabular]}>{formatNaira(g.paid ? g.fine : g.owed)}</Txt>
+                <View style={[styles.status, g.paid ? styles.statusPaid : g.owed < g.fine ? styles.statusPart : styles.statusUnpaid]}>
+                  <Ionicons
+                    name={g.paid ? "checkmark" : "time-outline"}
+                    size={12}
+                    color={g.paid ? colors.win : g.owed < g.fine ? colors.draw : colors.loss}
+                  />
+                  <Txt style={[text.small, { color: g.paid ? colors.win : g.owed < g.fine ? colors.draw : colors.loss }]}>
+                    {g.paid ? "Paid" : g.owed < g.fine ? `Left of ${formatNaira(g.fine)}` : "Unpaid"}
+                  </Txt>
                 </View>
               </View>
             </Row>
@@ -170,5 +195,6 @@ const styles = StyleSheet.create({
   amount: { alignItems: "flex-end", gap: 4 },
   status: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
   statusPaid: { backgroundColor: "rgba(47,158,138,0.15)" },
+  statusPart: { backgroundColor: "rgba(168,132,31,0.15)" },
   statusUnpaid: { backgroundColor: "rgba(194,59,107,0.15)" },
 });

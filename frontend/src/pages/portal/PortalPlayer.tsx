@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
 import { useMatchDay } from "../../lib/MatchDayContext";
-import { formatNaira } from "../../lib/cards";
+import { formatNaira, paymentStatus } from "../../lib/cards";
 import { cardCounts, playerGameLog, useMyShirt } from "../../lib/portal";
 import { isKeeper, keepsCleanSheets, positionNames, savesLabel } from "../../lib/clubData";
 import MembershipBadge from "../../components/MembershipBadge";
@@ -265,7 +265,7 @@ export default function PortalPlayer() {
                   </span>
                   <span className="shrink-0 text-right">
                     <span className="block font-semibold tabular-nums text-paper">{formatNaira(c.fine)}</span>
-                    <span className={`block text-xs ${c.paid ? "text-win" : "text-loss"}`}>{c.paid ? "Paid" : "Not paid"}</span>
+                    <span className={`block text-xs ${c.paid ? "text-win" : "text-loss"}`}>{paymentStatus(c, "Not paid")}</span>
                   </span>
                 </Row>
               ))}

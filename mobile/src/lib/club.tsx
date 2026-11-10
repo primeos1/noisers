@@ -115,6 +115,8 @@ interface ClubContextValue {
   setMyShirt: (playerId: number | null) => void;
   addCard: (card: NewCard) => Promise<void>;
   setCardPaid: (id: number, paid: boolean) => Promise<void>;
+  /** Money a player handed over; it clears their oldest fines first. */
+  recordPayment: (playerId: number, amount: number) => Promise<void>;
   removeCard: (id: number) => Promise<void>;
   addPlayer: (player: PlayerInput) => Promise<Player>;
   updatePlayer: (id: number, player: PlayerInput) => Promise<void>;
@@ -264,7 +266,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
 
   async function setCardPaid(id: number, paid: boolean) {
     const previous = cardsRef.current;
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, paid } : c)));
+    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, paid, amountPaid: paid ? c.fineAmount : 0 } : c)));
     try {
       const res = await apiFetch<{ data: Card }>(`/cards/${id}`, { method: "PUT", body: { paid } });
       setCards((prev) => prev.map((c) => (c.id === id ? res.data : c)));
@@ -272,6 +274,12 @@ export function ClubProvider({ children }: { children: ReactNode }) {
       setCards(previous);
       throw err;
     }
+  }
+
+  async function recordPayment(playerId: number, amount: number) {
+    const res = await apiFetch<{ data: Card[] }>("/cards/payments", { method: "POST", body: { player_id: playerId, amount } });
+    const updated = new Map(res.data.map((c) => [c.id, c]));
+    setCards((prev) => prev.map((c) => updated.get(c.id) ?? c));
   }
 
   async function removeCard(id: number) {
@@ -422,6 +430,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         setMyShirt,
         addCard,
         setCardPaid,
+        recordPayment,
         removeCard,
         addPlayer,
         updatePlayer,

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
 import { useCards } from "../../lib/CardsContext";
-import { formatNaira, outstandingFines, type CardRecord, type CardType } from "../../lib/cards";
+import { collectedFines, formatNaira, outstandingFines, owedOn, type CardRecord, type CardType } from "../../lib/cards";
 import { useSettings } from "../../lib/SettingsContext";
 import CardFormModal, { type CardMatchLink } from "../../components/admin/CardFormModal";
 import { useMatchDay } from "../../lib/MatchDayContext";
@@ -18,17 +18,20 @@ interface CardGroup {
   yellows: number;
   reds: number;
   fine: number;
+  /** Still owed across the group — less than `fine` once something's been paid. */
+  owed: number;
   paid: boolean;
 }
 
 function groupCards(cards: CardRecord[]): CardGroup[] {
   const groups = new Map<number, CardGroup>();
   for (const card of cards) {
-    const group = groups.get(card.playerId) ?? { playerId: card.playerId, cards: [], yellows: 0, reds: 0, fine: 0, paid: true };
+    const group = groups.get(card.playerId) ?? { playerId: card.playerId, cards: [], yellows: 0, reds: 0, fine: 0, owed: 0, paid: true };
     group.cards.push(card);
     if (card.type === "red") group.reds += 1;
     else group.yellows += 1;
     group.fine += card.fine;
+    group.owed += owedOn(card);
     group.paid &&= card.paid;
     groups.set(card.playerId, group);
   }
@@ -63,6 +66,13 @@ function CardChips({ group }: { group: CardGroup }) {
   );
 }
 
+/** "₦5,000", or "₦3,000 of ₦5,000 left" once part of it has been paid. */
+function fineLabel(group: CardGroup) {
+  return group.owed > 0 && group.owed < group.fine
+    ? `${formatNaira(group.owed)} of ${formatNaira(group.fine)} left`
+    : formatNaira(group.fine);
+}
+
 /** Distinct reasons, and the first and latest dates when they differ. */
 function groupDetail(group: CardGroup) {
   const reasons = [...new Set(group.cards.map((c) => c.reason).filter(Boolean))].join(", ");
@@ -81,13 +91,34 @@ const filters: { label: string; value: Filter }[] = [
 
 export default function AdminCards() {
   const { players, refresh: refreshSquad } = useSquad();
-  const { cards, addCard, removeCard, updateCard, refresh: refreshCards, error: cardsError } = useCards();
+  const { cards, addCard, removeCard, updateCard, recordPayment, refresh: refreshCards, error: cardsError } = useCards();
   const { events, updateEvent, refresh: refreshMatchDays, error: matchDayError } = useMatchDay();
   const { refresh: refreshVale } = useValeContent();
   const { settings } = useSettings();
   const [filter, setFilter] = useState<Filter>("all");
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<CardGroup | null>(null);
+  const [paying, setPaying] = useState<{ playerId: number; owed: number } | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [paySaving, setPaySaving] = useState(false);
+
+  // Counts every card the player has, not just the ones the filter shows.
+  function openPayment(group: CardGroup) {
+    const owed = outstandingFines(cards.filter((c) => c.playerId === group.playerId));
+    setPaying({ playerId: group.playerId, owed });
+    setPayAmount(String(owed));
+  }
+
+  const payValue = Number(payAmount);
+  const payValid = paying !== null && Number.isFinite(payValue) && payValue > 0 && payValue <= paying.owed;
+
+  async function submitPayment() {
+    if (!paying || !payValid) return;
+    setPaySaving(true);
+    const ok = await recordPayment(paying.playerId, payValue);
+    setPaySaving(false);
+    if (ok) setPaying(null);
+  }
 
   // A card missed during a match day goes into that game's record; the
   // server then logs its fine and updates stats, ratings and The Vale.
@@ -148,7 +179,7 @@ export default function AdminCards() {
   }
 
   const outstanding = outstandingFines(cards);
-  const collected = cards.filter((c) => c.paid).reduce((sum, c) => sum + c.fine, 0);
+  const collected = collectedFines(cards);
   const yellowCount = cards.filter((c) => c.type === "yellow").length;
   const redCount = cards.filter((c) => c.type === "red").length;
 
@@ -234,7 +265,12 @@ export default function AdminCards() {
                   </p>
                   <p className="truncate text-xs text-mist">{[reasons, dates].filter(Boolean).join(" · ")}</p>
                   <div className="mt-1 flex items-center gap-3 text-xs">
-                    <span className="tabular-nums text-paper-dim">{formatNaira(group.fine)}</span>
+                    <span className="tabular-nums text-paper-dim">{fineLabel(group)}</span>
+                    {group.owed > 0 && (
+                      <button type="button" onClick={() => openPayment(group)} className="text-paper underline underline-offset-2">
+                        Record payment
+                      </button>
+                    )}
                     <button type="button" onClick={() => setConfirmDelete(group)} className="text-loss">
                       Remove
                     </button>
@@ -245,10 +281,10 @@ export default function AdminCards() {
                   onClick={() => toggleGroupPaid(group)}
                   aria-pressed={group.paid}
                   className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${
-                    group.paid ? "bg-win/20 text-win" : "bg-loss/15 text-loss"
+                    group.paid ? "bg-win/20 text-win" : group.owed < group.fine ? "bg-draw/15 text-draw" : "bg-loss/15 text-loss"
                   }`}
                 >
-                  {group.paid ? "Paid" : "Owes"}
+                  {group.paid ? "Paid" : group.owed < group.fine ? "Part paid" : "Owes"}
                 </button>
               </li>
             );
@@ -307,7 +343,7 @@ export default function AdminCards() {
                     </td>
                     <td className="px-4 py-3 text-paper-dim">{reasons}</td>
                     <td className="px-4 py-3 text-paper-dim">{dates}</td>
-                    <td className="px-4 py-3 tabular-nums text-paper-dim">{formatNaira(group.fine)}</td>
+                    <td className="px-4 py-3 tabular-nums text-paper-dim">{fineLabel(group)}</td>
                     <td className="px-4 py-3">
                       <button
                         type="button"
@@ -332,7 +368,16 @@ export default function AdminCards() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-4">
+                        {group.owed > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => openPayment(group)}
+                            className="whitespace-nowrap text-paper hover:underline"
+                          >
+                            Record payment
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setConfirmDelete(group)}
@@ -361,6 +406,62 @@ export default function AdminCards() {
             setAdding(false);
           }}
         />
+      )}
+
+      {paying && (
+        <div className="sheet-backdrop" onClick={() => setPaying(null)}>
+          <form
+            role="dialog" aria-modal="true" aria-labelledby="pay-title" className="sheet md:max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitPayment();
+            }}
+          >
+            <h2 id="pay-title" className="font-display text-xl text-paper">Record payment</h2>
+            <p className="mt-2 text-sm text-paper-dim">
+              {players.find((p) => p.id === paying.playerId)?.name ?? "This player"} owes {formatNaira(paying.owed)}.
+              A part payment clears their oldest fines first.
+            </p>
+            <label className="mt-5 block text-xs uppercase tracking-wide text-mist" htmlFor="pay-amount">
+              Amount paid (₦)
+            </label>
+            <input
+              id="pay-amount"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={paying.owed}
+              step="any"
+              autoFocus
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              className="mt-2 w-full border border-ink-line bg-ink px-3 py-2.5 text-paper tabular-nums focus:border-paper focus:outline-none"
+            />
+            {payAmount !== "" && !payValid && (
+              <p className="mt-2 text-xs text-loss">Enter an amount between ₦1 and {formatNaira(paying.owed)}.</p>
+            )}
+            {payValid && payValue < paying.owed && (
+              <p className="mt-2 text-xs text-mist">{formatNaira(paying.owed - payValue)} will still be owed.</p>
+            )}
+            <div className="sheet-actions mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPaying(null)}
+                className="border border-ink-line px-4 py-2 text-sm text-paper-dim hover:text-paper"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!payValid || paySaving}
+                className="border border-paper bg-paper px-4 py-2 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:opacity-50"
+              >
+                {paySaving ? "Saving…" : "Save payment"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {confirmDelete && (

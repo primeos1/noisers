@@ -49,6 +49,8 @@ export interface Card {
   type: CardType;
   reason: string | null;
   fineAmount: number;
+  /** How much of the fine has been handed over so far. */
+  amountPaid: number;
   paid: boolean;
   occurredOn: string | null;
   createdAt: string | null;

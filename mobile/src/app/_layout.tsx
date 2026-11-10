@@ -128,6 +128,7 @@ function RootNavigator() {
           <Stack.Screen name="admin/matches" options={{ title: "Matches" }} />
           <Stack.Screen name="admin/cards" options={{ title: "Cards & fines" }} />
           <Stack.Screen name="admin/new-card" options={{ title: "Log a card", presentation: "modal" }} />
+          <Stack.Screen name="admin/card-payment" options={{ title: "Record payment", presentation: "modal" }} />
           <Stack.Screen name="admin/reports" options={{ title: "Reports" }} />
           <Stack.Screen name="admin/home-content" options={{ title: "Home page" }} />
           <Stack.Screen name="admin/vale" options={{ title: "The Vale" }} />

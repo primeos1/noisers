@@ -139,6 +139,35 @@ class CmsEndpointsTest extends TestCase
             ->assertJsonPath('data.paid', true);
     }
 
+    public function test_fines_can_be_paid_in_parts(): void
+    {
+        $player = Player::factory()->create(['number' => 9]);
+        Sanctum::actingAs(User::factory()->create(['role' => 'committee']));
+
+        $first = $this->postJson('/api/cards', [
+            'player_id' => $player->id, 'type' => 'yellow', 'fine_amount' => 2000, 'occurred_on' => '2026-10-01',
+        ])->json('data.id');
+        $second = $this->postJson('/api/cards', [
+            'player_id' => $player->id, 'type' => 'red', 'fine_amount' => 5000, 'occurred_on' => '2026-10-08',
+        ])->json('data.id');
+
+        // ₦3,000 clears the older yellow and puts ₦1,000 towards the red.
+        $this->postJson('/api/cards/payments', ['player_id' => $player->id, 'amount' => 3000])
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->getJson("/api/cards/{$first}")->assertJsonPath('data.paid', true)->assertJsonPath('data.amountPaid', 2000);
+        $this->getJson("/api/cards/{$second}")->assertJsonPath('data.paid', false)->assertJsonPath('data.amountPaid', 1000);
+
+        // Paying more than is owed stops at the fine.
+        $this->postJson('/api/cards/payments', ['player_id' => $player->id, 'amount' => 9000])->assertOk();
+        $this->getJson("/api/cards/{$second}")->assertJsonPath('data.paid', true)->assertJsonPath('data.amountPaid', 5000);
+
+        // Marking it owing again wipes what was paid on it.
+        $this->putJson("/api/cards/{$second}", ['paid' => false])
+            ->assertJsonPath('data.amountPaid', 0);
+    }
+
     public function test_settings_is_admin_only(): void
     {
         Sanctum::actingAs(User::factory()->create(['role' => 'committee']));

@@ -9,6 +9,7 @@ use App\Http\Resources\PlayerResource;
 use App\Models\Card;
 use App\Models\Fixture;
 use App\Models\Player;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -23,7 +24,7 @@ class DashboardController extends Controller
             ->orderBy('kickoff_at')
             ->first();
 
-        $outstandingFines = (float) Card::where('paid', false)->sum('fine_amount');
+        $outstandingFines = (float) Card::where('paid', false)->sum(DB::raw('fine_amount - amount_paid'));
 
         $topScorer = Player::withCount('goalEvents as goals_count')
             ->orderByDesc('goals_count')

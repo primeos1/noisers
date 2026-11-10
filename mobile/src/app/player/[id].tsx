@@ -12,7 +12,7 @@ import { Backdrop, haptic, useParallax } from "../../components/depth";
 import { HoloCard, stockPhoto } from "../../components/PlayerCard";
 import { useClub } from "../../lib/club";
 import { useAuth } from "../../lib/auth";
-import { cardCounts, cardDate, formatNaira, isKeeper, keepsCleanSheets, playerGameLog, plural, positionLabel, savesLabel } from "../../lib/derive";
+import { cardCounts, cardDate, formatNaira, isKeeper, keepsCleanSheets, paymentStatus, playerGameLog, plural, positionLabel, savesLabel } from "../../lib/derive";
 import {
   CardPips,
   Empty,
@@ -317,7 +317,7 @@ export default function PlayerScreen() {
                   </View>
                   <View style={styles.alignRight}>
                     <Txt style={[text.semi, text.tabular]}>{formatNaira(c.fineAmount)}</Txt>
-                    <Txt style={[text.small, { color: c.paid ? colors.win : colors.loss }]}>{c.paid ? "Paid" : "Not paid"}</Txt>
+                    <Txt style={[text.small, { color: c.paid ? colors.win : colors.loss }]}>{paymentStatus(c, "Not paid")}</Txt>
                   </View>
                 </Row>
               ))}

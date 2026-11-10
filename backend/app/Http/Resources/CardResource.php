@@ -21,6 +21,7 @@ class CardResource extends JsonResource
             'type' => $this->type,
             'reason' => $this->reason,
             'fineAmount' => (float) $this->fine_amount,
+            'amountPaid' => (float) $this->amount_paid,
             'paid' => $this->paid,
             'occurredOn' => $this->occurred_on?->toDateString(),
             'createdAt' => $this->created_at?->toIso8601String(),

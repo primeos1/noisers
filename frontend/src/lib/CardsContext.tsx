@@ -9,6 +9,7 @@ interface ApiCard {
   type: CardType;
   reason: string | null;
   fineAmount: number;
+  amountPaid: number;
   paid: boolean;
   occurredOn: string | null;
   createdAt: string | null;
@@ -26,6 +27,7 @@ function fromApi(c: ApiCard): CardRecord {
     type: c.type,
     reason: c.reason ?? "",
     fine: c.fineAmount,
+    amountPaid: c.amountPaid ?? (c.paid ? c.fineAmount : 0),
     paid: c.paid,
     date: formatDate(c.occurredOn ?? c.createdAt),
   };
@@ -39,6 +41,8 @@ interface CardsContextValue {
   updateCard: (id: string, patch: Partial<CardRecord>) => void;
   removeCard: (id: string) => Promise<boolean>;
   togglePaid: (id: string) => void;
+  /** Money a player handed over; it clears their oldest fines first. */
+  recordPayment: (playerId: number, amount: number) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -87,13 +91,22 @@ export function CardsProvider({ children }: { children: ReactNode }) {
   function updateCard(id: string, patch: Partial<CardRecord>) {
     setError("");
     const previous = cardsRef.current;
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const next = { ...c, ...patch };
+        // Ticking paid on or off pays all of the fine or none of it.
+        if (patch.paid !== undefined && patch.amountPaid === undefined) next.amountPaid = patch.paid ? next.fine : 0;
+        return next;
+      }),
+    );
     apiFetch<{ data: ApiCard }>(`/cards/${id}`, {
       method: "PUT",
       body: JSON.stringify({
         ...(patch.type !== undefined && { type: patch.type }),
         ...(patch.reason !== undefined && { reason: patch.reason }),
         ...(patch.fine !== undefined && { fine_amount: patch.fine }),
+        ...(patch.amountPaid !== undefined && { amount_paid: patch.amountPaid }),
         ...(patch.paid !== undefined && { paid: patch.paid }),
       }),
     })
@@ -126,8 +139,25 @@ export function CardsProvider({ children }: { children: ReactNode }) {
     updateCard(id, { paid: !card.paid });
   }
 
+  function recordPayment(playerId: number, amount: number) {
+    setError("");
+    return apiFetch<{ data: ApiCard[] }>("/cards/payments", {
+      method: "POST",
+      body: JSON.stringify({ player_id: playerId, amount }),
+    })
+      .then((res) => {
+        const updated = new Map(res.data.map((c) => [String(c.id), fromApi(c)]));
+        setCards((prev) => prev.map((c) => updated.get(c.id) ?? c));
+        return true;
+      })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Couldn't record that payment.");
+        return false;
+      });
+  }
+
   return (
-    <CardsContext.Provider value={{ cards, loading, error, addCard, updateCard, removeCard, togglePaid, refresh }}>
+    <CardsContext.Provider value={{ cards, loading, error, addCard, updateCard, removeCard, togglePaid, recordPayment, refresh }}>
       {children}
     </CardsContext.Provider>
   );

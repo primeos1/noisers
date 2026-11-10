@@ -111,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/assist-events/{assistEvent}', [AssistEventController::class, 'destroy']);
 
     // Internal-only: card writes, training, and the team randomizer.
+    Route::post('/cards/payments', [CardController::class, 'pay']);
     Route::apiResource('cards', CardController::class)->except(['index', 'show']);
 
     Route::post('/match-day-events', [MatchDayEventController::class, 'store']);

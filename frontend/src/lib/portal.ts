@@ -2,7 +2,7 @@
 // match day events, squad and cards already loaded by the app's contexts.
 
 import type { Player, Position } from "./clubData";
-import type { CardRecord } from "./cards";
+import { collectedFines, type CardRecord } from "./cards";
 import {
   participantName,
   scoreOf,
@@ -102,7 +102,7 @@ export function playerGameLog(events: MatchDayEvent[], playerId: number): GameLo
 export function cardCounts(cards: CardRecord[], playerId: number) {
   const mine = cards.filter((c) => c.playerId === playerId);
   const total = mine.reduce((s, c) => s + c.fine, 0);
-  const paid = mine.filter((c) => c.paid).reduce((s, c) => s + c.fine, 0);
+  const paid = collectedFines(mine);
   const unpaid = mine.filter((c) => !c.paid);
   return {
     cards: mine,
