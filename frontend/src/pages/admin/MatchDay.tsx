@@ -219,6 +219,22 @@ export default function MatchDay() {
     patch((e) => (e.groups.length >= MAX_TEAMS ? {} : { groups: [...e.groups, { name: nextTeamName(e.groups), players: [] }] }));
   }
 
+  // Only an empty team that hasn't played can go — games know teams by name.
+  function canRemoveTeam(event: MatchDayEvent, index: number) {
+    const team = event.groups[index];
+    return !!team && team.players.length === 0 && !event.games.some((g) => g.teams.some((t) => t.name === team.name));
+  }
+
+  function removeTeam(index: number) {
+    const name = activeEvent?.groups[index]?.name;
+    patch((e) => {
+      const at = e.groups.findIndex((t) => t.name === name);
+      return at < 0 || !canRemoveTeam(e, at) ? {} : { groups: e.groups.filter((_, i) => i !== at) };
+    });
+    setPlayA(0);
+    setPlayB(1);
+  }
+
   function renameTeam(index: number, newName: string) {
     patch((e) => ({ groups: e.groups.map((t, i) => (i === index ? { ...t, name: newName } : t)) }));
   }
@@ -700,6 +716,16 @@ export default function MatchDay() {
                           onChange={(e) => renameTeam(i, e.target.value)}
                         />
                         <span className="shrink-0 text-xs text-mist">{team.players.length}/{TEAM_SIZE}</span>
+                        {canRemoveTeam(activeEvent, i) && (
+                          <button
+                            type="button"
+                            onClick={() => removeTeam(i)}
+                            className="shrink-0 text-xs text-mist hover:text-loss"
+                            aria-label={`Remove ${team.name}`}
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
                       <ul className="mt-3 space-y-1 text-sm text-paper-dim">
                         {team.players.map((id) => (
