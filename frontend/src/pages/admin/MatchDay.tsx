@@ -11,8 +11,12 @@ import AbsenceBadge from "../../components/AbsenceBadge";
 import CaptainBand from "../../components/CaptainBand";
 import { useAbsences } from "../../lib/AbsencesContext";
 import { absenceStatus } from "../../lib/absences";
+import { useLeague } from "../../league/data";
+import { runDraw, type DrawResult } from "../../league/draw";
+import { clubs } from "../../lib/league";
 import {
   buildTeams,
+  buildLeagueTeams,
   MAX_TEAMS,
   isUntouched,
   newGame,
@@ -42,6 +46,7 @@ const modeOptions: { value: TeamMode; label: string; hint: string }[] = [
   { value: "random", label: "Fully random", hint: "No balancing — just a shuffle." },
   { value: "rating", label: "By rating", hint: "Spreads strong and weak ratings evenly." },
   { value: "position", label: "By position", hint: "Spreads GK/DEF/MID/FWD evenly." },
+  { value: "league", label: "By league team", hint: "Keeps league teammates together using normal team names." },
 ];
 
 function parseParticipant(v: string): ParticipantId {
@@ -49,6 +54,20 @@ function parseParticipant(v: string): ParticipantId {
 }
 
 export default function MatchDay() {
+  const { data: league, error: leagueError } = useLeague();
+  const [leagueDraw, setLeagueDraw] = useState<DrawResult | null>(null);
+  const [drawError, setDrawError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setLeagueDraw(null);
+    setDrawError("");
+    if (league?.draw?.revealed && league.draw.seed) {
+      runDraw(league.draw.seed, league.entrants).then((draw) => {
+        if (!cancelled) setLeagueDraw(draw);
+      }).catch(() => { if (!cancelled) setDrawError("The league teams couldn't load. Try again shortly."); });
+    }
+    return () => { cancelled = true; };
+  }, [league]);
   const { players, addPlayer, refresh: refreshSquad } = useSquad();
   const { absenceFor } = useAbsences();
   // Out today (injured, away, suspended) — left out of "Select all".
@@ -184,8 +203,14 @@ export default function MatchDay() {
 
   function handleRandomize() {
     if (!activeEvent) return;
-    const groups = buildTeams(players, activeEvent.presentPlayers, activeEvent.guests, mode, TEAM_SIZE);
-    patch({ groups, teamMode: mode });
+    if (mode === "league" && !leagueDraw) return;
+    const createGroups = (event: MatchDayEvent) => mode === "league"
+      ? buildLeagueTeams(players, event.presentPlayers, clubs.map((club) => ({
+          name: club.name, playerIds: leagueDraw!.squads[club.id].map((p) => p.id),
+        })), TEAM_SIZE, event.guests)
+      : buildTeams(players, event.presentPlayers, event.guests, mode, TEAM_SIZE);
+    const groups = createGroups(activeEvent);
+    patch((event) => event.games.some((g) => g.status === "live") ? {} : { groups: createGroups(event), teamMode: mode });
     setPlayA(0);
     setPlayB(groups.length > 1 ? 1 : 0);
   }
@@ -606,13 +631,14 @@ export default function MatchDay() {
           </div>
 
           <div>
-            <h2 className="font-display text-2xl text-paper">Randomize teams</h2>
-            <div className="mt-4 grid gap-px bg-ink-line sm:grid-cols-3">
+            <h2 className="font-display text-2xl text-paper">Select teams</h2>
+            <div className="mt-4 grid gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-4">
               {modeOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setMode(opt.value)}
+                  aria-pressed={mode === opt.value}
                   className={`bg-ink p-4 text-left ${mode === opt.value ? "ring-2 ring-inset ring-paper" : ""}`}
                 >
                   <p className={mode === opt.value ? "text-paper" : "text-paper-dim"}>{opt.label}</p>
@@ -621,16 +647,25 @@ export default function MatchDay() {
               ))}
             </div>
 
+            {mode === "league" && (
+              <p className="mt-4 text-sm text-mist" role="status">
+                {leagueError || drawError || (!league ? "Loading league teams..." : !league.draw?.revealed || !league.draw.seed
+                  ? "League grouping is available once the league draw is revealed."
+                  : !leagueDraw ? "Loading league teams..."
+                  : `League teammates are grouped first. Other selected players and guests fill incomplete teams, up to ${TEAM_SIZE} players per team. Any overflow beyond the ${MAX_TEAMS}-team limit stays unassigned.`)}
+              </p>
+            )}
+
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handleRandomize}
                 // Re-drawing mid-game would rename the teams and break the rotation.
-                disabled={activeEvent.presentPlayers.length + activeEvent.guests.length < 2 || !!liveGame}
+                disabled={activeEvent.presentPlayers.length + activeEvent.guests.length < 2 || !!liveGame || (mode === "league" && (!leagueDraw || !!leagueError))}
                 title={liveGame ? "Finish the current game to re-randomize" : undefined}
                 className="border border-paper bg-paper px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
               >
-                {activeEvent.groups.length > 0 ? "Re-randomize teams" : "Randomize teams"}
+                {mode === "league" ? "Group by league team" : activeEvent.groups.length > 0 ? "Re-randomize teams" : "Randomize teams"}
               </button>
               <button
                 type="button"

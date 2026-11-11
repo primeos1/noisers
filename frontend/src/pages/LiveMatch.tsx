@@ -23,6 +23,10 @@ import {
 } from "../lib/matchDay";
 
 const modeInfo: Record<TeamMode, { label: string; how: string }> = {
+  league: {
+    label: "By league team",
+    how: "Selected players were grouped with their league teammates using the published league draw. Other selected players and guests filled incomplete teams.",
+  },
   random: {
     label: "Fully random",
     how: "A straight shuffle — no balancing by rating or position. Everyone was dealt round the teams in turn.",

@@ -12,7 +12,7 @@ export const DEFAULT_WIN_GOALS = 2;
 
 export type MatchDayStatus = "live" | "ended";
 export type GameStatus = "live" | "finished";
-export type TeamMode = "random" | "rating" | "position";
+export type TeamMode = "random" | "rating" | "position" | "league";
 
 // A squad player is referenced by their player id (shirt numbers can
 // repeat); a guest (someone who isn't a squad member) by a string id like
@@ -306,9 +306,52 @@ export function buildTeams(
   return nameTeams(players, teams).map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
 }
 
-// Each team's captain band goes to the full member on it with the most games
-// played (ties: higher rating, then random). Guest members and guests never
-// wear it; a team with no members has no captain.
+// Place league teammates first, then fill incomplete teams with other attendees.
+export function buildLeagueTeams(
+  players: Player[],
+  presentSquad: number[],
+  clubs: { name: string; playerIds: number[] }[],
+  teamSize: number = DEFAULT_TEAM_SIZE,
+  guests: Guest[] = [],
+): MatchDayTeam[] {
+  const available = new Set(players.map((p) => p.id));
+  const present = new Set(presentSquad.filter((id) => available.has(id)));
+  const teams: MatchDayTeam[] = clubs.slice(0, MAX_TEAMS).map((club) => {
+    const roster = [...new Set(club.playerIds)].filter((id) => present.has(id)).slice(0, teamSize);
+    roster.forEach((id) => present.delete(id));
+    return { name: club.name, players: roster, captain: pickCaptain(players, roster) };
+  }).filter((team) => team.players.length > 0);
+  const extras: ParticipantId[] = [...shuffle([...present]), ...shuffle([...new Set(guests.map((g) => g.id))])];
+  for (const id of extras) {
+    let target = teams.filter((team) => team.players.length < teamSize)
+      .sort((a, b) => a.players.length - b.players.length)[0];
+    if (!target && teams.length < MAX_TEAMS) {
+      const unusedClub = clubs.find((club) => !teams.some((team) => team.name === club.name));
+      target = { name: unusedClub?.name ?? nextTeamName(teams), players: [] };
+      teams.push(target);
+    }
+    if (!target) break;
+    target.players.push(id);
+  }
+  // Use the usual colour names without moving players out of their league groups.
+  const names = shuffle(TEAM_NAMES.filter((name) => name !== BIBS));
+  const namedTeams = teams.map((team, index) => ({
+    ...team, name: index < names.length ? names[index] : BIBS,
+  }));
+  const locked = new Set<string>([BIBS]);
+  for (const [playerName, colour] of [["rozay", GREY], ["muyiwa tender", BLACK]] as const) {
+    const player = named(players, playerName);
+    const team = player ? namedTeams.find((team) => team.players.includes(player.id)) : undefined;
+    if (!team || locked.has(team.name)) continue;
+    const other = namedTeams.find((other) => other.name === colour);
+    if (other) other.name = team.name;
+    team.name = colour;
+    locked.add(colour);
+  }
+  return namedTeams.map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
+}
+
+// Full member with the most appearances; ties use rating, then random order.
 function pickCaptain(players: Player[], roster: ParticipantId[]): number | null {
   const members = shuffle(roster)
     .map((id) => players.find((p) => p.id === id))
