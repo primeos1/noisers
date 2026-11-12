@@ -11,12 +11,13 @@ import AbsenceBadge from "../../components/AbsenceBadge";
 import CaptainBand from "../../components/CaptainBand";
 import { useAbsences } from "../../lib/AbsencesContext";
 import { absenceStatus } from "../../lib/absences";
-import { useLeague } from "../../league/data";
+import { clubById, GAMES, useLeague, type NumberedGame } from "../../league/data";
 import { runDraw, type DrawResult } from "../../league/draw";
-import { clubs } from "../../lib/league";
+import { clubs, GAME_MINUTES } from "../../lib/league";
 import {
   buildTeams,
   buildLeagueTeams,
+  buildLeagueNightTeams,
   MAX_TEAMS,
   isUntouched,
   newGame,
@@ -122,10 +123,18 @@ export default function MatchDay() {
   const liveGame = activeEvent?.games.find((g) => g.status === "live") ?? null;
   const squadView = !!liveGame && showSquad;
   const pastGames = activeEvent ? activeEvent.games.filter((g) => g.id !== liveGame?.id) : [];
+  // League Sundays: the games are the night's league fixtures, 15 minutes each.
+  const leagueNight = activeEvent?.leagueNight ?? null;
+  const minutesFor = (game: MatchDayGame | null) => (game?.leagueMatchNo ? GAME_MINUTES : settings.matchGameMinutes);
+  const nightFixtures = leagueNight ? GAMES.filter((g) => g.night === leagueNight) : [];
+  const playedNos = new Set((activeEvent?.games ?? []).map((g) => g.leagueMatchNo).filter(Boolean));
+  const fixturesLeft = nightFixtures.filter((f) => !playedNos.has(f.no));
+  const [fixturePick, setFixturePick] = useState<number | null>(null);
+  const chosenFixture = fixturesLeft.find((f) => f.no === fixturePick) ?? fixturesLeft[0] ?? null;
   const timer = useMatchTimer(
     liveGame,
     (clock) => updateLiveGame((g) => ({ ...g, ...clock })),
-    settings.matchGameMinutes,
+    minutesFor(liveGame),
   );
 
   function name(id: ParticipantId) {
@@ -258,6 +267,37 @@ export default function MatchDay() {
     }));
   }
 
+  const clubName = (id: NumberedGame["home"]) => clubById.get(id)!.name;
+  const fixtureLabel = (f: NumberedGame) => `Game ${f.no}: ${clubName(f.home)} v ${clubName(f.away)}`;
+
+  // A league fixture as a match day game, home side first; null if a club has no team today.
+  function leagueGame(e: MatchDayEvent, fixture: NumberedGame): MatchDayGame | null {
+    const home = e.groups.find((t) => t.name === clubName(fixture.home));
+    const away = e.groups.find((t) => t.name === clubName(fixture.away));
+    // The first TEAM_SIZE of each club start; the rest are on the bench for subs.
+    const starting = (t: MatchDayTeam) => ({ ...t, players: t.players.slice(0, TEAM_SIZE) });
+    return home && away ? { ...newGame(starting(home), starting(away)), leagueMatchNo: fixture.no } : null;
+  }
+
+  function setUpLeagueTeams() {
+    if (!leagueDraw) return;
+    const build = (event: MatchDayEvent) => buildLeagueNightTeams(players, event.presentPlayers, clubs.map((club) => ({
+      name: club.name, playerIds: leagueDraw.squads[club.id].map((p) => p.id),
+    })), TEAM_SIZE, event.guests);
+    patch((event) => event.games.some((g) => g.status === "live") ? {} : { groups: build(event), teamMode: "league" });
+  }
+
+  function startFixture() {
+    if (!chosenFixture) return;
+    const fixture = chosenFixture;
+    patch((e) => {
+      if (e.games.some((g) => g.status === "live" || g.leagueMatchNo === fixture.no)) return {};
+      const game = leagueGame(e, fixture);
+      return game ? { games: [...e.games, game] } : {};
+    });
+    setFixturePick(null);
+  }
+
   function startGame() {
     if (!activeEvent || activeEvent.groups.length < 2 || playA === playB) return;
     patch((e) => {
@@ -284,9 +324,18 @@ export default function MatchDay() {
     if (target.status !== "live") return { games: e.games.map((g) => (g.id === gameId ? updater(g) : g)) };
     const games = e.games.map((g) =>
       g.id === gameId
-        ? { ...updater(g), ...stoppedClockOf(g, settings.matchGameMinutes), status: "finished" as const }
+        ? { ...updater(g), ...stoppedClockOf(g, minutesFor(g)), status: "finished" as const }
         : g,
     );
+    if (target.leagueMatchNo) {
+      // The night's next league fixture kicks off next, clock paused.
+      const played = new Set(games.map((g) => g.leagueMatchNo));
+      const next = GAMES.filter((f) => f.night === e.leagueNight && !played.has(f.no))
+        .map((f) => leagueGame(e, f))
+        .find((g): g is MatchDayGame => g !== null);
+      if (next) games.push(next);
+      return { games };
+    }
     const { next } = nextFixture(e.groups, games);
     if (next) games.push(newGame(e.groups[next[0]], e.groups[next[1]]));
     return { games };
@@ -313,7 +362,8 @@ export default function MatchDay() {
       minute: timer.minute,
     };
     const withGoal = (g: MatchDayGame) => ({ ...g, goals: [...g.goals, goal] });
-    const won = (g: MatchDayGame) => scoreOf(g, 0) >= WIN_GOALS || scoreOf(g, 1) >= WIN_GOALS;
+    // League fixtures run the full clock; only club games end at the winning goal.
+    const won = (g: MatchDayGame) => !g.leagueMatchNo && (scoreOf(g, 0) >= WIN_GOALS || scoreOf(g, 1) >= WIN_GOALS);
     const endsGame = won(withGoal(liveGame));
     patch((e) => {
       const game = e.games.find((g) => g.id === gameId);
@@ -393,7 +443,7 @@ export default function MatchDay() {
       games: e.games
         .filter((g) => !(g.status === "live" && isUntouched(g)))
         .map((g) =>
-          g.status === "live" ? { ...g, ...stoppedClockOf(g, settings.matchGameMinutes), status: "finished" as const } : g,
+          g.status === "live" ? { ...g, ...stoppedClockOf(g, minutesFor(g)), status: "finished" as const } : g,
         ),
       status: "ended",
     })).then((saved) => {
@@ -647,7 +697,32 @@ export default function MatchDay() {
           </div>
 
           <div>
-            <h2 className="font-display text-2xl text-paper">Select teams</h2>
+            <h2 className="font-display text-2xl text-paper">{leagueNight ? `League Sunday ${leagueNight}` : "Select teams"}</h2>
+            {leagueNight ? (
+              <>
+                <p className="mt-2 max-w-2xl text-sm text-paper-dim">
+                  Today's games are the league fixtures, recorded here just like a normal match day: goals, assists,
+                  cards, saves, penalties and subs. Each game runs {GAME_MINUTES} minutes, and every goal and save shows
+                  on the league site as you go. Mark who's present, then set up the six club teams. Club players beyond
+                  the starting {TEAM_SIZE} wait on the bench for subs.
+                </p>
+                <p className="mt-3 text-sm text-mist" role="status">
+                  {leagueError || drawError || (!leagueDraw ? "Loading league squads..." : null)}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={setUpLeagueTeams}
+                    disabled={!leagueDraw || !!liveGame || activeEvent.presentPlayers.length === 0}
+                    title={liveGame ? "Finish the current game first" : undefined}
+                    className="border border-paper bg-paper px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-paper disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
+                  >
+                    {activeEvent.groups.length > 0 ? "Rebuild league teams" : "Set up league teams"}
+                  </button>
+                </div>
+              </>
+            ) : (
+            <>
             <div className="mt-4 grid gap-px bg-ink-line sm:grid-cols-2 lg:grid-cols-4">
               {modeOptions.map((opt) => (
                 <button
@@ -693,6 +768,8 @@ export default function MatchDay() {
                 + New team
               </button>
             </div>
+            </>
+            )}
 
             {unassigned.length > 0 && (
               <p className="mt-4 text-sm text-mist">
@@ -711,8 +788,8 @@ export default function MatchDay() {
                           className="w-full border-none bg-transparent font-display text-xl text-paper outline-none"
                           value={team.name}
                           // Games know teams by name, so names lock once play starts.
-                          readOnly={activeEvent.games.length > 0}
-                          title={activeEvent.games.length > 0 ? "Team names are locked once the first game starts" : undefined}
+                          readOnly={activeEvent.games.length > 0 || !!leagueNight}
+                          title={leagueNight ? "League teams keep their club names" : activeEvent.games.length > 0 ? "Team names are locked once the first game starts" : undefined}
                           onChange={(e) => renameTeam(i, e.target.value)}
                         />
                         <span className="shrink-0 text-xs text-mist">{team.players.length}/{TEAM_SIZE}</span>
@@ -764,6 +841,38 @@ export default function MatchDay() {
                   <p className="mt-6 text-sm text-mist">
                     Team changes apply from the next game — use Substitute in the game to change who's on now.
                   </p>
+                ) : leagueNight ? (
+                  fixturesLeft.length === 0 ? (
+                    <p className="mt-6 text-sm text-mist">All of tonight's league fixtures have been played. End the match day when you're done.</p>
+                  ) : (
+                    <>
+                      <label className={`${labelClass} mt-6 sm:max-w-lg`}>
+                        Next fixture
+                        <select
+                          className={inputClass}
+                          value={chosenFixture?.no ?? ""}
+                          onChange={(e) => setFixturePick(Number(e.target.value))}
+                        >
+                          {fixturesLeft.map((f) => (
+                            <option key={f.no} value={f.no}>
+                              {fixtureLabel(f)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {chosenFixture && !leagueGame(activeEvent, chosenFixture) && (
+                        <p className="mt-2 text-sm text-loss">Set up the league teams first. Both clubs need a team to kick off.</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={startFixture}
+                        disabled={!chosenFixture || !leagueGame(activeEvent, chosenFixture)}
+                        className="mt-6 border border-win bg-win px-5 py-2.5 text-sm font-medium text-ink hover:bg-transparent hover:text-win disabled:cursor-not-allowed disabled:border-ink-line disabled:bg-transparent disabled:text-mist"
+                      >
+                        Kick off {chosenFixture ? `Game ${chosenFixture.no}` : ""} — {GAME_MINUTES}:00 on the clock
+                      </button>
+                    </>
+                  )
                 ) : (
                   <>
                     {activeEvent.groups.length > 2 && (
@@ -839,7 +948,7 @@ export default function MatchDay() {
 
               <div className="text-center">
                 <p className="text-[0.65rem] uppercase tracking-wide text-mist md:text-xs">
-                  {timer.isFinished ? "Time's up" : `First to ${WIN_GOALS} wins`}
+                  {timer.isFinished ? "Time's up" : liveGame.leagueMatchNo ? `League game ${liveGame.leagueMatchNo}` : `First to ${WIN_GOALS} wins`}
                 </p>
                 <p className="font-display text-5xl leading-none tabular-nums text-paper md:text-6xl">{formatClock(timer.secondsLeft)}</p>
               </div>
@@ -864,7 +973,7 @@ export default function MatchDay() {
                 onClick={timer.reset}
                 className="border border-ink-line px-4 py-2.5 text-sm text-paper-dim hover:text-paper md:py-2"
               >
-                Reset to 10:00
+                Reset to {String(minutesFor(liveGame)).padStart(2, "0")}:00
               </button>
             </div>
           </div>
@@ -1166,7 +1275,7 @@ export default function MatchDay() {
 
           <button
             type="button"
-            onClick={() => (scoreOf(liveGame, 0) === scoreOf(liveGame, 1) ? setSettlingDraw(true) : endGame())}
+            onClick={() => (!liveGame.leagueMatchNo && scoreOf(liveGame, 0) === scoreOf(liveGame, 1) ? setSettlingDraw(true) : endGame())}
             className="border border-loss bg-loss px-5 py-2.5 text-sm font-medium text-paper hover:bg-transparent hover:text-loss"
           >
             End match

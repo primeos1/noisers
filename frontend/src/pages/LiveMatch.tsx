@@ -11,6 +11,7 @@ import { useSettings } from "../lib/SettingsContext";
 import type { Player, Position } from "../lib/clubData";
 import { eventContributions, positions, sortEvents } from "../lib/portal";
 import { formatClock, useMatchTimer } from "../lib/useMatchTimer";
+import { GAME_MINUTES } from "../lib/league";
 import {
   nextFixture,
   participantName,
@@ -84,7 +85,7 @@ function dayTable(teams: MatchDayTeam[], games: MatchDayGame[]): TeamLine[] {
 function NowPlaying({ game, number, name }: { game: MatchDayGame; number: number; name: (id: ParticipantId) => string }) {
   const { settings } = useSettings();
   // Read-only: the clock lives on the game record, so it just needs ticking.
-  const timer = useMatchTimer(game, () => {}, settings.matchGameMinutes);
+  const timer = useMatchTimer(game, () => {}, game.leagueMatchNo ? GAME_MINUTES : settings.matchGameMinutes);
   const [a, b] = [scoreOf(game, 0), scoreOf(game, 1)];
   const scorers = (side: 0 | 1) =>
     game.goals
@@ -95,7 +96,7 @@ function NowPlaying({ game, number, name }: { game: MatchDayGame; number: number
   return (
     <div className="overflow-hidden rounded-2xl bg-ink-raised ring-1 ring-loss/30">
       <div className="flex items-center justify-between px-4 pt-4 text-xs text-mist">
-        <span>Game {number} · first to {settings.matchWinGoals}</span>
+        <span>{game.leagueMatchNo ? `League game ${game.leagueMatchNo}` : `Game ${number} · first to ${settings.matchWinGoals}`}</span>
         <span className="flex items-center gap-2">
           <span className="font-display text-lg font-bold tabular-nums text-paper">{formatClock(timer.secondsLeft)}</span>
           <LiveTag />

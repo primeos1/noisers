@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\LeagueMatchDaySync;
 use App\Support\MatchDayFinalizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,6 +29,8 @@ class MatchDayEventResource extends JsonResource
             // How the teams were drawn: random, rating or position.
             'teamMode' => $this->team_mode,
             'status' => $this->status,
+            // 1-5 when this is a league Sunday: its games are league fixtures.
+            'leagueNight' => LeagueMatchDaySync::nightFor($this->date),
             'version' => $this->version ?? 0,
         ];
     }

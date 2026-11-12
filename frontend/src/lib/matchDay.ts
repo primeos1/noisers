@@ -87,6 +87,8 @@ export interface MatchDayGame {
    * shootout itself isn't recorded, so the result still counts as a draw.
    */
   penaltyWinner?: 0 | 1 | null;
+  /** On a league Sunday, the league fixture (1-45) this game is; side 0 is home. */
+  leagueMatchNo?: number;
 }
 
 export interface MatchDayEvent {
@@ -106,6 +108,8 @@ export interface MatchDayEvent {
   teamMode?: TeamMode | null;
   /** The server's save counter — see MatchDayContext's save queue. */
   version?: number;
+  /** 1-5 on a league Sunday (set by the server from the date): its games are league fixtures. */
+  leagueNight?: number | null;
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -349,6 +353,34 @@ export function buildLeagueTeams(
     locked.add(colour);
   }
   return namedTeams.map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
+}
+
+/**
+ * A league Sunday's teams: one per league club, named after it, holding every
+ * present player from its squad (the rest sit as subs). Present players
+ * outside the league, and guests, fill the shortest teams up to the team size.
+ */
+export function buildLeagueNightTeams(
+  players: Player[],
+  presentSquad: number[],
+  clubs: { name: string; playerIds: number[] }[],
+  teamSize: number = DEFAULT_TEAM_SIZE,
+  guests: Guest[] = [],
+): MatchDayTeam[] {
+  const available = new Set(players.map((p) => p.id));
+  const present = new Set(presentSquad.filter((id) => available.has(id)));
+  const teams: MatchDayTeam[] = clubs.map((club) => {
+    const roster = [...new Set(club.playerIds)].filter((id) => present.has(id));
+    roster.forEach((id) => present.delete(id));
+    return { name: club.name, players: roster };
+  });
+  const extras: ParticipantId[] = [...shuffle([...present]), ...shuffle([...new Set(guests.map((g) => g.id))])];
+  for (const id of extras) {
+    const target = teams.filter((team) => team.players.length < teamSize).sort((a, b) => a.players.length - b.players.length)[0];
+    if (!target) break;
+    target.players.push(id);
+  }
+  return teams.map((team) => ({ ...team, captain: pickCaptain(players, team.players) }));
 }
 
 // Full member with the most appearances; ties use rating, then random order.

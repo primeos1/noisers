@@ -16,6 +16,7 @@ interface ApiMatchDayEvent {
   status: MatchDayEvent["status"];
   teamMode?: MatchDayEvent["teamMode"];
   version?: number;
+  leagueNight?: number | null;
 }
 
 function fromApi(e: ApiMatchDayEvent): MatchDayEvent {
@@ -33,6 +34,7 @@ function fromApi(e: ApiMatchDayEvent): MatchDayEvent {
     status: e.status,
     teamMode: e.teamMode ?? null,
     version: e.version ?? 0,
+    leagueNight: e.leagueNight ?? null,
   };
 }
 

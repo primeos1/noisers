@@ -8,6 +8,7 @@ use App\Http\Resources\ValeContentResource;
 use App\Models\MatchDayEvent;
 use App\Models\Player;
 use App\Models\ValeContent;
+use App\Support\LeagueMatchDaySync;
 use App\Support\MatchDayFinalizer;
 use App\Support\MatchDaySchedule;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class MatchDayEventController extends Controller
         $event = DB::transaction(function () use ($validated) {
             $event = MatchDayEvent::create($validated + ['title' => 'Matchday']);
             MatchDayFinalizer::renumber();
+            LeagueMatchDaySync::sync($event);
 
             return $event->refresh();
         });
@@ -98,6 +100,7 @@ class MatchDayEventController extends Controller
             $wasLive = $event->status !== 'ended';
             // Read before the update — an edit can change the title/date The Vale matches on.
             $valeShowedIt = ! $wasLive && MatchDayFinalizer::valeShows($event);
+            $previousGames = $event->games ?? [];
 
             $event->update($validated);
 
@@ -107,6 +110,9 @@ class MatchDayEventController extends Controller
                 // Editing a finished match day's record (Settings → Match records).
                 MatchDayFinalizer::reapply($event, $valeShowedIt);
             }
+
+            // A league Sunday's games feed the league site as they're recorded.
+            LeagueMatchDaySync::sync($event, $previousGames);
 
             return $event;
         });
