@@ -215,6 +215,7 @@ class MatchDayEventController extends Controller
 
         DB::transaction(function () use ($matchDayEvent) {
             MatchDayFinalizer::revert($matchDayEvent);
+            LeagueMatchDaySync::forget($matchDayEvent);
             $shownWeek = MatchDayFinalizer::shownWeekIds($matchDayEvent->id);
             $matchDayEvent->delete();
             MatchDayFinalizer::renumber();

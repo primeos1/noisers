@@ -87,6 +87,14 @@ class LeagueMatchDaySyncTest extends TestCase
         $this->putJson('/api/match-day-events/league-1', ['games' => []])->assertOk();
         $this->assertFalse(LeagueResult::where('match_no', 2)->exists());
 
+        // Deleting a league match day (e.g. a test run) clears what it fed the league.
+        $this->putJson('/api/match-day-events/league-1', ['games' => [$game]])->assertOk();
+        $this->assertTrue(LeagueResult::where('match_no', 2)->exists());
+        $this->assertSame(1, LeagueState::current()->live_night);
+        $this->deleteJson('/api/match-day-events/league-1')->assertNoContent();
+        $this->assertFalse(LeagueResult::where('match_no', 2)->exists());
+        $this->assertNull(LeagueState::current()->live_night);
+
         // A Wednesday match day never touches the league, whatever its games say.
         $this->postJson('/api/match-day-events', [
             'id' => 'wed', 'date' => 'Wed 18 Nov', 'status' => 'live', 'present_players' => [], 'guests' => [], 'groups' => [], 'games' => [$game],

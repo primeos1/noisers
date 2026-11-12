@@ -97,6 +97,14 @@ class LeagueMatchDaySync
         }
     }
 
+    /** A deleted league match day takes its fixtures' results off the league site with it. */
+    public static function forget(MatchDayEvent $event): void
+    {
+        $event->games = [];
+        $event->status = 'ended';
+        self::sync($event, $event->getOriginal('games') ?? []);
+    }
+
     /**
      * @param  array<string, mixed>  $game
      * @param  array<int, int>  $known  player ids as keys
