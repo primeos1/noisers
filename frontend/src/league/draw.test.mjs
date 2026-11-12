@@ -87,3 +87,23 @@ test("permanent transfers survive seeds and reloads without moving other players
     assert.equal(verified.picksMatch, true);
   }
 });
+
+test("post-draw changes reshape squads but leave the draw itself alone", async () => {
+  const base = players(48).map((p, i) => ({ ...p, id: i + 100 }));
+  base[10] = { ...base[10], id: 68, name: "Abbey |GF|", position: "GK" };
+  base[11] = { ...base[11], id: 50, name: "Shubby", position: "FWD" };
+  base[12] = { ...base[12], id: 65, name: "Gozie", position: "DEF" };
+  const buchi = { id: 70, name: "Buchi", position: "DEF", rating: 6.5 };
+  for (let seed = 0; seed < 20; seed++) {
+    const without = await runDraw(String(seed), base);
+    const draw = await runDraw(String(seed), [...base, buchi]);
+    // Buchi never enters the pots, so the picks are the same.
+    assert.deepEqual(draw.picks, without.picks);
+    const all = Object.values(draw.squads).flat();
+    assert.ok(!all.some((p) => p.id === 68));
+    assert.ok(draw.squads.castellers.some((p) => p.id === 70));
+    assert.ok(draw.squads.coastal.some((p) => p.id === 65));
+    assert.equal(all.find((p) => p.id === 50).position, "GK");
+    assert.equal(all.length, base.length);
+  }
+});

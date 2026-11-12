@@ -22,6 +22,16 @@ class LeagueController extends Controller
     /** 6 clubs, every pair three times. */
     public const MATCHES = 45;
 
+    /**
+     * Players who joined after the draw was sealed. They're sent with the
+     * entrants so the league site can place them (see league/draw.ts), but
+     * they never feed the draw itself.
+     */
+    private const LATE_SIGNINGS = [70]; // Buchi
+
+    /** Moved into goal for the league after the draw. */
+    private const LATE_KEEPERS = [50]; // Shubby
+
     public const NIGHTS = 5;
 
     /** Everything the league site shows, in one call it can poll. */
@@ -143,8 +153,11 @@ class LeagueController extends Controller
         ]);
         if (isset($data['saves'])) {
             $state = LeagueState::current();
-            $keepers = collect($state->draw_entrants ?? $this->entrantPlayers($state->entrant_ids ?? [], $state->keeper_ids ?? []))
-                ->where('position', 'GK')->pluck('id')->all();
+            $keepers = [
+                ...collect($state->draw_entrants ?? $this->entrantPlayers($state->entrant_ids ?? [], $state->keeper_ids ?? []))
+                    ->where('position', 'GK')->pluck('id')->all(),
+                ...self::LATE_KEEPERS,
+            ];
             foreach (array_keys($data['saves']) as $id) {
                 if (! in_array((int) $id, $keepers, true)) {
                     throw ValidationException::withMessages(['saves' => 'Saves must belong to league keepers.']);
@@ -239,7 +252,9 @@ class LeagueController extends Controller
             'entrantIds' => $state->entrant_ids ?? [],
             'keeperIds' => $state->keeper_ids ?? [],
             // The frozen list once the draw is sealed, the live one before.
-            'entrants' => $state->draw_entrants ?? $this->entrantPlayers($state->entrant_ids ?? [], $state->keeper_ids ?? []),
+            'entrants' => $state->draw_entrants
+                ? [...$state->draw_entrants, ...$this->entrantPlayers(array_values(array_diff(self::LATE_SIGNINGS, array_column($state->draw_entrants, 'id'))))]
+                : $this->entrantPlayers($state->entrant_ids ?? [], $state->keeper_ids ?? []),
             'draw' => $draw,
             'liveNight' => $state->live_night,
             'results' => $results,

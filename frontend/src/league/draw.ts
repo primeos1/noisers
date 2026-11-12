@@ -27,6 +27,22 @@ const PERMANENT_CLUBS: Readonly<Partial<Record<string, ClubId>>> = {
   obetayo: "sentinel",
   shubby: "coastal",
   george: "islanders",
+  gozie: "coastal",
+};
+
+// Squad changes made after the draw, by player id. The draw itself (pots,
+// picks and the reveal) is left as it was sealed, so it still verifies.
+/** Left the league. */
+const RELEASED = new Set<number>([
+  68, // Abbey
+]);
+/** Joined after the draw; the server sends their details with the entrants. */
+const LATE_SIGNINGS: Readonly<Record<number, ClubId>> = {
+  70: "castellers", // Buchi
+};
+/** League role changes, e.g. an outfield player moving into goal. */
+const LEAGUE_POSITIONS: Readonly<Record<number, Position>> = {
+  50: "GK", // Shubby
 };
 
 /** A club rating as the squad pages show it: 7.46. */
@@ -139,7 +155,8 @@ export interface DrawResult {
  */
 export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawResult> {
   const rand = await seededRandom(seed);
-  const pots = buildPots([...entrants].sort((a, b) => a.id - b.id));
+  const drawn = entrants.filter((e) => !(e.id in LATE_SIGNINGS));
+  const pots = buildPots([...drawn].sort((a, b) => a.id - b.id));
   const squads = Object.fromEntries(CLUB_ORDER.map((c) => [c, [] as Entrant[]])) as Record<ClubId, Entrant[]>;
   const rounds: Round[] = [];
   const picks: Pick[] = [];
@@ -181,6 +198,15 @@ export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawRe
   for (const pick of picks) {
     squads[pick.club].push(pick.player);
     rounds[pick.round].order[pick.slot] = pick.club;
+  }
+
+  // Changes since the draw shape the squads, not the draw's own record.
+  const inLeague = (player: Entrant) => !RELEASED.has(player.id);
+  const withRole = (player: Entrant) => (LEAGUE_POSITIONS[player.id] ? { ...player, position: LEAGUE_POSITIONS[player.id]! } : player);
+  for (const id of CLUB_ORDER) squads[id] = squads[id].filter(inLeague).map(withRole);
+  for (const player of [...entrants].sort((a, b) => a.id - b.id)) {
+    const club = LATE_SIGNINGS[player.id];
+    if (club && inLeague(player)) squads[club].push(withRole(player));
   }
   return { rounds, picks, squads };
 }
