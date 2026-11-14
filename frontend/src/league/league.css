@@ -739,3 +739,7 @@ div.nl-kit-main { cursor: default; }
 
 .nl-fnl-autopick { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .nl-fnl-autopick .nl-btn { min-height: 44px; }
+
+.nl-kit-shirt { width: 70px; height: 70px; }
+.nl-kit-face { position: absolute; left: 50%; top: 30%; width: 40px; height: 40px; transform: translateX(-50%); border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #f4f3ee, 0 3px 6px rgb(0 0 0 / .4); background: var(--panel-2); }
+@media (max-width: 480px) { .nl-kit-shirt { width: 58px; height: 58px; } .nl-kit-face { width: 34px; height: 34px; } }

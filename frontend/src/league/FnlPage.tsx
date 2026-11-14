@@ -5,6 +5,7 @@ import { clubById, nightDate, SEASON, type LeagueData } from "./data";
 import type { DrawResult, Position } from "./draw";
 import { storeCredentials, storedCredentials, useGame, type Credentials } from "./game";
 import { SignIn } from "./PlayPage";
+import { photoOf } from "./PlayersAwards";
 import {
   CHIP_LABELS,
   SCORING,
@@ -472,6 +473,7 @@ function Kit(props: {
     <>
       <span className="nl-kit-shirt">
         <Shirt id={props.p.club} />
+        <img src={photoOf(props.p.player)} alt="" className="nl-kit-face" loading="lazy" />
         {props.armband && <i className="nl-kit-badge">{props.armband}</i>}
       </span>
       <span className="nl-kit-name">{props.p.player.name}</span>
