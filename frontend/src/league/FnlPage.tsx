@@ -660,7 +660,10 @@ function Transfers(props: {
             const why = owned ? "In squad" : !openSlot ? `${filter} full` : tooDear ? "Too dear" : clubFull ? "Club full" : null;
             return (
               <li key={p.player.id}>
-                <ClubBadge id={p.club} size={24} />
+                <span className="nl-fnl-listface">
+                  <img src={photoOf(p.player)} alt="" loading="lazy" />
+                  <ClubBadge id={p.club} size={18} />
+                </span>
                 <span className="nl-fnl-list-name">
                   <strong>{p.player.name}</strong>
                   <small>{clubById.get(p.club)!.short} · {total(p.player.id)} pts{p.owned ? ` · ${p.owned}% picked` : ""}</small>

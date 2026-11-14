@@ -747,3 +747,7 @@ div.nl-kit-main { cursor: default; }
 .nl-fnl-price small { display: block; font: 700 .68rem/1.1 var(--body); text-align: right; }
 .nl-fnl-price small.is-up { color: #45c486; }
 .nl-fnl-price small.is-down { color: var(--live); }
+
+.nl-fnl-listface { position: relative; width: 44px; height: 44px; flex: none; }
+.nl-fnl-listface img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--panel-2); box-shadow: 0 0 0 1px var(--line); }
+.nl-fnl-listface .nl-badge { position: absolute; right: -4px; bottom: -2px; }
