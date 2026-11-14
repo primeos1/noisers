@@ -1,3 +1,6 @@
+import defaultPhoto from "../assets/player-default.svg";
+import { readFixture, type FixtureRead } from "./analysis";
+import type { DrawResult } from "./draw";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { clockTime, type ClubId } from "../lib/league";
 import { ClubBadge } from "./ClubBadge";
@@ -26,7 +29,7 @@ const TABS: [Tab, string, string][] = [
   ["boards", "Leaderboard", "Who's winning"],
 ];
 
-export function PlayPage({ data }: { data: LeagueData | null }) {
+export function PlayPage({ data, draw }: { data: LeagueData | null; draw: DrawResult | null }) {
   const live = data?.liveNight != null;
   const { game, reload } = useGame(live);
   const [tab, setTab] = useState<Tab>("predict");
@@ -93,7 +96,7 @@ export function PlayPage({ data }: { data: LeagueData | null }) {
             <button type="button" className="nl-link" onClick={signOut}>Not you?</button>
           </p>
           {error && <p className="nl-play-error" role="alert">{error}</p>}
-          <Predictor data={data} creds={creds} mine={mine} game={game} onSaved={onSaved} onError={setError} />
+          <Predictor data={data} draw={draw} creds={creds} mine={mine} game={game} onSaved={onSaved} onError={setError} />
         </>
       )}
     </section>
@@ -175,7 +178,7 @@ function NightTabs({ shown, onPick, data }: { shown: number; onPick: (n: number)
   );
 }
 
-function Predictor(props: { data: LeagueData; creds: Credentials; mine: Mine; game: GameData; onSaved: (m: Mine) => void; onError: (e: string) => void }) {
+function Predictor(props: { data: LeagueData; draw: DrawResult | null; creds: Credentials; mine: Mine; game: GameData; onSaved: (m: Mine) => void; onError: (e: string) => void }) {
   const { data, creds, mine } = props;
   const [night, setNight] = useState<number | null>(null);
   const shown = night ?? defaultNight(data);
@@ -215,6 +218,26 @@ function Predictor(props: { data: LeagueData; creds: Credentials; mine: Mine; ga
     }
   }
 
+  const reads = useMemo(
+    () => (props.draw ? new Map(games.map((g) => [g.no, readFixture(g, props.draw!, data, GAMES)])) : new Map<number, FixtureRead>()),
+    [games, props.draw, data],
+  );
+  const open = games.filter((g) => !fixtureLocked(g.no, data));
+
+  // Fill every open game this Sunday: random scores, or the analysis tips.
+  function fill(kind: "random" | "analysis") {
+    const goals = () => [0, 0, 1, 1, 1, 2, 2, 3][Math.floor(Math.random() * 8)];
+    setDrafts((d) => {
+      const next = { ...d };
+      for (const g of open) {
+        const tip = reads.get(g.no);
+        next[g.no] = kind === "analysis" && tip ? { home: String(tip.home), away: String(tip.away) } : { home: String(goals()), away: String(goals()) };
+      }
+      return next;
+    });
+    setNote(kind === "random" ? "Random scores in. Re-roll or tweak, then save." : "Analysis tips in. Tweak any you disagree with, then save.");
+  }
+
   const nightPoints = games.reduce((sum, g) => sum + (saved.has(g.no) ? (predictionPoints(saved.get(g.no)!, data) ?? 0) : 0), 0);
 
   return (
@@ -223,6 +246,12 @@ function Predictor(props: { data: LeagueData; creds: Credentials; mine: Mine; ga
         Exact score {EXACT_POINTS} points, right result {RESULT_POINTS}. Each game locks at kick-off, and everyone's picks show then.
       </p>
       <NightTabs shown={shown} onPick={setNight} data={data} />
+      {open.length > 0 && (
+        <div className="nl-predict-tools">
+          <button type="button" className="nl-btn is-ghost" onClick={() => fill("random")}>Random scores</button>
+          {reads.size > 0 && <button type="button" className="nl-btn is-ghost" onClick={() => fill("analysis")}>Use the analysis</button>}
+        </div>
+      )}
       <ol className="nl-fixtures">
         {games.map((g) => {
           const r = data.results.find((x) => x.matchNo === g.no);
@@ -249,6 +278,7 @@ function Predictor(props: { data: LeagueData; creds: Credentials; mine: Mine; ga
               <span className="nl-fixture-state">
                 {r?.status === "live" ? <span className="nl-live-pill">Live</span> : r?.status === "final" ? "FT" : ""}
               </span>
+              {!locked && reads.get(g.no) && <p className="nl-predict-note nl-predict-read">{reads.get(g.no)!.text}</p>}
               {locked && (
                 <p className="nl-predict-note">
                   {mineP ? `You said ${mineP.home}–${mineP.away}` : "No prediction"}
@@ -297,7 +327,7 @@ function Boards({ game, data }: { game: GameData; data: LeagueData }) {
         ))}
       </div>
       <div className="nl-play-boards">
-        <Board title="Predictor" rows={predictor} detail="Exact" empty="Points arrive as games finish." />
+        <Board title="Predictor" rows={predictor} detail="Exact" empty="Nobody has predicted yet. Be the first." />
       </div>
     </>
   );
@@ -315,6 +345,7 @@ function Board({ title, rows, detail, empty }: { title: string; rows: BoardRow[]
             <tr>
               <th scope="col" className="is-pos">Pos</th>
               <th scope="col" className="is-club">Player</th>
+              <th scope="col" title="Games predicted">Calls</th>
               <th scope="col">{detail}</th>
               <th scope="col">Pts</th>
             </tr>
@@ -323,7 +354,11 @@ function Board({ title, rows, detail, empty }: { title: string; rows: BoardRow[]
             {rows.map((r, i) => (
               <tr key={r.playerId}>
                 <td className="is-pos">{i + 1}</td>
-                <th scope="row" className="is-club"><span>{r.name}</span></th>
+                <th scope="row" className="is-club">
+                  <img src={r.photoUrl || defaultPhoto} alt="" className="nl-board-face" loading="lazy" />
+                  <span>{r.name}</span>
+                </th>
+                <td>{r.predicted}</td>
                 <td>{r.detail}</td>
                 <td className="is-pts">{r.points}</td>
               </tr>

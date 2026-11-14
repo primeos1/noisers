@@ -30,8 +30,12 @@ class LeagueGameController extends Controller
 
         return response()->json(['data' => [
             // Who can play, and who has set a PIN already (so the site asks to sign in, not to set one).
-            'players' => Player::query()->where('active', true)->orderBy('name')->get(['id', 'name'])
-                ->map(fn (Player $p) => ['id' => $p->id, 'name' => $p->name, 'joined' => isset($joined[$p->id])])
+            'players' => Player::query()->where('active', true)->orderBy('name')->get()
+                ->map(fn (Player $p) => ['id' => $p->id, 'name' => $p->name, 'photoUrl' => $p->photo_url, 'joined' => isset($joined[$p->id])])
+                ->values(),
+            // Who has made predictions and how many, without giving away the scores before kick-off.
+            'predictors' => LeaguePrediction::query()->selectRaw('player_id, count(*) as n')->groupBy('player_id')->get()
+                ->map(fn ($r) => ['playerId' => (int) $r->player_id, 'count' => (int) $r->n])
                 ->values(),
             'predictions' => LeaguePrediction::whereIn('match_no', $started)->get()->map(fn ($p) => $this->prediction($p))->values(),
         ]]);

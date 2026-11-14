@@ -8,6 +8,7 @@ import { API_URL, GAMES, type LeagueData } from "./data";
 export interface GamePlayer {
   id: number;
   name: string;
+  photoUrl?: string | null;
   /** Has set a PIN, so signs in rather than signs up. */
   joined: boolean;
 }
@@ -23,6 +24,8 @@ export interface GameData {
   players: GamePlayer[];
   /** Everyone's predictions for fixtures that have kicked off. */
   predictions: Prediction[];
+  /** Who has predicted, and how many games, before the scores are revealed. */
+  predictors?: { playerId: number; count: number }[];
 }
 
 export interface Mine {
@@ -114,29 +117,39 @@ export function predictionPoints(p: Pick<Prediction, "home" | "away" | "matchNo"
 export interface BoardRow {
   playerId: number;
   name: string;
+  photoUrl: string | null;
   points: number;
   /** Exact scores. */
   detail: number;
+  /** Games predicted. */
+  predicted: number;
 }
 
-const rank = (rows: BoardRow[]) => rows.filter((r) => r.points !== 0 || r.detail > 0).sort((a, b) => b.points - a.points || b.detail - a.detail || a.name.localeCompare(b.name));
+const rank = (rows: BoardRow[]) => rows.sort((a, b) => b.points - a.points || b.detail - a.detail || b.predicted - a.predicted || a.name.localeCompare(b.name));
 
 export function predictorBoard(game: GameData, data: LeagueData, night?: number): BoardRow[] {
   const nos = night ? new Set(GAMES.filter((g) => g.night === night).map((g) => g.no)) : null;
   const rows = new Map<number, BoardRow>();
+  const row = (id: number) => {
+    if (!rows.has(id)) {
+      const player = game.players.find((x) => x.id === id);
+      rows.set(id, { playerId: id, name: player?.name ?? "Former player", photoUrl: player?.photoUrl ?? null, points: 0, detail: 0, predicted: 0 });
+    }
+    return rows.get(id)!;
+  };
+  // Everyone who has predicted is on the board from the start, on 0.
+  for (const p of game.predictors ?? []) row(p.playerId).predicted = p.count;
   for (const p of game.predictions) {
     if (nos && !nos.has(p.matchNo)) continue;
     const pts = predictionPoints(p, data);
     if (pts === null) continue;
-    const row = rows.get(p.playerId) ?? { playerId: p.playerId, name: nameOf(game, p.playerId), points: 0, detail: 0 };
-    row.points += pts;
-    if (pts === EXACT_POINTS) row.detail++;
-    rows.set(p.playerId, row);
+    const r = row(p.playerId);
+    r.points += pts;
+    if (pts === EXACT_POINTS) r.detail++;
   }
   return rank([...rows.values()]);
 }
 
-const nameOf = (game: GameData, id: number) => game.players.find((p) => p.id === id)?.name ?? "Former player";
 
 /** A fixture is locked once it has kicked off. */
 export const fixtureLocked = (no: number, data: LeagueData) => data.results.some((r) => r.matchNo === no && r.status !== "scheduled");

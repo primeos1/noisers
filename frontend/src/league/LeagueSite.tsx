@@ -186,7 +186,7 @@ export default function LeagueSite() {
       <div className="nl-root">
         <Nav live={anyMatchLive} done={stage === "done"} drawLive={false} page={page} />
         {errorNote}
-        {page === "players" ? <PlayersPage draw={draw} data={data} /> : page === "play" ? <PlayPage data={data} /> : page === "fantasy" ? <FnlPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
+        {page === "players" ? <PlayersPage draw={draw} data={data} /> : page === "play" ? <PlayPage data={data} draw={draw} /> : page === "fantasy" ? <FnlPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
         {footer}
       </div>
     );

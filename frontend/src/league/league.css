@@ -808,3 +808,8 @@ div.nl-kit-main { cursor: default; }
 .nl-fnl-breakdown { margin-top: 14px; }
 .nl-fnl-breakdown .nl-table tbody .is-club span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nl-fnl-breakdown tr.is-bench > * { opacity: .6; }
+
+.nl-predict-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.nl-predict-tools .nl-btn { min-height: 44px; }
+.nl-predict-read { color: var(--gold-hi) !important; font-style: italic; }
+.nl-board-face { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; background: var(--panel-2); }
