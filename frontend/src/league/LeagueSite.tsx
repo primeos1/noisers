@@ -7,6 +7,7 @@ import { clubById, defaultNight, GAMES, nightDate, SEASON, standings, topScorers
 import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
 import DrawStage from "./DrawStage";
 import { AwardsPage, PlayersPage } from "./PlayersAwards";
+import { PlayPage } from "./PlayPage";
 
 const MAIN_SITE = "https://noisersfc.com";
 
@@ -66,17 +67,18 @@ function useDraw(seed: string | null | undefined, entrants: Entrant[] | null) {
 const lagosTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" });
 
-type Page = "home" | "players" | "awards";
+type Page = "home" | "players" | "awards" | "play";
 
 function currentPage(): Page {
   const path = window.location.pathname.replace(/\/+$/, "").toLowerCase();
-  return path === "/players" ? "players" : path === "/awards" ? "awards" : "home";
+  return path === "/players" ? "players" : path === "/awards" ? "awards" : path === "/play" ? "play" : "home";
 }
 
 const pageTitles: Record<Page, string> = {
   home: "The Noisers League",
   players: "Players | The Noisers League",
   awards: "Awards | The Noisers League",
+  play: "Play | The Noisers League",
 };
 
 export default function LeagueSite() {
@@ -182,7 +184,7 @@ export default function LeagueSite() {
       <div className="nl-root">
         <Nav live={anyMatchLive} done={stage === "done"} drawLive={false} page={page} />
         {errorNote}
-        {page === "players" ? <PlayersPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
+        {page === "players" ? <PlayersPage draw={draw} data={data} /> : page === "play" ? <PlayPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
         {footer}
       </div>
     );
@@ -253,6 +255,7 @@ function Nav({ live, done, drawLive, page }: { live: boolean; done: boolean; dra
     ...(done ? leagueSections : drawSections).map(([id, label]) => ({ href: `${home}#${id}`, label })),
     { href: "/players", label: "Players", current: page === "players" },
     { href: "/awards", label: "Awards", current: page === "awards" },
+    { href: "/play", label: "Play", current: page === "play" },
     { href: `${home}#fair-play`, label: "Fair Play" },
   ];
   return (

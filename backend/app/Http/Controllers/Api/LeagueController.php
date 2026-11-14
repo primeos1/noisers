@@ -32,7 +32,19 @@ class LeagueController extends Controller
     /** Moved into goal for the league after the draw. */
     private const LATE_KEEPERS = [50]; // Shubby
 
+    /** Left the league after the draw (see league/draw.ts RELEASED). */
+    private const RELEASED = [68]; // Abbey
+
     public const NIGHTS = 5;
+
+    /** @return int[] everyone in a league squad today */
+    public static function leaguePlayerIds(): array
+    {
+        $state = LeagueState::current();
+        $drawn = $state->draw_entrants ? array_column($state->draw_entrants, 'id') : ($state->entrant_ids ?? []);
+
+        return array_values(array_diff(array_map('intval', [...$drawn, ...self::LATE_SIGNINGS]), self::RELEASED));
+    }
 
     /** Everything the league site shows, in one call it can poll. */
     public function show()

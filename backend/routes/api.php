@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\HighlightController;
 use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\HomeStatController;
 use App\Http\Controllers\Api\LeagueController;
+use App\Http\Controllers\Api\LeagueGameController;
 use App\Http\Controllers\Api\MatchDayEventController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NoisersController;
@@ -65,6 +66,11 @@ Route::get('/noisers', [NoisersController::class, 'index']);
 
 // The Noisers League (league.noisersfc.com) — public read, committee write below.
 Route::get('/league', [LeagueController::class, 'show']);
+// The league's predictor and fantasy games: public leaderboards, picks gated by passcode + PIN.
+Route::get('/league/game', [LeagueGameController::class, 'show']);
+Route::post('/league/game/login', [LeagueGameController::class, 'login'])->middleware('throttle:10,1');
+Route::put('/league/game/predictions', [LeagueGameController::class, 'savePredictions'])->middleware('throttle:30,1');
+Route::put('/league/game/fantasy', [LeagueGameController::class, 'saveFantasy'])->middleware('throttle:30,1');
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
@@ -146,6 +152,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/player-absences/{playerAbsence}', [PlayerAbsenceController::class, 'update']);
     Route::delete('/player-absences/{playerAbsence}', [PlayerAbsenceController::class, 'destroy']);
 
+    Route::delete('/league/game/pins/{player}', [LeagueGameController::class, 'resetPin']);
     Route::put('/league/entrants', [LeagueController::class, 'updateEntrants']);
     Route::post('/league/draw', [LeagueController::class, 'scheduleDraw']);
     Route::delete('/league/draw', [LeagueController::class, 'cancelDraw']);

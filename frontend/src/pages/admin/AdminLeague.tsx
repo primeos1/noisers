@@ -8,12 +8,13 @@ import { ClubBadge } from "../../league/ClubBadge";
 import { CaptainBadge } from "../../league/CaptainBadge";
 import { leagueUrl } from "../../league/url";
 
-type Tab = "players" | "draw" | "matchday";
+type Tab = "players" | "draw" | "matchday" | "play";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "players", label: "Who's in" },
   { id: "draw", label: "The draw" },
   { id: "matchday", label: "Match day" },
+  { id: "play", label: "Play" },
 ];
 
 const btn = "rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40";
@@ -87,6 +88,8 @@ export default function AdminLeague() {
         <PlayersTab data={data} act={act} />
       ) : tab === "draw" ? (
         <DrawTab data={data} act={act} />
+      ) : tab === "play" ? (
+        <PlayTab />
       ) : (
         <MatchdayTab data={data} act={act} />
       )}
@@ -95,6 +98,58 @@ export default function AdminLeague() {
 }
 
 type Act = (path: string, method: string, body?: unknown) => Promise<boolean>;
+
+/* ---------------------------------------------------------------- play */
+
+/** The predictor and fantasy games: who's playing, and resetting a forgotten PIN. */
+function PlayTab() {
+  const [players, setPlayers] = useState<{ id: number; name: string; joined: boolean }[] | null>(null);
+  const [message, setMessage] = useState("");
+
+  function load() {
+    apiFetch<{ data: { players: { id: number; name: string; joined: boolean }[] } }>("/league/game")
+      .then((r) => setPlayers(r.data.players))
+      .catch(() => setMessage("Couldn't load the players."));
+  }
+  useEffect(load, []);
+
+  async function reset(p: { id: number; name: string }) {
+    if (!window.confirm(`Reset ${p.name}'s PIN? Their picks stay; they choose a new PIN next time they sign in.`)) return;
+    try {
+      await apiFetch(`/league/game/pins/${p.id}`, { method: "DELETE" });
+      setMessage(`${p.name} can set a new PIN now.`);
+      load();
+    } catch {
+      setMessage("Couldn't reset that PIN.");
+    }
+  }
+
+  const joined = (players ?? []).filter((p) => p.joined);
+  return (
+    <section className="mt-8 max-w-xl">
+      <h2 className="font-display text-2xl text-paper">Predictor &amp; fantasy</h2>
+      <p className="mt-2 text-sm text-paper-dim">
+        Players sign in at <a className="underline" href={leagueUrl("play")} target="_blank" rel="noreferrer">the league site's Play page</a> with
+        the squad passcode and a 4-digit PIN they choose. If someone forgets theirs, reset it here.
+      </p>
+      {message && <p className="mt-4 text-sm text-paper" role="status">{message}</p>}
+      {!players ? (
+        <p className="mt-6 text-sm text-mist">Loading…</p>
+      ) : joined.length === 0 ? (
+        <p className="mt-6 text-sm text-mist">Nobody has signed up yet.</p>
+      ) : (
+        <ul className="mt-6 divide-y divide-ink-line border border-ink-line">
+          {joined.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm text-paper">
+              {p.name}
+              <button type="button" className={btnGhost} onClick={() => reset(p)}>Reset PIN</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 /* ------------------------------------------------------------ who's in */
 

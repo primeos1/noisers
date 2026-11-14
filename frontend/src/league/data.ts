@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildSchedule, clubs, type ClubId, type ScheduledGame } from "../lib/league";
 import type { Entrant } from "./draw";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 export type MatchStatus = "scheduled" | "live" | "final";
 
