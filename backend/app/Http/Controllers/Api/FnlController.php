@@ -37,8 +37,9 @@ class FnlController extends Controller
             ],
             'openGameweek' => $open,
             'deadlines' => array_map(fn ($gw) => Fnl::deadline($gw)->toIso8601String(), range(1, LeagueController::NIGHTS)),
-            'players' => collect(LeagueController::leaguePlayers())
-                ->map(fn ($p, $id) => ['id' => $id, 'position' => $p['position'], 'price' => Fnl::price($p['rating'])])
+            // Prices for the gameweek being picked (the last one once the season's running out).
+            'players' => collect(Fnl::prices($open ?? LeagueController::NIGHTS))
+                ->map(fn ($p, $id) => ['id' => $id, 'position' => $p['position'], 'price' => $p['price'], 'change' => $p['change'], 'owned' => $p['owned']])
                 ->values(),
             'teams' => FnlTeam::orderBy('id')->get()->map(fn (FnlTeam $t) => $this->team($t))->values(),
             'entries' => FnlEntry::whereIn('gameweek', $locked)->get()->map(fn (FnlEntry $e) => $this->entry($e))->values(),
@@ -91,7 +92,7 @@ class FnlController extends Controller
             $fail('starters', 'A player can only be in your squad once.');
         }
 
-        $pool = LeagueController::leaguePlayers();
+        $pool = Fnl::prices($gw);
         $count = array_fill_keys(array_keys(Fnl::SQUAD), 0);
         $cost = 0.0;
         foreach ($squad as $id) {
@@ -99,13 +100,19 @@ class FnlController extends Controller
                 $fail('starters', 'Pick players who are in the league.');
             }
             $count[$pool[$id]['position']]++;
-            $cost += Fnl::price($pool[$id]['rating']);
+            $cost += $pool[$id]['price'];
         }
         if ($count !== Fnl::SQUAD) {
             $fail('starters', 'Your squad needs 1 keeper, 3 defenders, 2 midfielders and 3 forwards.');
         }
-        if ($cost > Fnl::BUDGET + 0.001) {
-            $fail('starters', 'That squad costs '.number_format($cost, 1).'m, over the '.number_format(Fnl::BUDGET, 1).'m budget.');
+        // A squad that's risen in value can keep its players; transfers just can't push it further over.
+        $previous = $team->entries()->where('gameweek', '<', $gw)->orderByDesc('gameweek')->first();
+        $previousCost = $previous
+            ? array_sum(array_map(fn ($id) => $pool[$id]['price'] ?? 0, [...$previous->starters, ...$previous->bench]))
+            : 0;
+        $allowed = max(Fnl::BUDGET, $previousCost);
+        if ($cost > $allowed + 0.001) {
+            $fail('starters', 'That squad costs '.number_format($cost, 1).'m, over your '.number_format($allowed, 1).'m budget.');
         }
         $starting = array_count_values(array_map(fn ($id) => $pool[$id]['position'], $starters));
         if (($starting['GK'] ?? 0) !== 1 || ($starting['DEF'] ?? 0) < 1 || ($starting['MID'] ?? 0) < 1 || ($starting['FWD'] ?? 0) < 1) {
@@ -120,7 +127,6 @@ class FnlController extends Controller
             $fail('chip', 'You have already played that chip.');
         }
 
-        $previous = $team->entries()->where('gameweek', '<', $gw)->orderByDesc('gameweek')->first();
         $transfers = $previous ? count(array_diff($squad, [...$previous->starters, ...$previous->bench])) : 0;
         $free = Fnl::freeTransfers($team, $gw);
         $hits = $free === null || $chip === 'wildcard' ? 0 : max(0, $transfers - $free);

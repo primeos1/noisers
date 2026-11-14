@@ -255,7 +255,12 @@ function Manager(props: {
   const ids = draft.lineup.map((s) => s.id).filter((id): id is number => id !== null);
   const full = ids.length === 9;
   const spent = ids.reduce((sum, id) => sum + (players.get(id)?.price ?? 0), 0);
-  const bank = fnl.rules.budget - spent;
+  // A squad that's risen in value keeps its players: the budget is whichever is bigger,
+  // 58.0m or what last gameweek's squad is worth now.
+  const previousEntry = mine.entries.filter((e) => e.gameweek < gw).sort((a, b) => b.gameweek - a.gameweek)[0] ?? null;
+  const previousValue = previousEntry ? [...previousEntry.starters, ...previousEntry.bench].reduce((sum, id) => sum + (players.get(id)?.price ?? 0), 0) : 0;
+  const allowance = Math.max(fnl.rules.budget, previousValue);
+  const bank = allowance - spent;
   const perClub = new Map<ClubId, number>();
   for (const id of ids) {
     const club = players.get(id)!.club;
@@ -658,9 +663,12 @@ function Transfers(props: {
                 <ClubBadge id={p.club} size={24} />
                 <span className="nl-fnl-list-name">
                   <strong>{p.player.name}</strong>
-                  <small>{clubById.get(p.club)!.short} · {total(p.player.id)} pts</small>
+                  <small>{clubById.get(p.club)!.short} · {total(p.player.id)} pts{p.owned ? ` · ${p.owned}% picked` : ""}</small>
                 </span>
-                <span className="nl-fnl-price">{m(p.price)}</span>
+                <span className="nl-fnl-price">
+                  {m(p.price)}
+                  {p.change !== 0 && <small className={p.change > 0 ? "is-up" : "is-down"}>{p.change > 0 ? "▲" : "▼"}{Math.abs(p.change).toFixed(1)}</small>}
+                </span>
                 <button type="button" className="nl-btn is-ghost nl-fnl-add" disabled={!!why} onClick={() => add(p.player.id)}>
                   {why ?? "Add"}
                 </button>
@@ -965,7 +973,9 @@ function Rules({ fnl }: { fnl: FnlData }) {
         <h2 className="nl-h3">Your squad</h2>
         <ul>
           <li>Nine players: 1 goalkeeper, 3 defenders, 2 midfielders and 3 forwards, from any of the six clubs.</li>
-          <li>A {m(r.budget)} budget. Prices come from each player's league rating.</li>
+          <li>A {m(r.budget)} budget. Prices start from each player's league rating.</li>
+          <li>Prices move at every deadline: a player picked by more managers than average goes up 0.1m for every extra 10% of managers, and one picked by fewer (or dropped) goes down, by up to 1.0m either way.</li>
+          <li>If your squad rises in value you can keep it, even over budget. Transfers just can't take you further over.</li>
           <li>No more than {r.maxPerClub} players from one club.</li>
           <li>Six start: your keeper plus five outfielders, with at least one defender, midfielder and forward. Three sit on the bench, in order.</li>
           <li>Your captain scores double. If they don't play, your vice-captain does.</li>

@@ -38,6 +38,57 @@ class Fnl
         return round($rating, 1);
     }
 
+    /** How far ownership moves a price: 0.1m per 10% of managers above or below average, up to 1.0m either way. */
+    public const PRICE_STEP = 0.1;
+
+    public const MAX_PRICE_CHANGE = 1.0;
+
+    /**
+     * Every league player's price for a gameweek, with how much it has moved.
+     * Gameweek 1 uses the base prices (league ratings). After that, each
+     * player's price follows how many managers had him in the gameweek just
+     * played: owned by more than the average share, he goes up; by fewer, or
+     * dropped, he goes down. Prices only move at deadlines, so they hold
+     * still while people pick.
+     *
+     * @return array<int, array{position: string, base: float, price: float, change: float, owned: float}>
+     */
+    public static function prices(?int $gameweek): array
+    {
+        $pool = LeagueController::leaguePlayers();
+        $owners = [];
+        $teams = 0;
+        if ($gameweek !== null && $gameweek > 1) {
+            foreach (FnlTeam::with('entries')->get() as $team) {
+                $entry = $team->entries->where('gameweek', '<=', $gameweek - 1)->sortByDesc('gameweek')->first();
+                if (! $entry) {
+                    continue;
+                }
+                $teams++;
+                foreach ([...$entry->starters, ...$entry->bench] as $id) {
+                    $owners[$id] = ($owners[$id] ?? 0) + 1;
+                }
+            }
+        }
+        $average = count($pool) ? array_sum(self::SQUAD) / count($pool) : 0;
+        $out = [];
+        foreach ($pool as $id => $p) {
+            $base = self::price($p['rating']);
+            $share = $teams ? ($owners[$id] ?? 0) / $teams : 0;
+            $steps = $teams ? (int) round(($share - $average) * 10) : 0;
+            $change = max(-self::MAX_PRICE_CHANGE, min(self::MAX_PRICE_CHANGE, $steps * self::PRICE_STEP));
+            $out[$id] = [
+                'position' => $p['position'],
+                'base' => $base,
+                'price' => round(max(3.0, $base + $change), 1),
+                'change' => round($change, 1),
+                'owned' => round($share * 100),
+            ];
+        }
+
+        return $out;
+    }
+
     /** Gameweek N is league Sunday N; changes close at its 9pm kick-off. */
     public static function deadline(int $gameweek): CarbonImmutable
     {

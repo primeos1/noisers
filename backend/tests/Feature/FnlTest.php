@@ -100,6 +100,23 @@ class FnlTest extends TestCase
         $this->postJson('/api/fnl/me', $this->auth())->assertJsonPath('data.freeTransfers', 2);
     }
 
+    public function test_prices_follow_ownership_from_the_last_gameweek(): void
+    {
+        $this->signUp();
+        $this->putJson('/api/fnl/entry', $this->auth() + ['gameweek' => 1] + $this->squad())->assertOk();
+        // Gameweek 1 is still on base prices.
+        $this->assertEqualsCanonicalizing([0.0], collect($this->getJson('/api/fnl')->json('data.players'))->pluck('change')->unique()->values()->all());
+
+        $this->travelTo(Fnl::deadline(1)->addHour());
+        $players = collect($this->getJson('/api/fnl')->json('data.players'))->keyBy('id');
+        $this->assertGreaterThan(0, $players[$this->pool['GK'][0]]['change']); // in the only squad
+        $this->assertLessThan(0, $players[$this->pool['GK'][1]]['change']);   // in nobody's
+        $this->assertEquals(6.0 + $players[$this->pool['GK'][0]]['change'], $players[$this->pool['GK'][0]]['price']);
+
+        // Keeping a squad that's gone up in value is fine.
+        $this->putJson('/api/fnl/entry', $this->auth() + ['gameweek' => 2] + $this->squad())->assertOk();
+    }
+
     public function test_an_early_kick_off_locks_the_gameweek(): void
     {
         $this->signUp();

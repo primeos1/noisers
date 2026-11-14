@@ -743,3 +743,7 @@ div.nl-kit-main { cursor: default; }
 .nl-kit-shirt { width: 70px; height: 70px; }
 .nl-kit-face { position: absolute; left: 50%; top: 30%; width: 40px; height: 40px; transform: translateX(-50%); border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px #f4f3ee, 0 3px 6px rgb(0 0 0 / .4); background: var(--panel-2); }
 @media (max-width: 480px) { .nl-kit-shirt { width: 58px; height: 58px; } .nl-kit-face { width: 34px; height: 34px; } }
+
+.nl-fnl-price small { display: block; font: 700 .68rem/1.1 var(--body); text-align: right; }
+.nl-fnl-price small.is-up { color: #45c486; }
+.nl-fnl-price small.is-down { color: var(--live); }

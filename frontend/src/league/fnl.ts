@@ -60,7 +60,8 @@ export interface FnlData {
   /** The gameweek squads are being picked for; null once the last has started. */
   openGameweek: number | null;
   deadlines: string[];
-  players: { id: number; position: Position; price: number }[];
+  /** Prices for the gameweek being picked; change is how far ownership has moved it from the base price. */
+  players: { id: number; position: Position; price: number; change: number; owned: number }[];
   teams: FnlTeam[];
   /** Every squad for gameweeks that have locked. */
   entries: FnlEntry[];
@@ -114,6 +115,9 @@ export interface FnlPlayer {
   club: ClubId;
   position: Position;
   price: number;
+  change: number;
+  /** % of managers who had him last gameweek. */
+  owned: number;
 }
 
 /** Everyone pickable: the drawn squads, with FNL's positions and prices. */
@@ -123,7 +127,7 @@ export function fnlPlayers(draw: DrawResult, fnl: FnlData): Map<number, FnlPlaye
   for (const club of Object.keys(draw.squads) as ClubId[]) {
     for (const player of draw.squads[club]) {
       const p = priced.get(player.id);
-      if (p) out.set(player.id, { player, club, position: p.position, price: p.price });
+      if (p) out.set(player.id, { player, club, position: p.position, price: p.price, change: p.change ?? 0, owned: p.owned ?? 0 });
     }
   }
   return out;
