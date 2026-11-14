@@ -751,3 +751,60 @@ div.nl-kit-main { cursor: default; }
 .nl-fnl-listface { position: relative; width: 44px; height: 44px; flex: none; }
 .nl-fnl-listface img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--panel-2); box-shadow: 0 0 0 1px var(--line); }
 .nl-fnl-listface .nl-badge { position: absolute; right: -4px; bottom: -2px; }
+
+/* FNL points: banner, flags, pitch markings, breakdown */
+.nl-fnl-hero {
+  position: relative; overflow: hidden; margin-bottom: 12px; padding: 18px 20px; border-radius: 18px;
+  display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr); gap: 16px; align-items: center;
+  background:
+    radial-gradient(400px 160px at 50% 0%, rgb(201 168 90 / .28), transparent 70%),
+    linear-gradient(135deg, #1b2a52, #121a2e 60%);
+  border: 1px solid rgb(201 168 90 / .35);
+}
+.nl-fnl-hero-team { display: grid; gap: 2px; min-width: 0; }
+.nl-fnl-hero-team small { color: var(--gold); font: 700 .72rem/1 var(--body); letter-spacing: .14em; text-transform: uppercase; }
+.nl-fnl-hero-team strong { font: 400 2rem/1 var(--display); letter-spacing: .02em; padding-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nl-fnl-hero-team span { color: var(--mist); font-size: .85rem; }
+.nl-fnl-hero-pts { display: grid; justify-items: center; padding: 6px 22px; border-radius: 16px; background: rgb(11 17 32 / .55); box-shadow: inset 0 0 0 1px rgb(201 168 90 / .4); }
+.nl-fnl-hero-pts strong { font: 400 4.2rem/.9 var(--display); color: var(--gold); padding-top: 6px; }
+.nl-fnl-hero-pts small { color: var(--mist); font: 700 .7rem/1 var(--body); letter-spacing: .16em; text-transform: uppercase; }
+.nl-fnl-hero-side { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nl-fnl-hero-side div { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; background: rgb(255 255 255 / .04); }
+.nl-fnl-hero-side strong { font: 400 1.6rem/1 var(--display); padding-top: 3px; }
+.nl-fnl-hero-side small { color: var(--mist); font-size: .7rem; }
+@media (max-width: 720px) {
+  .nl-fnl-hero { grid-template-columns: minmax(0, 1fr) auto; }
+  .nl-fnl-hero-side { grid-column: 1 / -1; }
+}
+
+.nl-fnl-flags { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.nl-fnl-flags li { padding: 6px 12px; border-radius: 999px; font-size: .8rem; font-weight: 600; background: var(--panel); border: 1px solid var(--line); color: var(--paper); }
+.nl-fnl-flags li.is-gold { background: rgb(201 168 90 / .15); border-color: var(--gold); color: var(--gold-hi); }
+.nl-fnl-flags li.is-red { background: rgb(255 59 78 / .12); border-color: var(--live); color: #ff8a95; }
+
+/* pitch markings */
+.nl-fnl-field { position: relative; isolation: isolate; }
+.nl-fnl-field::before {
+  content: ""; position: absolute; z-index: -1; left: 50%; bottom: -60px; width: 180px; height: 120px; transform: translateX(-50%);
+  border: 2px solid rgb(255 255 255 / .16); border-radius: 50%;
+}
+.nl-fnl-field::after {
+  content: ""; position: absolute; z-index: -1; left: 50%; top: 0; width: 46%; height: 96px; transform: translateX(-50%);
+  border: 2px solid rgb(255 255 255 / .16); border-top: 0;
+}
+.nl-fnl-field { border-bottom: 2px solid rgb(255 255 255 / .16); }
+.nl-fnl-bench .nl-fnl-row { counter-reset: bench; }
+.nl-fnl-bench .nl-kit { counter-increment: bench; position: relative; }
+.nl-fnl-bench .nl-kit::before {
+  content: counter(bench); position: absolute; top: 0; left: 4px; z-index: 1; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--panel); color: var(--mist); font: 700 .68rem/1 var(--body); box-shadow: 0 0 0 1px var(--line);
+}
+
+/* points tags */
+.nl-kit-tag.is-pts { font-size: 1.25rem; }
+.nl-kit-tag.is-hot { background: var(--gold); color: var(--navy); }
+
+/* breakdown */
+.nl-fnl-breakdown { margin-top: 14px; }
+.nl-fnl-breakdown .nl-table tbody .is-club span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nl-fnl-breakdown tr.is-bench > * { opacity: .6; }

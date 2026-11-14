@@ -123,7 +123,7 @@ export function FnlPage({ draw, data }: { draw: DrawResult | null; data: LeagueD
           }}
         />
       ) : tab === "points" ? (
-        <Points fnl={fnl} data={data} season={season} players={players} mine={mine} teamId={viewTeam ?? mine?.team?.id ?? null} onTeam={setViewTeam} />
+        <Points fnl={fnl} data={data} season={season} players={players} mine={mine} names={new Map((game?.players ?? []).map((p) => [p.id, p.name]))} teamId={viewTeam ?? mine?.team?.id ?? null} onTeam={setViewTeam} />
       ) : !creds || !mine ? (
         game ? (
           <SignIn
@@ -468,6 +468,8 @@ function Kit(props: {
   p: FnlPlayer;
   tag: ReactNode;
   pts?: boolean;
+  /** Captain's points tag, in gold. */
+  hot?: boolean;
   armband?: "C" | "V" | "TC" | null;
   selected?: boolean;
   dim?: boolean;
@@ -482,7 +484,7 @@ function Kit(props: {
         {props.armband && <i className="nl-kit-badge">{props.armband}</i>}
       </span>
       <span className="nl-kit-name">{props.p.player.name}</span>
-      <span className={`nl-kit-tag ${props.pts ? "is-pts" : ""}`}>{props.tag}</span>
+      <span className={`nl-kit-tag ${props.pts ? "is-pts" : ""} ${props.hot ? "is-hot" : ""}`}>{props.tag}</span>
     </>
   );
   return (
@@ -710,7 +712,7 @@ function MyUpcoming({ fnl, mine, players }: { fnl: FnlData; mine: FnlMine | null
   );
 }
 
-function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players: Map<number, FnlPlayer>; mine: FnlMine | null; teamId: number | null; onTeam: (id: number) => void }) {
+function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players: Map<number, FnlPlayer>; mine: FnlMine | null; names: Map<number, string>; teamId: number | null; onTeam: (id: number) => void }) {
   const { fnl, data, season, players } = props;
   const started = SEASON.map((n) => n.number).filter((gw) => gwStarted(gw, data));
   const [gwPick, setGwPick] = useState<number | null>(null);
@@ -755,6 +757,16 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
   const all = fnl.teams.map((t) => teamGameweek(fnl.entries, t.id, gw, data, season, players)?.points).filter((x): x is number => x !== undefined);
   const avg = all.length ? Math.round(all.reduce((a, b) => a + b, 0) / all.length) : 0;
   const best = all.length ? Math.max(...all) : 0;
+  const team = fnl.teams.find((t) => t.id === teamId) ?? null;
+  const rank = result ? all.filter((x) => x > result.points).length + 1 : null;
+  const chips: { text: string; tone: string }[] = result
+    ? [
+        ...(result.entry.gameweek === gw && result.entry.chip ? [{ text: `${CHIP_LABELS[result.entry.chip].name} played`, tone: "is-gold" }] : []),
+        ...(result.entry.gameweek === gw && result.entry.transferCost ? [{ text: `−${result.entry.transferCost} pts transfers`, tone: "is-red" }] : []),
+        ...result.subs.map((s) => ({ text: `Auto-sub: ${players.get(s.in)?.player.name} on for ${players.get(s.out)?.player.name}`, tone: "" })),
+        ...(result.captainId !== null && result.captainId !== result.entry.captainId ? [{ text: "Captain didn't play: vice took the armband", tone: "" }] : []),
+      ]
+    : [];
 
   const card = (slot: Slot, index: number) => {
     const p = slot.id !== null ? players.get(slot.id) : null;
@@ -767,12 +779,11 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
         key={slot.id}
         p={p}
         pts
+        hot={mult > 1 && !!line?.games}
         dim={!line?.games || !counts}
         tag={line?.games ? (line.points * mult) : gwDone(gw, data) ? "DNP" : "–"}
         armband={p.player.id === result.captainId ? (mult === 3 ? "TC" : "C") : p.player.id === result.entry.viceId ? "V" : null}
-      >
-        {line?.games ? <small className="nl-kit-note">{breakdown(line)}</small> : null}
-      </Kit>
+      />
     );
   };
 
@@ -799,34 +810,75 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
         <p className="nl-muted">This team hadn't picked a squad by gameweek {gw}.</p>
       ) : (
         <>
-          <div className="nl-fnl-bar">
-            <Stat label="Points" value={String(result.points)} />
-            <Stat label="Average" value={String(avg)} />
-            <Stat label="Highest" value={String(best)} />
-            <Stat label="Transfers" value={result.entry.gameweek === gw && result.entry.transferCost ? `−${result.entry.transferCost}` : "0"} warn={result.entry.gameweek === gw && result.entry.transferCost > 0} />
+          <div className="nl-fnl-hero">
+            <div className="nl-fnl-hero-team">
+              <small>Gameweek {gw}{data.liveNight === gw ? " · live" : gwDone(gw, data) ? " · final" : ""}</small>
+              <strong>{team?.name}</strong>
+              <span>{team ? props.names.get(team.playerId) ?? "" : ""}</span>
+            </div>
+            <div className="nl-fnl-hero-pts">
+              <strong>{result.points}</strong>
+              <small>Points</small>
+            </div>
+            <div className="nl-fnl-hero-side">
+              <div><strong>{avg}</strong><small>Average</small></div>
+              <div><strong>{best}</strong><small>Highest</small></div>
+              <div><strong>{rank ? `${rank}/${all.length}` : "–"}</strong><small>GW rank</small></div>
+            </div>
           </div>
-          {result.entry.gameweek === gw && result.entry.chip && <p className="nl-muted nl-notice">Chip played: {CHIP_LABELS[result.entry.chip].name}</p>}
-          <Pitch lineup={[...result.starters, ...result.bench].map((id) => ({ id, position: players.get(id)?.position ?? "MID" }))} render={card} />
-          {result.subs.length > 0 && (
-            <p className="nl-muted">Auto-subs: {result.subs.map((s) => `${players.get(s.in)?.player.name} on for ${players.get(s.out)?.player.name}`).join(", ")}.</p>
+          {chips.length > 0 && (
+            <ul className="nl-fnl-flags">
+              {chips.map((c) => (
+                <li key={c.text} className={c.tone}>{c.text}</li>
+              ))}
+            </ul>
           )}
-          {result.captainId !== null && result.captainId !== result.entry.captainId && <p className="nl-muted">The captain didn't play, so the vice-captain took the armband.</p>}
+          <Pitch lineup={[...result.starters, ...result.bench].map((id) => ({ id, position: players.get(id)?.position ?? "MID" }))} render={card} />
+          <div className="nl-table-wrap nl-fnl-breakdown">
+            <table className="nl-table">
+              <thead>
+                <tr>
+                  <th scope="col" className="is-club">Player</th>
+                  <th scope="col" title="Games played">GP</th>
+                  <th scope="col" title="Goals">G</th>
+                  <th scope="col" title="Assists">A</th>
+                  <th scope="col" title="Clean sheets" className="is-wide">CS</th>
+                  <th scope="col" title="Saves" className="is-wide">Sv</th>
+                  <th scope="col" title="Bonus">B</th>
+                  <th scope="col">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...result.starters, ...result.bench].map((id, i) => {
+                  const p = players.get(id);
+                  if (!p) return null;
+                  const l = season(gw, id);
+                  const mult = id === result.captainId ? result.multiplier : 1;
+                  const counts = i < 6 || result.entry.chip === "bench_boost";
+                  return (
+                    <tr key={id} className={counts ? "" : "is-bench"}>
+                      <th scope="row" className="is-club">
+                        <ClubBadge id={p.club} size={22} />
+                        <span>{p.player.name}{id === result.captainId ? (mult === 3 ? " (TC)" : " (C)") : id === result.entry.viceId ? " (V)" : ""}</span>
+                      </th>
+                      <td>{l?.games ?? 0}</td>
+                      <td>{l?.goals ?? 0}</td>
+                      <td>{l?.assists ?? 0}</td>
+                      <td className="is-wide">{l?.cleanSheets ?? 0}</td>
+                      <td className="is-wide">{l?.saves ?? 0}</td>
+                      <td>{l?.bonus ?? 0}</td>
+                      <td className="is-pts">{counts ? (l?.points ?? 0) * mult : <span className="nl-muted">{l?.points ?? 0}</span>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="nl-muted nl-note">Bench points only count with Bench Boost. Captain doubles (Triple Captain triples).</p>
+          </div>
         </>
       )}
     </>
   );
-}
-
-function breakdown(l: NonNullable<ReturnType<Season>>) {
-  return [
-    `${l.games} game${l.games === 1 ? "" : "s"}`,
-    l.goals && `${l.goals}G`,
-    l.assists && `${l.assists}A`,
-    l.cleanSheets && `${l.cleanSheets}CS`,
-    l.saves && `${l.saves} saves`,
-    l.bonus && `${l.bonus} bonus`,
-    (l.yellows || l.reds) && `${l.yellows ? `${l.yellows}Y` : ""}${l.reds ? `${l.reds}R` : ""}`,
-  ].filter(Boolean).join(" · ");
 }
 
 /* -------------------------------------------------------------- leagues */
