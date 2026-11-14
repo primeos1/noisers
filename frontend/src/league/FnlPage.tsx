@@ -9,6 +9,7 @@ import { photoOf } from "./PlayersAwards";
 import {
   CHIP_LABELS,
   SCORING,
+  entryFor,
   fnlCreateLeague,
   fnlJoinLeague,
   fnlLeaveLeague,
@@ -122,7 +123,7 @@ export function FnlPage({ draw, data }: { draw: DrawResult | null; data: LeagueD
           }}
         />
       ) : tab === "points" ? (
-        <Points fnl={fnl} data={data} season={season} players={players} teamId={viewTeam ?? mine?.team?.id ?? null} onTeam={setViewTeam} />
+        <Points fnl={fnl} data={data} season={season} players={players} mine={mine} teamId={viewTeam ?? mine?.team?.id ?? null} onTeam={setViewTeam} />
       ) : !creds || !mine ? (
         game ? (
           <SignIn
@@ -564,14 +565,53 @@ function Transfers(props: {
 
 /* --------------------------------------------------------------- points */
 
-function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players: Map<number, FnlPlayer>; teamId: number | null; onTeam: (id: number) => void }) {
+/** Your saved squad for the gameweek coming up: only you can see it until the deadline. */
+function MyUpcoming({ fnl, mine, players }: { fnl: FnlData; mine: FnlMine | null; players: Map<number, FnlPlayer> }) {
+  const gw = fnl.openGameweek;
+  if (!gw || !mine?.team) return null;
+  const entry = entryFor(mine.entries, mine.team.id, gw);
+  if (!entry) return <p className="nl-muted nl-notice">You haven't picked a squad for gameweek {gw} yet. Head to Transfers.</p>;
+  const lineup = [...entry.starters, ...entry.bench].map((id) => ({ id, position: players.get(id)?.position ?? ("MID" as Position) }));
+  const spent = lineup.reduce((sum, s) => sum + (players.get(s.id)?.price ?? 0), 0);
+  const card = (slot: Slot) => {
+    const p = slot.id !== null ? players.get(slot.id) : null;
+    if (!p) return null;
+    const role = p.player.id === entry.captainId ? " (C)" : p.player.id === entry.viceId ? " (V)" : "";
+    return (
+      <div key={slot.id} className="nl-fnl-card">
+        <div className="nl-fnl-card-main">
+          <img src={photoOf(p.player)} alt="" className="nl-face" width={44} height={44} />
+          <strong>{p.player.name}{role}</strong>
+          <small><ClubBadge id={p.club} size={14} /> {clubById.get(p.club)!.short} · {m(p.price)}</small>
+        </div>
+      </div>
+    );
+  };
+  return (
+    <>
+      <h2 className="nl-h3">{mine.team.name}: gameweek {gw}</h2>
+      <p className="nl-muted nl-notice">
+        Saved squad, {m(spent)} spent{entry.chip ? `, ${CHIP_LABELS[entry.chip].name} on` : ""}. Only you can see it until the deadline; points start at kick-off.
+      </p>
+      <Pitch lineup={lineup} render={card} />
+    </>
+  );
+}
+
+function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players: Map<number, FnlPlayer>; mine: FnlMine | null; teamId: number | null; onTeam: (id: number) => void }) {
   const { fnl, data, season, players } = props;
   const started = SEASON.map((n) => n.number).filter((gw) => gwStarted(gw, data));
   const [gwPick, setGwPick] = useState<number | null>(null);
   const gw = gwPick ?? started[started.length - 1] ?? null;
   const teamId = props.teamId ?? fnl.teams[0]?.id ?? null;
 
-  if (!gw) return <p className="nl-muted">Points start when gameweek 1 kicks off on {nightDate(1)}.</p>;
+  if (!gw)
+    return (
+      <>
+        <MyUpcoming fnl={fnl} mine={props.mine} players={players} />
+        <p className="nl-muted">Points start when gameweek 1 kicks off on {nightDate(1)}. Everyone's squads show at the deadline.</p>
+      </>
+    );
   if (!teamId) return <p className="nl-muted">No teams yet.</p>;
 
   const result = teamGameweek(fnl.entries, teamId, gw, data, season, players);

@@ -34,7 +34,6 @@ class LeagueGameTest extends TestCase
 
     public function test_first_sign_in_sets_the_pin_and_a_wrong_one_is_refused(): void
     {
-        $this->postJson('/api/league/game/login', ['passcode' => 'nope'] + $this->auth())->assertUnprocessable();
         $this->postJson('/api/league/game/login', $this->auth())->assertOk()->assertJsonPath('data.playerId', $this->me->id);
         $this->postJson('/api/league/game/login', $this->auth('9999'))->assertUnprocessable()->assertJsonValidationErrors('pin');
         $this->getJson('/api/league/game')->assertJsonFragment(['id' => $this->me->id, 'joined' => true]);

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClubSetting;
 use App\Models\LeagueGamePlayer;
 use App\Models\LeaguePrediction;
 use App\Models\LeagueResult;
@@ -18,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  * out on the league site from the public results, so the server only keeps
  * the picks, and keeps them hidden until they lock.
  *
- * Squad players have no accounts, so a request carries the squad passcode,
+ * Squad players have no accounts, so a request carries
  * the player's id and a personal 4-digit PIN they chose the first time.
  */
 class LeagueGameController extends Controller
@@ -83,15 +82,11 @@ class LeagueGameController extends Controller
 
     public function signIn(Request $request, bool $allowSetup = false): Player
     {
+        // Just the player and their PIN: the PIN they set the first time keeps their picks theirs.
         $data = $request->validate([
-            'passcode' => ['required', 'string', 'max:64'],
             'player_id' => ['required', 'integer', 'exists:players,id'],
             'pin' => ['required', 'string', 'regex:/^\d{4}$/'],
         ], ['pin.regex' => 'Your PIN is 4 digits.']);
-
-        if (! ClubSetting::current()->checkPlayerPasscode($data['passcode'])) {
-            throw ValidationException::withMessages(['passcode' => "That passcode isn't right. Check with the committee."]);
-        }
 
         $player = Player::findOrFail($data['player_id']);
         $entry = LeagueGamePlayer::where('player_id', $player->id)->first();

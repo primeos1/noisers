@@ -32,7 +32,6 @@ export interface Mine {
 
 export interface Credentials {
   playerId: number;
-  passcode: string;
   pin: string;
 }
 
@@ -53,7 +52,7 @@ export async function call<T>(path: string, method: string, body?: unknown): Pro
   return json.data as T;
 }
 
-export const auth = (c: Credentials) => ({ passcode: c.passcode, player_id: c.playerId, pin: c.pin });
+export const auth = (c: Credentials) => ({ player_id: c.playerId, pin: c.pin });
 
 export const signIn = (c: Credentials) => call<Mine>("/league/game/login", "POST", auth(c));
 

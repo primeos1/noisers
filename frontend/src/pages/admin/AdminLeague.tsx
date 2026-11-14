@@ -130,7 +130,7 @@ function PlayTab() {
       <h2 className="font-display text-2xl text-paper">Predictor &amp; fantasy</h2>
       <p className="mt-2 text-sm text-paper-dim">
         Players sign in at <a className="underline" href={leagueUrl("play")} target="_blank" rel="noreferrer">the league site's Play page</a> with
-        the squad passcode and a 4-digit PIN they choose. If someone forgets theirs, reset it here.
+        their name and a 4-digit PIN they choose. If someone forgets theirs, reset it here.
       </p>
       {message && <p className="mt-4 text-sm text-paper" role="status">{message}</p>}
       {!players ? (

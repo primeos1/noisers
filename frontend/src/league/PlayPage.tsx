@@ -104,7 +104,6 @@ export function PlayPage({ data }: { data: LeagueData | null }) {
 
 export function SignIn({ game, busy, onSignedIn }: { game: GameData; busy: boolean; onSignedIn: (c: Credentials, m: Mine) => void }) {
   const [playerId, setPlayerId] = useState("");
-  const [passcode, setPasscode] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -114,7 +113,7 @@ export function SignIn({ game, busy, onSignedIn }: { game: GameData; busy: boole
     e.preventDefault();
     if (!player) return setError("Pick your name.");
     if (!/^\d{4}$/.test(pin)) return setError("Your PIN is 4 digits.");
-    const c = { playerId: player.id, passcode: passcode.trim(), pin };
+    const c = { playerId: player.id, pin };
     setSaving(true);
     setError("");
     try {
@@ -131,7 +130,7 @@ export function SignIn({ game, busy, onSignedIn }: { game: GameData; busy: boole
   return (
     <form className="nl-play-card nl-play-signin" onSubmit={submit}>
       <h2 className="nl-h3">Sign in to play</h2>
-      <p className="nl-muted">Use the squad passcode from the committee. The first time, you choose a 4-digit PIN that keeps your picks yours.</p>
+      <p className="nl-muted">Pick your name. The first time, you choose a 4-digit PIN that keeps your picks yours.</p>
       <label>
         <span>Who are you?</span>
         <select value={playerId} onChange={(e) => setPlayerId(e.target.value)} required>
@@ -140,10 +139,6 @@ export function SignIn({ game, busy, onSignedIn }: { game: GameData; busy: boole
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
-      </label>
-      <label>
-        <span>Squad passcode</span>
-        <input type="password" autoComplete="current-password" value={passcode} onChange={(e) => setPasscode(e.target.value)} required />
       </label>
       <label>
         <span>{player && !player.joined ? "Choose a 4-digit PIN" : "Your PIN"}</span>
