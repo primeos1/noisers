@@ -8,6 +8,7 @@ import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verif
 import DrawStage from "./DrawStage";
 import { AwardsPage, PlayersPage } from "./PlayersAwards";
 import { PlayPage } from "./PlayPage";
+import { FnlPage } from "./FnlPage";
 
 const MAIN_SITE = "https://noisersfc.com";
 
@@ -67,11 +68,11 @@ function useDraw(seed: string | null | undefined, entrants: Entrant[] | null) {
 const lagosTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" });
 
-type Page = "home" | "players" | "awards" | "play";
+type Page = "home" | "players" | "awards" | "play" | "fantasy";
 
 function currentPage(): Page {
   const path = window.location.pathname.replace(/\/+$/, "").toLowerCase();
-  return path === "/players" ? "players" : path === "/awards" ? "awards" : path === "/play" ? "play" : "home";
+  return path === "/players" ? "players" : path === "/awards" ? "awards" : path === "/play" ? "play" : path === "/fantasy" || path === "/fnl" ? "fantasy" : "home";
 }
 
 const pageTitles: Record<Page, string> = {
@@ -79,6 +80,7 @@ const pageTitles: Record<Page, string> = {
   players: "Players | The Noisers League",
   awards: "Awards | The Noisers League",
   play: "Play | The Noisers League",
+  fantasy: "FNL | Fantasy Noisers League",
 };
 
 export default function LeagueSite() {
@@ -184,7 +186,7 @@ export default function LeagueSite() {
       <div className="nl-root">
         <Nav live={anyMatchLive} done={stage === "done"} drawLive={false} page={page} />
         {errorNote}
-        {page === "players" ? <PlayersPage draw={draw} data={data} /> : page === "play" ? <PlayPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
+        {page === "players" ? <PlayersPage draw={draw} data={data} /> : page === "play" ? <PlayPage data={data} /> : page === "fantasy" ? <FnlPage draw={draw} data={data} /> : <AwardsPage draw={draw} data={data} />}
         {footer}
       </div>
     );
@@ -255,7 +257,8 @@ function Nav({ live, done, drawLive, page }: { live: boolean; done: boolean; dra
     ...(done ? leagueSections : drawSections).map(([id, label]) => ({ href: `${home}#${id}`, label })),
     { href: "/players", label: "Players", current: page === "players" },
     { href: "/awards", label: "Awards", current: page === "awards" },
-    { href: "/play", label: "Play", current: page === "play" },
+    { href: "/fantasy", label: "FNL", current: page === "fantasy" },
+    { href: "/play", label: "Predictor", current: page === "play" },
     { href: `${home}#fair-play`, label: "Fair Play" },
   ];
   return (

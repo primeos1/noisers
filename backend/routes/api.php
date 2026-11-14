@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\HomeStatController;
 use App\Http\Controllers\Api\LeagueController;
 use App\Http\Controllers\Api\LeagueGameController;
+use App\Http\Controllers\Api\FnlController;
 use App\Http\Controllers\Api\MatchDayEventController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NoisersController;
@@ -70,7 +71,14 @@ Route::get('/league', [LeagueController::class, 'show']);
 Route::get('/league/game', [LeagueGameController::class, 'show']);
 Route::post('/league/game/login', [LeagueGameController::class, 'login'])->middleware('throttle:10,1');
 Route::put('/league/game/predictions', [LeagueGameController::class, 'savePredictions'])->middleware('throttle:30,1');
-Route::put('/league/game/fantasy', [LeagueGameController::class, 'saveFantasy'])->middleware('throttle:30,1');
+// FNL, the Fantasy Noisers League: public standings, squads gated by the same passcode + PIN.
+Route::get('/fnl', [FnlController::class, 'show']);
+Route::post('/fnl/me', [FnlController::class, 'me'])->middleware('throttle:30,1');
+Route::put('/fnl/team', [FnlController::class, 'saveTeam'])->middleware('throttle:30,1');
+Route::put('/fnl/entry', [FnlController::class, 'saveEntry'])->middleware('throttle:60,1');
+Route::post('/fnl/leagues', [FnlController::class, 'createLeague'])->middleware('throttle:10,1');
+Route::post('/fnl/leagues/join', [FnlController::class, 'joinLeague'])->middleware('throttle:10,1');
+Route::post('/fnl/leagues/{fnlLeague}/leave', [FnlController::class, 'leaveLeague'])->middleware('throttle:10,1');
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);

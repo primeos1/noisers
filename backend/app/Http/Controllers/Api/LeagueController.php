@@ -46,6 +46,34 @@ class LeagueController extends Controller
         return array_values(array_diff(array_map('intval', [...$drawn, ...self::LATE_SIGNINGS]), self::RELEASED));
     }
 
+    /**
+     * Everyone in a league squad with their league position and frozen draw
+     * rating (FNL prices and position rules use these).
+     *
+     * @return array<int, array{position: string, rating: float}>
+     */
+    public static function leaguePlayers(): array
+    {
+        $state = LeagueState::current();
+        $ids = self::leaguePlayerIds();
+        $drawn = collect($state->draw_entrants ?? [])->keyBy('id');
+        $missing = array_values(array_diff($ids, $drawn->keys()->all()));
+        $fresh = Player::whereIn('id', $missing)->get()->keyBy('id');
+        $out = [];
+        foreach ($ids as $id) {
+            $p = $drawn[$id] ?? (isset($fresh[$id]) ? ['position' => $fresh[$id]->position, 'rating' => (float) $fresh[$id]->rating] : null);
+            if (! $p) {
+                continue;
+            }
+            $out[$id] = [
+                'position' => in_array($id, self::LATE_KEEPERS, true) ? 'GK' : ($p['position'] ?? 'MID'),
+                'rating' => round((float) ($p['rating'] ?? 6), 2),
+            ];
+        }
+
+        return $out;
+    }
+
     /** Everything the league site shows, in one call it can poll. */
     public function show()
     {
@@ -185,6 +213,7 @@ class LeagueController extends Controller
             }
             if ($data['status'] === 'scheduled') {
                 $result->saves = [];
+                $result->events = null;
                 $result->started_at = null;
                 $result->finished_at = null;
                 LeagueGoal::where('match_no', $matchNo)->delete();
@@ -240,6 +269,13 @@ class LeagueController extends Controller
             return [
                 'matchNo' => $r->match_no,
                 'saves' => (object) ($r->saves ?? []),
+                // Who played, cards and penalties: filled in by the match day sync.
+                'events' => $r->events ? [
+                    'appeared' => $r->events['appeared'] ?? [],
+                    'cards' => $r->events['cards'] ?? [],
+                    'penaltyMisses' => $r->events['penaltyMisses'] ?? [],
+                    'penaltySaves' => (object) ($r->events['penaltySaves'] ?? []),
+                ] : null,
                 'status' => $r->status,
                 'homeScore' => $mine->where('side', 'home')->count(),
                 'awayScore' => $mine->where('side', 'away')->count(),

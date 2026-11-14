@@ -64,6 +64,8 @@ class LeagueMatchDaySyncTest extends TestCase
         $result = LeagueResult::where('match_no', 1)->first();
         $this->assertSame('live', $result->status);
         $this->assertEquals([$away->id => 2], $result->saves);
+        // Who played feeds FNL; a guest isn't a squad player, so isn't listed.
+        $this->assertEqualsCanonicalizing([$home->id, $away->id], $result->events['appeared']);
         $this->assertSame(1, LeagueState::current()->live_night);
         $this->assertSame(1, LeagueGoal::where('match_no', 1)->where('side', 'home')->where('player_id', $home->id)->count());
         // A guest's goal still counts, with the scorer unknown.

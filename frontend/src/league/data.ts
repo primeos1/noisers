@@ -10,6 +10,13 @@ export interface LeagueResult {
   matchNo: number;
   status: MatchStatus;
   saves?: Record<string, number>;
+  /** Who played, cards and penalties; set when the game was recorded on the Match Day screen. */
+  events?: {
+    appeared: number[];
+    cards: { playerId: number; type: "yellow" | "red" }[];
+    penaltyMisses: number[];
+    penaltySaves: Record<string, number>;
+  } | null;
   homeScore: number;
   awayScore: number;
   startedAt: string | null;

@@ -53,24 +53,6 @@ class LeagueGameTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_fantasy_picks_must_be_league_players_and_lock_with_the_night(): void
-    {
-        $this->postJson('/api/league/game/login', $this->auth())->assertOk();
-        $outsider = Player::factory()->create()->id;
-        $this->putJson('/api/league/game/fantasy', $this->auth() + ['night' => 1, 'pick_ids' => [$this->squad[0], $this->squad[1], $outsider], 'captain_id' => $outsider])
-            ->assertUnprocessable();
-        $this->putJson('/api/league/game/fantasy', $this->auth() + ['night' => 1, 'pick_ids' => $this->squad, 'captain_id' => $this->squad[2]])
-            ->assertOk()->assertJsonPath('data.fantasy.0.captainId', $this->squad[2]);
-
-        LeagueResult::create(['match_no' => 3, 'status' => 'live']); // a night 1 fixture
-        $this->getJson('/api/league/game')->assertJsonPath('data.fantasy.0.pickIds', $this->squad);
-        $this->putJson('/api/league/game/fantasy', $this->auth() + ['night' => 1, 'pick_ids' => $this->squad, 'captain_id' => $this->squad[0]])
-            ->assertUnprocessable();
-        // Next Sunday is still open.
-        $this->putJson('/api/league/game/fantasy', $this->auth() + ['night' => 2, 'pick_ids' => $this->squad, 'captain_id' => $this->squad[0]])
-            ->assertOk();
-    }
-
     public function test_committee_can_reset_a_forgotten_pin(): void
     {
         $this->postJson('/api/league/game/login', $this->auth())->assertOk();

@@ -130,6 +130,34 @@ class LeagueMatchDaySync
             }
         }
         $result->saves = $saves;
+
+        // Who played, cards and penalties, for FNL (fantasy) points. Everyone
+        // who was ever on either side counts as having played, so a player
+        // subbed off keeps their appearance from an earlier save.
+        $before = $result->events['appeared'] ?? [];
+        $appeared = $before;
+        foreach ($game['teams'] ?? [] as $team) {
+            foreach ($team['players'] ?? [] as $pid) {
+                if (($n = $id($pid)) !== null) {
+                    $appeared[] = $n;
+                }
+            }
+        }
+        $penaltySaves = [];
+        foreach ($game['saves'] ?? [] as $save) {
+            if (! empty($save['penalty']) && ($keeper = $id($save['playerId'] ?? null)) !== null) {
+                $penaltySaves[$keeper] = ($penaltySaves[$keeper] ?? 0) + 1;
+            }
+        }
+        $result->events = [
+            'appeared' => array_values(array_unique($appeared)),
+            'cards' => array_values(array_filter(array_map(
+                fn ($c) => ($pid = $id($c['playerId'] ?? null)) === null ? null : ['playerId' => $pid, 'type' => ($c['type'] ?? 'yellow') === 'red' ? 'red' : 'yellow'],
+                $game['cards'] ?? [],
+            ))),
+            'penaltyMisses' => array_values(array_filter(array_map(fn ($m) => $id($m['playerId'] ?? null), $game['penaltyMisses'] ?? []))),
+            'penaltySaves' => (object) $penaltySaves,
+        ];
         $result->save();
 
         LeagueGoal::where('match_no', $no)->delete();

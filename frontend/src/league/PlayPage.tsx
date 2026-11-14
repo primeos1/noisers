@@ -2,19 +2,12 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { clockTime, type ClubId } from "../lib/league";
 import { ClubBadge } from "./ClubBadge";
 import { clubById, defaultNight, GAMES, nightDate, SEASON, type LeagueData } from "./data";
-import type { DrawResult } from "./draw";
 import {
   EXACT_POINTS,
-  FANTASY_RULES,
   RESULT_POINTS,
-  SLOTS,
-  fantasyBoard,
-  fantasyScore,
   fixtureLocked,
-  nightLocked,
   predictionPoints,
   predictorBoard,
-  saveFantasy,
   savePredictions,
   signIn,
   storeCredentials,
@@ -26,15 +19,14 @@ import {
   type Mine,
 } from "./game";
 
-type Tab = "predict" | "fantasy" | "boards";
+type Tab = "predict" | "boards";
 
 const TABS: [Tab, string, string][] = [
   ["predict", "Predictor", "Call the scores"],
-  ["fantasy", "Fantasy", "Pick 3 each Sunday"],
-  ["boards", "Leaderboards", "Who's winning"],
+  ["boards", "Leaderboard", "Who's winning"],
 ];
 
-export function PlayPage({ draw, data }: { draw: DrawResult | null; data: LeagueData | null }) {
+export function PlayPage({ data }: { data: LeagueData | null }) {
   const live = data?.liveNight != null;
   const { game, reload } = useGame(live);
   const [tab, setTab] = useState<Tab>("predict");
@@ -66,8 +58,8 @@ export function PlayPage({ draw, data }: { draw: DrawResult | null; data: League
     <section id="play" className="nl-section nl-page" aria-labelledby="play-title">
       <h1 id="play-title" className="nl-h2">Play</h1>
       <p className="nl-lede">
-        Two free games for the squad. Predict every score, pick a fantasy three each Sunday, and climb the leaderboards.
-        No money involved, just bragging rights.
+        Predict every league score and climb the leaderboard. No money involved, just bragging rights. For fantasy,
+        build a squad in <a className="nl-link" href="/fantasy">FNL, the Fantasy Noisers League</a>.
       </p>
 
       <div className="nl-tabs" role="tablist" aria-label="Games">
@@ -82,7 +74,7 @@ export function PlayPage({ draw, data }: { draw: DrawResult | null; data: League
       {!data || !game ? (
         <p className="nl-muted">Loading…</p>
       ) : tab === "boards" ? (
-        <Boards game={game} data={data} draw={draw} />
+        <Boards game={game} data={data} />
       ) : !creds || !mine ? (
         <SignIn
           game={game}
@@ -101,13 +93,7 @@ export function PlayPage({ draw, data }: { draw: DrawResult | null; data: League
             <button type="button" className="nl-link" onClick={signOut}>Not you?</button>
           </p>
           {error && <p className="nl-play-error" role="alert">{error}</p>}
-          {tab === "predict" ? (
-            <Predictor data={data} creds={creds} mine={mine} game={game} onSaved={onSaved} onError={setError} />
-          ) : draw ? (
-            <Fantasy data={data} draw={draw} creds={creds} mine={mine} onSaved={onSaved} onError={setError} />
-          ) : (
-            <p className="nl-muted">Fantasy opens once the squads are drawn.</p>
-          )}
+          <Predictor data={data} creds={creds} mine={mine} game={game} onSaved={onSaved} onError={setError} />
         </>
       )}
     </section>
@@ -116,7 +102,7 @@ export function PlayPage({ draw, data }: { draw: DrawResult | null; data: League
 
 /* --------------------------------------------------------------- sign in */
 
-function SignIn({ game, busy, onSignedIn }: { game: GameData; busy: boolean; onSignedIn: (c: Credentials, m: Mine) => void }) {
+export function SignIn({ game, busy, onSignedIn }: { game: GameData; busy: boolean; onSignedIn: (c: Credentials, m: Mine) => void }) {
   const [playerId, setPlayerId] = useState("");
   const [passcode, setPasscode] = useState("");
   const [pin, setPin] = useState("");
@@ -300,155 +286,11 @@ function Side({ id, away }: { id: ClubId; away?: boolean }) {
   );
 }
 
-/* --------------------------------------------------------------- fantasy */
-
-function firstOpenNight(data: LeagueData) {
-  return SEASON.find((n) => !nightLocked(n.number, data))?.number ?? SEASON.length;
-}
-
-function Fantasy(props: { data: LeagueData; draw: DrawResult; creds: Credentials; mine: Mine; onSaved: (m: Mine) => void; onError: (e: string) => void }) {
-  const { data, draw, creds, mine } = props;
-  const [night, setNight] = useState<number | null>(null);
-  const shown = night ?? (data.liveNight ?? firstOpenNight(data));
-  const locked = nightLocked(shown, data);
-  const savedPick = mine.fantasy.find((f) => f.night === shown) ?? null;
-  const [draft, setDraft] = useState<{ night: number; picks: (number | null)[]; captain: number | null } | null>(null);
-  const current = draft?.night === shown ? draft : { night: shown, picks: savedPick?.pickIds ?? [null, null, null], captain: savedPick?.captainId ?? null };
-  const [saving, setSaving] = useState(false);
-  const [note, setNote] = useState("");
-
-  const everyone = useMemo(
-    () =>
-      (Object.keys(draw.squads) as ClubId[])
-        .flatMap((club) => draw.squads[club].map((p) => ({ player: p, club })))
-        .sort((a, b) => a.player.name.localeCompare(b.player.name)),
-    [draw],
-  );
-
-  const setSlot = (slot: number, id: number | null) => {
-    setNote("");
-    const picks = [...current.picks];
-    picks[slot] = id;
-    setDraft({ night: shown, picks, captain: current.captain !== null && picks.includes(current.captain) ? current.captain : (picks.find((p) => p !== null) ?? null) });
-  };
-
-  const complete = current.picks.every((p) => p !== null) && current.captain !== null;
-  const changed = !savedPick || savedPick.captainId !== current.captain || savedPick.pickIds.some((id, i) => id !== current.picks[i]);
-
-  async function save() {
-    if (!complete) return;
-    setSaving(true);
-    props.onError("");
-    try {
-      props.onSaved(await saveFantasy(creds, shown, current.picks as number[], current.captain!));
-      setDraft(null);
-      setNote("Your three are in.");
-    } catch (err) {
-      props.onError(err instanceof Error ? err.message : "Couldn't save.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const score = savedPick ? fantasyScore(savedPick, draw, data) : null;
-
-  return (
-    <>
-      <p className="nl-muted nl-notice">
-        Pick one keeper or defender, one midfielder and one forward from any club, and make one your captain. Picks lock when
-        the Sunday's first game kicks off.
-      </p>
-      <NightTabs shown={shown} onPick={setNight} data={data} />
-
-      {locked ? (
-        savedPick && score ? (
-          <div className="nl-play-card">
-            <h2 className="nl-h3">Sunday {shown}: {score.total} points</h2>
-            <ul className="nl-fantasy-lines">
-              {score.lines.map((l, i) =>
-                l ? (
-                  <li key={l.player.id}>
-                    <ClubBadge id={l.club} size={26} />
-                    <span>
-                      <strong>{l.player.name}{l.player.id === savedPick.captainId && " (C)"}</strong>
-                      <small>{SLOTS[i].label} · {statLine(l)}</small>
-                    </span>
-                    <b>{l.points * (l.player.id === savedPick.captainId ? 2 : 1)}</b>
-                  </li>
-                ) : (
-                  <li key={i}><span><small>No longer in the league</small></span><b>0</b></li>
-                ),
-              )}
-            </ul>
-          </div>
-        ) : (
-          <p className="nl-muted">You didn't pick a three for Sunday {shown}.</p>
-        )
-      ) : (
-        <div className="nl-play-card">
-          {SLOTS.map((slot, i) => {
-            const options = everyone.filter((e) => slot.positions.includes(e.player.position));
-            const chosen = current.picks[i];
-            return (
-              <div key={slot.label} className="nl-fantasy-slot">
-                <label>
-                  <span>{slot.label}</span>
-                  <select value={chosen ?? ""} onChange={(e) => setSlot(i, e.target.value ? Number(e.target.value) : null)}>
-                    <option value="">Pick a player</option>
-                    {options.map((o) => (
-                      <option key={o.player.id} value={o.player.id}>
-                        {o.player.name} · {clubById.get(o.club)!.short}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="nl-captain">
-                  <input type="radio" name="captain" disabled={chosen === null} checked={chosen !== null && current.captain === chosen} onChange={() => setDraft({ ...current, captain: chosen })} />
-                  Captain
-                </label>
-              </div>
-            );
-          })}
-          <div className="nl-play-actions">
-            <button type="button" className="nl-btn" disabled={!complete || !changed || saving} onClick={save}>
-              {saving ? "Saving…" : savedPick ? "Update my three" : "Lock in my three"}
-            </button>
-            <span className="nl-muted" role="status">{note || (savedPick && !changed ? "Saved. You can change it until kick-off." : "")}</span>
-          </div>
-        </div>
-      )}
-
-      <details className="nl-play-rules">
-        <summary>How fantasy points work</summary>
-        <dl>
-          {FANTASY_RULES.map(([k, v]) => (
-            <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
-          ))}
-        </dl>
-        <p className="nl-muted">A player scores from all of their club's games that Sunday.</p>
-      </details>
-    </>
-  );
-}
-
-function statLine(l: NonNullable<ReturnType<typeof fantasyScore>["lines"][number]>) {
-  const bits = [
-    l.goals && `${l.goals} goal${l.goals === 1 ? "" : "s"}`,
-    l.assists && `${l.assists} assist${l.assists === 1 ? "" : "s"}`,
-    l.cleanSheets && `${l.cleanSheets} clean sheet${l.cleanSheets === 1 ? "" : "s"}`,
-    l.saves && `${l.saves} saves`,
-    l.wins && `${l.wins} win${l.wins === 1 ? "" : "s"}`,
-    l.ownGoals && `${l.ownGoals} own goal${l.ownGoals === 1 ? "" : "s"}`,
-  ].filter(Boolean);
-  return bits.length ? bits.join(", ") : "Nothing yet";
-}
-
 /* ---------------------------------------------------------- leaderboards */
 
-function Boards({ game, data, draw }: { game: GameData; data: LeagueData; draw: DrawResult | null }) {
+function Boards({ game, data }: { game: GameData; data: LeagueData }) {
   const [night, setNight] = useState<number | 0>(0);
   const predictor = predictorBoard(game, data, night || undefined);
-  const fantasy = draw ? fantasyBoard(game, draw, data, night || undefined) : [];
   return (
     <>
       <div className="nl-tabs" role="tablist" aria-label="Period">
@@ -461,7 +303,6 @@ function Boards({ game, data, draw }: { game: GameData; data: LeagueData; draw: 
       </div>
       <div className="nl-play-boards">
         <Board title="Predictor" rows={predictor} detail="Exact" empty="Points arrive as games finish." />
-        <Board title="Fantasy" rows={fantasy} detail="Sundays" empty="Points arrive once a Sunday kicks off." />
       </div>
     </>
   );

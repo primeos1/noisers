@@ -4,20 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClubSetting;
-use App\Models\LeagueFantasyPick;
 use App\Models\LeagueGamePlayer;
 use App\Models\LeaguePrediction;
 use App\Models\LeagueResult;
-use App\Models\LeagueState;
 use App\Models\Player;
-use App\Support\LeagueMatchDaySync;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The league's free-to-play games on league.noisersfc.com/play: score
- * predictions and a three-player fantasy pick per Sunday. Points are worked
+ * The league's score predictor on league.noisersfc.com/play (FNL, the
+ * fantasy game, is FnlController). Points are worked
  * out on the league site from the public results, so the server only keeps
  * the picks, and keeps them hidden until they lock.
  *
@@ -38,7 +35,6 @@ class LeagueGameController extends Controller
                 ->map(fn (Player $p) => ['id' => $p->id, 'name' => $p->name, 'joined' => isset($joined[$p->id])])
                 ->values(),
             'predictions' => LeaguePrediction::whereIn('match_no', $started)->get()->map(fn ($p) => $this->prediction($p))->values(),
-            'fantasy' => LeagueFantasyPick::whereIn('night', $this->startedNights($started))->get()->map(fn ($f) => $this->pick($f))->values(),
         ]]);
     }
 
@@ -76,37 +72,6 @@ class LeagueGameController extends Controller
         return response()->json(['data' => $this->mine($player)]);
     }
 
-    public function saveFantasy(Request $request)
-    {
-        $player = $this->signIn($request);
-        $data = $request->validate([
-            'night' => ['required', 'integer', 'min:1', 'max:'.LeagueController::NIGHTS],
-            'pick_ids' => ['required', 'array', 'size:3'],
-            'pick_ids.*' => ['integer', 'distinct'],
-            'captain_id' => ['required', 'integer'],
-        ]);
-
-        if (in_array($data['night'], $this->startedNights($this->startedMatches()), true)) {
-            throw ValidationException::withMessages(['night' => "Sunday {$data['night']} has kicked off, so its picks are locked."]);
-        }
-        $eligible = LeagueController::leaguePlayerIds();
-        foreach ($data['pick_ids'] as $id) {
-            if (! in_array((int) $id, $eligible, true)) {
-                throw ValidationException::withMessages(['pick_ids' => 'Pick players who are in the league.']);
-            }
-        }
-        if (! in_array((int) $data['captain_id'], array_map('intval', $data['pick_ids']), true)) {
-            throw ValidationException::withMessages(['captain_id' => 'Your captain has to be one of your three picks.']);
-        }
-
-        LeagueFantasyPick::updateOrCreate(
-            ['player_id' => $player->id, 'night' => $data['night']],
-            ['pick_ids' => array_map('intval', $data['pick_ids']), 'captain_id' => (int) $data['captain_id']],
-        );
-
-        return response()->json(['data' => $this->mine($player)]);
-    }
-
     /** Committee: clears a forgotten PIN so the player can set a new one. Their picks stay. */
     public function resetPin(Request $request, Player $player)
     {
@@ -116,7 +81,7 @@ class LeagueGameController extends Controller
         return response()->noContent();
     }
 
-    private function signIn(Request $request, bool $allowSetup = false): Player
+    public function signIn(Request $request, bool $allowSetup = false): Player
     {
         $data = $request->validate([
             'passcode' => ['required', 'string', 'max:64'],
@@ -148,7 +113,6 @@ class LeagueGameController extends Controller
         return [
             'playerId' => $player->id,
             'predictions' => LeaguePrediction::where('player_id', $player->id)->get()->map(fn ($p) => $this->prediction($p))->values(),
-            'fantasy' => LeagueFantasyPick::where('player_id', $player->id)->get()->map(fn ($f) => $this->pick($f))->values(),
         ];
     }
 
@@ -158,30 +122,8 @@ class LeagueGameController extends Controller
         return LeagueResult::whereIn('status', ['live', 'final'])->pluck('match_no')->map(fn ($n) => (int) $n)->all();
     }
 
-    /**
-     * @param  int[]  $started
-     * @return int[] Sundays whose first game has kicked off
-     */
-    private function startedNights(array $started): array
-    {
-        $nights = [];
-        $liveNight = LeagueState::current()->live_night;
-        for ($n = 1; $n <= LeagueController::NIGHTS; $n++) {
-            if (array_intersect(LeagueMatchDaySync::matchNumbers($n), $started) || $liveNight === $n) {
-                $nights[] = $n;
-            }
-        }
-
-        return $nights;
-    }
-
     private function prediction(LeaguePrediction $p): array
     {
         return ['playerId' => $p->player_id, 'matchNo' => $p->match_no, 'home' => $p->home, 'away' => $p->away];
-    }
-
-    private function pick(LeagueFantasyPick $f): array
-    {
-        return ['playerId' => $f->player_id, 'night' => $f->night, 'pickIds' => $f->pick_ids, 'captainId' => $f->captain_id];
     }
 }
