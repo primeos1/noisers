@@ -229,13 +229,24 @@ function Manager(props: {
   const saved = mine.entries.find((e) => e.gameweek === gw) ?? null;
   const previous = mine.entries.filter((e) => e.gameweek < gw).sort((a, b) => b.gameweek - a.gameweek)[0] ?? null;
   const base = saved ?? previous;
-  const [draft, setDraft] = useState<Draft>(() => ({
-    gw,
-    lineup: lineupFrom(base, players),
-    captainId: base?.captainId ?? null,
-    viceId: base?.viceId ?? null,
-    chip: saved?.chip ?? null,
-  }));
+  // A full squad always has a captain and vice: kept if still starting, else the priciest starters.
+  const armbands = (d: Draft): Draft => {
+    const starters = d.lineup.slice(0, 6).map((s) => s.id);
+    if (d.lineup.some((s) => s.id === null)) return d;
+    const ranked = (starters as number[]).slice().sort((a, b) => (players.get(b)?.price ?? 0) - (players.get(a)?.price ?? 0));
+    const captainId = d.captainId !== null && starters.includes(d.captainId) ? d.captainId : ranked[0];
+    const viceId = d.viceId !== null && starters.includes(d.viceId) && d.viceId !== captainId ? d.viceId : ranked.find((id) => id !== captainId)!;
+    return { ...d, captainId, viceId };
+  };
+  const [draft, setDraft] = useState<Draft>(() =>
+    armbands({
+      gw,
+      lineup: lineupFrom(base, players),
+      captainId: base?.captainId ?? null,
+      viceId: base?.viceId ?? null,
+      chip: saved?.chip ?? null,
+    }),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -295,7 +306,7 @@ function Manager(props: {
 
   const update = (patch: Partial<Draft>) => {
     setNote("");
-    setDraft((d) => ({ ...d, ...patch }));
+    setDraft((d) => armbands({ ...d, ...patch }));
   };
 
   const bar = (
@@ -315,6 +326,7 @@ function Manager(props: {
       <span className="nl-muted" role="status">
         {problems[0] ?? note}
         {!problems.length && !dirty && "Saved. You can change it until the deadline."}
+        {!problems.length && dirty && <strong className="nl-fnl-unsaved">Not saved yet. Confirm to lock in your team.</strong>}
       </span>
       {error && <p className="nl-play-error" role="alert">{error}</p>}
     </div>
@@ -333,12 +345,7 @@ function Manager(props: {
           lineup={draft.lineup}
           bank={bank}
           perClub={perClub}
-          onChange={(lineup) => {
-            const starters = lineup.slice(0, 6).map((s) => s.id);
-            const captainId = draft.captainId !== null && starters.includes(draft.captainId) ? draft.captainId : null;
-            const viceId = draft.viceId !== null && starters.includes(draft.viceId) ? draft.viceId : null;
-            update({ lineup, captainId, viceId });
-          }}
+          onChange={(lineup) => update({ lineup })}
         />
         <ChipPicker chips={["wildcard"]} draft={draft} used={usedChips} disabled={!previous} onChip={(chip) => update({ chip })} />
         {full && props.tab !== "transfers" ? null : actions}
@@ -649,13 +656,38 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
   const gw = gwPick ?? started[started.length - 1] ?? null;
   const teamId = props.teamId ?? fnl.teams[0]?.id ?? null;
 
-  if (!gw)
+  if (!gw) {
+    // Before kick-off: your own squad; anyone else's stays hidden until the deadline.
+    const mineId = props.mine?.team?.id ?? null;
+    const other = props.teamId !== null && props.teamId !== mineId ? fnl.teams.find((t) => t.id === props.teamId) : null;
+    const deadline = fnl.openGameweek ? new Date(fnl.deadlines[fnl.openGameweek - 1]).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" }) : "";
     return (
       <>
-        <MyUpcoming fnl={fnl} mine={props.mine} players={players} />
+        {fnl.teams.length > 0 && (
+          <label className="nl-fnl-teampick">
+            <span className="nl-muted">Team</span>
+            <select value={other?.id ?? mineId ?? ""} onChange={(e) => props.onTeam(Number(e.target.value))}>
+              {mineId === null && <option value="">Pick a team</option>}
+              {fnl.teams.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}{t.id === mineId ? " (you)" : ""}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {other ? (
+          <div className="nl-play-card">
+            <h2 className="nl-h3">{other.name}</h2>
+            <p className="nl-muted">Their squad is revealed at the gameweek {fnl.openGameweek} deadline ({deadline}), so nobody can copy it. Check back at kick-off.</p>
+          </div>
+        ) : props.mine?.team ? (
+          <MyUpcoming fnl={fnl} mine={props.mine} players={players} />
+        ) : (
+          <p className="nl-muted nl-notice">Sign in on Pick team to see your own squad here.</p>
+        )}
         <p className="nl-muted">Points start when gameweek 1 kicks off on {nightDate(1)}. Everyone's squads show at the deadline.</p>
       </>
     );
+  }
   if (!teamId) return <p className="nl-muted">No teams yet.</p>;
 
   const result = teamGameweek(fnl.entries, teamId, gw, data, season, players);

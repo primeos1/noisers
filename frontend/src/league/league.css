@@ -734,3 +734,5 @@ div.nl-kit-main { cursor: default; }
   .nl-kit-shirt { width: 52px; height: 52px; }
   .nl-kit-name { font-size: .66rem; }
 }
+
+.nl-fnl-unsaved { color: var(--gold); font-weight: 700; }
