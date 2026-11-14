@@ -736,3 +736,6 @@ div.nl-kit-main { cursor: default; }
 }
 
 .nl-fnl-unsaved { color: var(--gold); font-weight: 700; }
+
+.nl-fnl-autopick { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.nl-fnl-autopick .nl-btn { min-height: 44px; }

@@ -546,6 +546,50 @@ function Transfers(props: {
     document.getElementById("fnl-players")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const inSquad = new Set(lineup.map((s) => s.id));
+  const [autoNote, setAutoNote] = useState("");
+  const anyEmpty = lineup.some((s) => s.id === null);
+
+  // Fills the empty places (or, with a full squad, all nine) with random
+  // players who fit the budget and the per-club limit.
+  function autoPick() {
+    const keep = anyEmpty ? lineup : lineup.map((s) => ({ ...s, id: null }));
+    const kept = keep.map((s) => s.id).filter((id): id is number => id !== null);
+    const budget = props.fnl.rules.budget - kept.reduce((sum, id) => sum + (players.get(id)?.price ?? 0), 0);
+    const pool = [...players.values()];
+    for (let attempt = 0; attempt < 400; attempt++) {
+      const next = keep.map((s) => ({ ...s }));
+      const used = new Set(kept);
+      const clubs = new Map<ClubId, number>();
+      for (const id of kept) clubs.set(players.get(id)!.club, (clubs.get(players.get(id)!.club) ?? 0) + 1);
+      let left = budget;
+      let ok = true;
+      const open = next.map((s, i) => (s.id === null ? i : -1)).filter((i) => i >= 0).sort(() => Math.random() - 0.5);
+      for (let k = 0; k < open.length; k++) {
+        const slot = next[open[k]];
+        // Leave enough for the cheapest possible fill of the places still to come.
+        const reserve = open.slice(k + 1).reduce((sum, i) => {
+          const cheapest = pool.filter((p) => p.position === next[i].position && !used.has(p.player.id)).map((p) => p.price).sort((a, b) => a - b)[0];
+          return sum + (cheapest ?? 0);
+        }, 0);
+        const options = pool.filter(
+          (p) => p.position === slot.position && !used.has(p.player.id) && (clubs.get(p.club) ?? 0) < props.fnl.rules.maxPerClub && p.price <= left - reserve + 0.001,
+        );
+        if (!options.length) { ok = false; break; }
+        const pick = options[Math.floor(Math.random() * options.length)];
+        slot.id = pick.player.id;
+        used.add(pick.player.id);
+        clubs.set(pick.club, (clubs.get(pick.club) ?? 0) + 1);
+        left -= pick.price;
+      }
+      if (ok) {
+        props.onChange(next);
+        setChosen(null);
+        setAutoNote(`Picked at random, ${m(left)} left in the bank. Tap again to re-roll, then confirm.`);
+        return;
+      }
+    }
+    setAutoNote("Couldn't fit a random squad around your current picks. Take someone out and try again.");
+  }
   const total = (id: number) => SEASON.reduce((sum, n) => sum + (props.season(n.number, id)?.points ?? 0), 0);
 
   const remove = (index: number) => props.onChange(lineup.map((s, i) => (i === index ? { ...s, id: null } : s)));
@@ -564,7 +608,11 @@ function Transfers(props: {
   return (
     <div className="nl-fnl-transfers">
       <div>
-        <p className="nl-muted nl-notice">Tap a player to take them out, then an empty shirt to choose who comes in.</p>
+        <div className="nl-fnl-autopick">
+          <p className="nl-muted">Tap a player to take them out, then an empty shirt to choose who comes in.</p>
+          <button type="button" className="nl-btn is-ghost" onClick={autoPick}>{anyEmpty ? "Auto-pick" : "Random squad"}</button>
+        </div>
+        {autoNote && <p className="nl-muted nl-notice" role="status">{autoNote}</p>}
         <div className="nl-fnl-pitch">
           <div className="nl-fnl-field">
             {(["GK", "DEF", "MID", "FWD"] as Position[]).map((pos) => (
