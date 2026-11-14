@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { ClubId } from "../lib/league";
-import { ClubBadge } from "./ClubBadge";
+import { ClubBadge, Shirt } from "./ClubBadge";
 import { clubById, nightDate, SEASON, type LeagueData } from "./data";
 import type { DrawResult, Position } from "./draw";
 import { storeCredentials, storedCredentials, useGame, type Credentials } from "./game";
 import { SignIn } from "./PlayPage";
-import { photoOf } from "./PlayersAwards";
 import {
   CHIP_LABELS,
   SCORING,
@@ -424,19 +423,21 @@ function PickTeam({ draft, players, onChange }: { draft: Draft; players: Map<num
     if (!p) return null;
     const starter = index < 6;
     return (
-      <div key={slot.id} className={`nl-fnl-card ${selected === index ? "is-selected" : ""}`}>
-        <button type="button" className="nl-fnl-card-main" onClick={() => tap(index)} aria-pressed={selected === index}>
-          <img src={photoOf(p.player)} alt="" className="nl-face" width={44} height={44} />
-          <strong>{p.player.name}</strong>
-          <small><ClubBadge id={p.club} size={14} /> {clubById.get(p.club)!.short} · {p.position}</small>
-        </button>
+      <Kit
+        key={slot.id}
+        p={p}
+        tag={`${clubById.get(p.club)!.short} · ${p.position}`}
+        armband={draft.captainId === slot.id ? "C" : draft.viceId === slot.id ? "V" : null}
+        selected={selected === index}
+        onClick={() => tap(index)}
+      >
         {starter && (
           <span className="nl-fnl-armbands">
             <button type="button" aria-pressed={draft.captainId === slot.id} onClick={() => onChange({ captainId: slot.id, viceId: draft.viceId === slot.id ? draft.captainId : draft.viceId })}>C</button>
             <button type="button" aria-pressed={draft.viceId === slot.id} onClick={() => onChange({ viceId: slot.id, captainId: draft.captainId === slot.id ? draft.viceId : draft.captainId })}>V</button>
           </span>
         )}
-      </div>
+      </Kit>
     );
   };
 
@@ -446,6 +447,54 @@ function PickTeam({ draft, players, onChange }: { draft: Draft; players: Map<num
       <Pitch lineup={draft.lineup} render={card} />
       {error && <p className="nl-play-error" role="alert">{error}</p>}
     </>
+  );
+}
+
+/** A player on the pitch, FPL-style: club shirt, name plate and a tag (price, club or points). */
+function Kit(props: {
+  p: FnlPlayer;
+  tag: ReactNode;
+  pts?: boolean;
+  armband?: "C" | "V" | "TC" | null;
+  selected?: boolean;
+  dim?: boolean;
+  onClick?: () => void;
+  children?: ReactNode;
+}) {
+  const inner = (
+    <>
+      <span className="nl-kit-shirt">
+        <Shirt id={props.p.club} />
+        {props.armband && <i className="nl-kit-badge">{props.armband}</i>}
+      </span>
+      <span className="nl-kit-name">{props.p.player.name}</span>
+      <span className={`nl-kit-tag ${props.pts ? "is-pts" : ""}`}>{props.tag}</span>
+    </>
+  );
+  return (
+    <div className={`nl-kit ${props.selected ? "is-selected" : ""} ${props.dim ? "is-dim" : ""}`}>
+      {props.onClick ? (
+        <button type="button" className="nl-kit-main" onClick={props.onClick} aria-pressed={props.selected}>
+          {inner}
+        </button>
+      ) : (
+        <div className="nl-kit-main">{inner}</div>
+      )}
+      {props.children}
+    </div>
+  );
+}
+
+/** An open place in the squad: tap it to pick someone for that position. */
+function EmptyKit({ position, active, onClick }: { position: Position; active: boolean; onClick: () => void }) {
+  return (
+    <div className={`nl-kit is-empty ${active ? "is-selected" : ""}`}>
+      <button type="button" className="nl-kit-main" onClick={onClick} aria-label={`Add a ${POS_LABEL[position].toLowerCase()}`}>
+        <span className="nl-kit-shirt"><span>+</span></span>
+        <span className="nl-kit-name">Add {position}</span>
+        <span className="nl-kit-tag">&nbsp;</span>
+      </button>
+    </div>
   );
 }
 
@@ -482,8 +531,13 @@ function Transfers(props: {
   onChange: (l: Slot[]) => void;
 }) {
   const { players, lineup } = props;
-  const [filter, setFilter] = useState<Position>("GK");
+  const [filter, setFilter] = useState<Position>(() => props.lineup.find((s) => s.id === null)?.position ?? "GK");
   const [search, setSearch] = useState("");
+  const [chosen, setChosen] = useState<number | null>(null);
+  const pickPosition = (pos: Position) => {
+    setFilter(pos);
+    document.getElementById("fnl-players")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const inSquad = new Set(lineup.map((s) => s.id));
   const total = (id: number) => SEASON.reduce((sum, n) => sum + (props.season(n.number, id)?.points ?? 0), 0);
 
@@ -502,34 +556,33 @@ function Transfers(props: {
 
   return (
     <div className="nl-fnl-transfers">
-      <div className="nl-play-card">
-        <h2 className="nl-h3">Your squad</h2>
-        {(["GK", "DEF", "MID", "FWD"] as Position[]).map((pos) => (
-          <div key={pos} className="nl-fnl-squadline">
-            <small>{POS_LABEL[pos]}</small>
-            <ul>
-              {lineup.map((s, i) =>
-                s.position !== pos ? null : (
-                  <li key={i} className={s.id === null ? "is-empty" : ""}>
-                    {s.id === null ? (
-                      <button type="button" className="nl-fnl-empty" onClick={() => setFilter(pos)}>+ Add {pos}</button>
-                    ) : (
-                      <>
-                        <ClubBadge id={players.get(s.id)!.club} size={20} />
-                        <span>{players.get(s.id)!.player.name}</span>
-                        <small>{m(players.get(s.id)!.price)}</small>
-                        <button type="button" className="nl-fnl-remove" onClick={() => remove(i)} aria-label={`Remove ${players.get(s.id)!.player.name}`}>✕</button>
-                      </>
-                    )}
-                  </li>
-                ),
-              )}
-            </ul>
+      <div>
+        <p className="nl-muted nl-notice">Tap a player to take them out, then an empty shirt to choose who comes in.</p>
+        <div className="nl-fnl-pitch">
+          <div className="nl-fnl-field">
+            {(["GK", "DEF", "MID", "FWD"] as Position[]).map((pos) => (
+              <div key={pos} className="nl-fnl-row">
+                {lineup.map((s, i) => {
+                  if (s.position !== pos) return null;
+                  if (s.id === null) return <EmptyKit key={`e${i}`} position={pos} active={filter === pos} onClick={() => pickPosition(pos)} />;
+                  const fp = players.get(s.id)!;
+                  return (
+                    <Kit key={s.id} p={fp} tag={m(fp.price)} selected={chosen === i} onClick={() => setChosen(chosen === i ? null : i)}>
+                      {chosen === i && (
+                        <button type="button" className="nl-kit-out" onClick={() => { remove(i); setChosen(null); pickPosition(pos); }}>
+                          Transfer out
+                        </button>
+                      )}
+                    </Kit>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
-      <div className="nl-play-card">
+      <div className="nl-play-card" id="fnl-players">
         <h2 className="nl-h3">Players</h2>
         <div className="nl-fnl-filters">
           {(["GK", "DEF", "MID", "FWD"] as Position[]).map((pos) => (
@@ -576,16 +629,7 @@ function MyUpcoming({ fnl, mine, players }: { fnl: FnlData; mine: FnlMine | null
   const card = (slot: Slot) => {
     const p = slot.id !== null ? players.get(slot.id) : null;
     if (!p) return null;
-    const role = p.player.id === entry.captainId ? " (C)" : p.player.id === entry.viceId ? " (V)" : "";
-    return (
-      <div key={slot.id} className="nl-fnl-card">
-        <div className="nl-fnl-card-main">
-          <img src={photoOf(p.player)} alt="" className="nl-face" width={44} height={44} />
-          <strong>{p.player.name}{role}</strong>
-          <small><ClubBadge id={p.club} size={14} /> {clubById.get(p.club)!.short} · {m(p.price)}</small>
-        </div>
-      </div>
-    );
+    return <Kit key={slot.id} p={p} tag={m(p.price)} armband={p.player.id === entry.captainId ? "C" : p.player.id === entry.viceId ? "V" : null} />;
   };
   return (
     <>
@@ -626,14 +670,16 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
     const mult = p.player.id === result.captainId ? result.multiplier : 1;
     const counts = index < 6 || result.entry.chip === "bench_boost";
     return (
-      <div key={slot.id} className={`nl-fnl-card ${line?.games ? "" : "is-dnp"}`}>
-        <div className="nl-fnl-card-main">
-          <img src={photoOf(p.player)} alt="" className="nl-face" width={44} height={44} />
-          <strong>{p.player.name}{p.player.id === result.captainId ? (mult === 3 ? " (TC)" : " (C)") : p.player.id === result.entry.viceId ? " (V)" : ""}</strong>
-          <small>{line?.games ? breakdown(line) : gwDone(gw, data) ? "Didn't play" : "Yet to play"}</small>
-        </div>
-        <span className={`nl-fnl-pts ${counts ? "" : "is-bench"}`}>{(line?.points ?? 0) * mult}</span>
-      </div>
+      <Kit
+        key={slot.id}
+        p={p}
+        pts
+        dim={!line?.games || !counts}
+        tag={line?.games ? (line.points * mult) : gwDone(gw, data) ? "DNP" : "–"}
+        armband={p.player.id === result.captainId ? (mult === 3 ? "TC" : "C") : p.player.id === result.entry.viceId ? "V" : null}
+      >
+        {line?.games ? <small className="nl-kit-note">{breakdown(line)}</small> : null}
+      </Kit>
     );
   };
 

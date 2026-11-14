@@ -686,3 +686,51 @@ div.nl-fnl-card-main { cursor: default; }
 .nl-fnl-dl div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 10px; }
 .nl-fnl-dl dt { color: var(--paper); }
 .nl-fnl-dl dd { margin: 0; color: var(--mist); }
+
+/* FNL pitch kits: shirt, name plate, tag (FPL-style) */
+.nl-kit { width: 100px; display: grid; justify-items: center; gap: 4px; }
+.nl-kit-main {
+  appearance: none; border: 0; background: none; padding: 0; margin: 0; width: 100%;
+  display: grid; justify-items: center; cursor: pointer; color: inherit; font: inherit;
+}
+div.nl-kit-main { cursor: default; }
+.nl-kit-shirt { position: relative; width: 62px; height: 62px; display: grid; place-items: center; transition: transform .15s ease; }
+.nl-kit-shirt svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgb(0 0 0 / .35)); }
+.nl-kit-main:hover .nl-kit-shirt { transform: translateY(-2px); }
+.nl-kit-badge {
+  position: absolute; top: -2px; right: -6px; width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; font: 800 .68rem/1 var(--body); font-style: normal;
+  background: var(--gold); color: var(--navy); box-shadow: 0 0 0 2px var(--navy);
+}
+.nl-kit-name {
+  width: 100%; margin-top: 2px; padding: 3px 4px; border-radius: 5px 5px 0 0;
+  background: #f4f3ee; color: #0b1120; font: 700 .72rem/1.25 var(--body); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nl-kit-tag {
+  width: 100%; padding: 3px 4px; border-radius: 0 0 5px 5px;
+  background: rgb(11 17 32 / .92); color: var(--paper); font: 600 .7rem/1.25 var(--body); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nl-kit-tag.is-pts { font: 400 1.15rem/1 var(--display); color: var(--gold); padding-top: 4px; }
+.nl-kit-note { color: rgb(238 241 247 / .75); font-size: .64rem; text-align: center; line-height: 1.2; }
+.nl-kit.is-dim { opacity: .55; }
+.nl-kit.is-selected .nl-kit-name { background: var(--gold); }
+.nl-kit.is-selected .nl-kit-shirt { transform: translateY(-3px); }
+.nl-kit.is-empty .nl-kit-shirt {
+  width: 56px; height: 56px; border-radius: 14px; border: 2px dashed rgb(255 255 255 / .45);
+  color: rgb(255 255 255 / .8); font: 400 2rem/1 var(--display);
+}
+.nl-kit.is-empty .nl-kit-name { background: rgb(255 255 255 / .14); color: var(--paper); }
+.nl-kit.is-empty .nl-kit-tag { background: transparent; }
+.nl-kit.is-empty.is-selected .nl-kit-shirt { border-color: var(--gold); color: var(--gold); }
+.nl-kit-out {
+  appearance: none; border: 0; cursor: pointer; min-height: 32px; padding: 0 10px; border-radius: 999px;
+  background: var(--live); color: #fff; font: 700 .7rem/1 var(--body);
+}
+.nl-fnl-transfers > div > .nl-fnl-pitch { margin-bottom: 0; }
+@media (max-width: 480px) {
+  .nl-kit { width: 30%; max-width: 100px; }
+  .nl-kit-shirt { width: 52px; height: 52px; }
+  .nl-kit-name { font-size: .66rem; }
+}
