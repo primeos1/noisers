@@ -172,6 +172,120 @@ export function clockTime(start: number) {
  * two in a row.
  */
 export function buildSchedule(rounds: Fixture[][] = buildFixtures()): MatchNight[] {
+  const nights = buildRoundOrderSchedule(rounds);
+  if (nights.length <= PLAYED_NIGHTS) return nights;
+  const played = nights.slice(0, PLAYED_NIGHTS);
+  const rest = nights.slice(PLAYED_NIGHTS).flatMap((n) => n.games);
+  return [...played, ...shuffledNights(rest, played.length)];
+}
+
+/** Sundays already played with the original order; their fixture numbers (and results) stay put. */
+const PLAYED_NIGHTS = 1;
+
+/** mulberry32 with a fixed seed, so every device draws the same "random" schedule. */
+function seededRand(seed: number) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffled<T>(items: T[], rand: () => number): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** A random order of a night's games in which no club plays two in a row (and the opener passes `canOpen`), or null. */
+function restedOrder<G extends Fixture>(games: G[], rand: () => number, canOpen: (g: G) => boolean = () => true): G[] | null {
+  const clash = (a: G, b: G) => a.home === b.home || a.home === b.away || a.away === b.home || a.away === b.away;
+  const order: G[] = [];
+  const place = (left: G[]): boolean => {
+    if (left.length === 0) return true;
+    for (const g of shuffled(left, rand)) {
+      const prev = order[order.length - 1];
+      if (prev ? clash(prev, g) : !canOpen(g)) continue;
+      order.push(g);
+      if (place(left.filter((x) => x !== g))) return true;
+      order.pop();
+    }
+    return false;
+  };
+  return place(games) ? order : null;
+}
+
+/**
+ * How many of the reshuffled Sundays a club may open. Bulwark opened every
+ * Sunday under the old layout, so it gets just one more.
+ */
+const OPENER_LIMITS: Partial<Record<ClubId, number>> = { bulwark: 1, castellers: 1, citadel: 2, sentinel: 2 };
+
+/** Clubs that open one particular Sunday (1-5) and no other: Bulwark's one is 13 Dec. */
+const OPENER_NIGHTS: Partial<Record<ClubId, number>> = { bulwark: 5 };
+
+/**
+ * The Sundays after the played ones, fully random: every remaining game goes
+ * into one pool and is dealt onto a random Sunday in a random slot. The only
+ * rules are fairness ones: each club plays three games a night, two clubs
+ * meet at most once a night, nobody plays two in a row, and no club plays
+ * the first game of the night more than OPENER_LIMITS allows. Home and away
+ * are kept as drawn.
+ */
+function shuffledNights(pool: ScheduledGame[], offset: number): MatchNight[] {
+  const rand = seededRand(20261116);
+  const perClub = (GAMES_PER_NIGHT * 2) / clubs.length;
+  const pair = (g: Fixture) => [g.home, g.away].sort().join();
+  for (;;) {
+    let left = shuffled(pool, rand);
+    const nights: MatchNight[] = [];
+    const opened = new Map<ClubId, number>();
+    const canOpen = (night: number) => (g: Fixture) => {
+      const ids = [g.home, g.away];
+      const fixed = (Object.keys(OPENER_NIGHTS) as ClubId[]).filter((id) => OPENER_NIGHTS[id] === night);
+      return (
+        ids.every((id) => (opened.get(id) ?? 0) < (OPENER_LIMITS[id] ?? Infinity)) &&
+        ids.every((id) => OPENER_NIGHTS[id] === undefined || OPENER_NIGHTS[id] === night) &&
+        fixed.every((id) => ids.includes(id))
+      );
+    };
+    while (left.length > 0) {
+      const count = new Map<ClubId, number>();
+      const pairs = new Set<string>();
+      const games: ScheduledGame[] = [];
+      const skipped: ScheduledGame[] = [];
+      for (const g of left) {
+        const fits =
+          games.length < GAMES_PER_NIGHT &&
+          (count.get(g.home) ?? 0) < perClub &&
+          (count.get(g.away) ?? 0) < perClub &&
+          !pairs.has(pair(g));
+        if (!fits) { skipped.push(g); continue; }
+        games.push(g);
+        pairs.add(pair(g));
+        count.set(g.home, (count.get(g.home) ?? 0) + 1);
+        count.set(g.away, (count.get(g.away) ?? 0) + 1);
+      }
+      const dealt = games.length === Math.min(GAMES_PER_NIGHT, left.length) ? restedOrder(games, rand, canOpen(offset + nights.length + 1)) : null;
+      if (!dealt) break;
+      for (const id of [dealt[0].home, dealt[0].away]) opened.set(id, (opened.get(id) ?? 0) + 1);
+      const n = offset + nights.length;
+      nights.push({
+        date: new Date(Date.UTC(2026, 10, 15 + n * 7)),
+        games: dealt.map((g, k) => ({ ...g, start: k * (GAME_MINUTES + CHANGEOVER_MINUTES) })),
+      });
+      left = skipped;
+    }
+    if (left.length === 0) return nights;
+  }
+}
+
+/** The original layout: rounds in order, nine games a night. */
+function buildRoundOrderSchedule(rounds: Fixture[][]): MatchNight[] {
   const queue = rounds.flatMap((round, r) => round.map((f) => ({ ...f, round: r + 1 })));
   const nights: MatchNight[] = [];
   for (let n = 0; queue.length > 0; n++) {
