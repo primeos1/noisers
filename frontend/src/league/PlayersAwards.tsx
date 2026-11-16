@@ -235,8 +235,9 @@ function PlayerDetail({ line }: { line: PlayerLine }) {
 
 export function AwardsPage({ draw, data }: { draw: DrawResult | null; data: LeagueData | null }) {
   const stats = useStats(draw, data);
-  const top = data && stats?.started ? champions(data) : null;
   const decided = !!stats?.seasonOver;
+  // No club is named until every game has been played.
+  const top = data && decided ? champions(data) : null;
   const champ = top ? clubById.get(top.club)! : null;
 
   return (
@@ -248,7 +249,7 @@ export function AwardsPage({ draw, data }: { draw: DrawResult | null; data: Leag
       <div className="nl-awards">
         <article className="nl-award is-champion" style={champ ? ({ "--c1": champ.colours.primary } as React.CSSProperties) : undefined}>
           <p className="nl-award-name">League Champions</p>
-          <p className="nl-muted">{decided ? "Top of the table after 45 games." : "The club top of the table."}</p>
+          <p className="nl-muted">{decided ? "Top of the table after 45 games." : "Named when all 45 games have been played."}</p>
           {top && champ ? (
             <div className="nl-champ">
               <Shirt id={top.club} className="nl-champ-shirt" />
@@ -265,7 +266,6 @@ export function AwardsPage({ draw, data }: { draw: DrawResult | null; data: Leag
               <span className="nl-champ-shirt nl-ghost-shirt" aria-hidden="true" />
               <div>
                 <p className="nl-award-leader nl-empty-cell">To be decided</p>
-                <p className="nl-muted">0 pts</p>
               </div>
             </div>
           )}
