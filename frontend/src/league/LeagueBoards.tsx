@@ -53,13 +53,16 @@ function board(
  */
 const keeperTiebreak = (l: PlayerLine) => l.cleanSheets + l.rating.rating / 100;
 
+/** Defenders level on brick walls: the higher draw (pre-league) rating goes first. */
+const drawRating = (l: PlayerLine) => l.player.rating;
+
 function leagueBoards(stats: LeagueStats): Board[] {
   const ga = (l: PlayerLine) => l.goals + l.assists;
   return [
     board(stats, "rating", "Highest rated", "league rating", (l) => (l.rating.nights.length ? l.rating.rating : 0), ga, (l) => fmt(l.rating.rating)),
     board(stats, "goals", "Top scorers", "goals", (l) => l.goals, (l) => l.assists),
     board(stats, "assists", "Top assists", "assists", (l) => l.assists, (l) => l.goals),
-    board(stats, "clean-sheets", "Brick Wall", "brick walls", (l) => (l.player.position === "DEF" ? l.cleanSheets : 0), (l) => l.rating.rating),
+    board(stats, "clean-sheets", "Brick Wall", "brick walls", (l) => (l.player.position === "DEF" ? l.cleanSheets : 0), drawRating),
     board(stats, "saves", "Golden Glove", "saves", (l) => (l.player.position === "GK" ? l.saves : 0), keeperTiebreak),
     board(stats, "cards", "Hot heads of the league", "cards", (l) => l.yellows + l.reds, (l) => l.reds, cardsText),
   ];
@@ -92,7 +95,7 @@ export function SeasonStandouts({ stats }: { stats: LeagueStats }) {
   const honours = [
     { title: "Top scorer", unit: "goals", row: best(() => true, (l) => l.goals) },
     { title: "Top assist", unit: "assists", row: best(() => true, (l) => l.assists) },
-    { title: "Top defender", unit: "brick walls", row: best((l) => l.player.position === "DEF", (l) => l.cleanSheets) },
+    { title: "Top defender", unit: "brick walls", row: best((l) => l.player.position === "DEF", (l) => l.cleanSheets, drawRating) },
     { title: "Golden Glove", unit: "saves", row: best((l) => l.player.position === "GK", (l) => l.saves, keeperTiebreak) },
   ];
   // Most cards; ties go to whoever has more reds.
