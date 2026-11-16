@@ -167,7 +167,6 @@ export const AWARDS: AwardDef[] = [
   { id: "golden-glove", award: "Golden Glove", stat: "saves", blurb: "The safest pair of hands between the sticks.", value: (l) => l.saves, eligible: (l) => l.player.position === "GK" },
   { id: "brick-wall", award: "Brick Wall", stat: "clean sheets", blurb: "The defender who kept the door shut.", value: (l) => l.cleanSheets, eligible: (l) => l.player.position === "DEF" },
   { id: "potn", award: "Player of the Night", stat: "nights", blurb: "Most Sundays as the night's best player.", value: (l) => l.nights },
-  { id: "serial-winner", award: "Serial Winner", stat: "wins", blurb: "Their club just keeps winning.", value: (l) => l.won },
   { id: "top-rated", award: "Top Rated", stat: "league rating", blurb: "The highest league rating. Everyone started on 6.00.", value: (l) => l.rating.rating, eligible: (l) => l.rating.nights.length > 0, format: (v) => v.toFixed(2) },
   { id: "wrong-end", award: "Wrong End", stat: "own goals", blurb: "Scored for the other lot. Most own goals.", value: (l) => l.ownGoals },
 ];
