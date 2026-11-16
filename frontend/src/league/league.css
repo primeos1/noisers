@@ -395,6 +395,13 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .nl-scorers-board li::marker { color: var(--mist); }
 .nl-scorers-board li { display: list-item; }
 .nl-scorers-board li strong { float: right; font: 400 1.2rem/1.2 var(--display); color: var(--gold); }
+.nl-leader-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.nl-leader-tabs button {
+  cursor: pointer; font: inherit; font-size: .8rem; color: var(--mist);
+  background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px;
+}
+.nl-leader-tabs button.is-active { color: var(--gold); border-color: var(--gold); background: rgb(201 168 90 / .12); }
+.nl-scorers-board li small { font-size: .75rem; }
 
 /* ------------------------------------------------------------ fair play */
 .nl-fair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 24px; align-items: start; margin-top: 18px; }
@@ -450,7 +457,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 
 .nl-players { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
 .nl-prow {
-  display: grid; grid-template-columns: minmax(0, 1fr) 40px 70px 40px 40px 44px 52px; align-items: center; gap: 6px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 60px 40px 70px 40px 40px 44px 52px; align-items: center; gap: 6px;
   width: 100%; padding: 9px 14px; background: none; border: 0; border-top: 1px solid var(--line); text-align: center; cursor: pointer;
   font-variant-numeric: tabular-nums;
 }
@@ -480,7 +487,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .nl-pgame-mine { color: var(--gold); font-weight: 600; font-size: .8rem; }
 .nl-pad { padding: 16px; }
 @media (max-width: 640px) {
-  .nl-prow { grid-template-columns: minmax(0, 1fr) 30px 56px 30px 30px; padding: 9px 10px; }
+  .nl-prow { grid-template-columns: minmax(0, 1fr) 48px 30px 56px 30px 30px; padding: 9px 10px; }
   .nl-prow .is-wide { display: none; }
   .nl-pdetail { padding: 6px 10px 14px; }
   .nl-pgames li { grid-template-columns: 34px 40px minmax(0, 1fr); }
@@ -957,3 +964,12 @@ div.nl-kit-main { cursor: default; }
   .nl-pp-row { grid-template-columns: 22px auto minmax(0, 1fr) auto; gap: 10px; padding-right: 12px; }
   .nl-pp-stats { display: none; }
 }
+
+/* League rating */
+.nl-rating-cell { display: grid; justify-items: center; gap: 1px; }
+.nl-rating-cell small, .nl-rating-trail small { font-size: .65rem; font-weight: 700; }
+.is-up { color: #6fdc9a; }
+.is-down { color: #ff8a96; }
+.nl-gold { color: var(--gold); }
+.nl-rating-trail { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.nl-rating-trail li { display: flex; align-items: baseline; gap: 5px; }

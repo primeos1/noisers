@@ -8,6 +8,8 @@ import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verif
 import DrawStage from "./DrawStage";
 import { AwardsPage, PlayersPage } from "./PlayersAwards";
 import { PlayPage } from "./PlayPage";
+import { leagueRatings, fmtChange } from "./rating";
+import { leagueStats } from "./stats";
 import { FnlPage } from "./FnlPage";
 
 const MAIN_SITE = "https://noisersfc.com";
@@ -202,8 +204,8 @@ export default function LeagueSite() {
         // The official league page: the draw is history.
         <>
           <Fixtures data={data} />
-          <Table data={data} />
-          <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} />
+          <Table data={data} draw={official} />
+          <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} data={data} />
           {fairPlay}
         </>
       ) : (
@@ -223,7 +225,7 @@ export default function LeagueSite() {
             watchLink={watchLink}
             onLive={setDrawLive}
           />
-          <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} />
+          <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} data={data} />
           <Fixtures data={data} />
           <Table data={data} />
           {fairPlay}
@@ -385,9 +387,12 @@ function NextUp({ data }: { data: LeagueData | null }) {
 
 /* ---------------------------------------------------------------- clubs */
 
-function Clubs({ official, startMs, speed, now }: { official: DrawResult | null; startMs: number | null; speed: number; now: () => number }) {
+function Clubs({ official, startMs, speed, now, data }: { official: DrawResult | null; startMs: number | null; speed: number; now: () => number; data: LeagueData | null }) {
   useTicker(5000);
   const finished = official && startMs != null && now() >= startMs + (buildTimeline(official).total / speed) * 1000;
+  // League ratings (from 6.00) once the season's on; the draw ratings before.
+  const ratings = useMemo(() => (official && data?.results.some((r) => r.status === "final") ? leagueRatings(official, data) : null), [official, data]);
+  const ratingOf = (p: Entrant) => ratings?.get(p.id)?.rating ?? p.rating;
   return (
     <section id="clubs" className="nl-section" aria-labelledby="clubs-title">
       <h2 id="clubs-title" className="nl-h2">The clubs</h2>
@@ -395,7 +400,7 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
       <div className="nl-clubs">
         {clubs.map((c) => {
           const squad = finished ? official.squads[c.id] : null;
-          const avg = squad?.length ? fmt(squad.reduce((s, p) => s + p.rating, 0) / squad.length) : null;
+          const avg = squad?.length ? fmt(squad.reduce((s, p) => s + ratingOf(p), 0) / squad.length) : null;
           return (
             <article key={c.id} className="nl-club" style={{ "--c1": c.colours.primary, "--glow": c.colours.glow } as React.CSSProperties}>
               <Shirt id={c.id} className="nl-club-shirt" />
@@ -404,13 +409,13 @@ function Clubs({ official, startMs, speed, now }: { official: DrawResult | null;
               </div>
               {squad ? (
                 <div className="nl-club-squad">
-                  <p className="nl-muted">Squad, average {avg}</p>
+                  <p className="nl-muted">Squad, average {ratings ? "league rating" : "rating"} {avg}</p>
                   <ul>
-                    {[...squad].sort((a, b) => b.rating - a.rating).map((p) => (
+                    {[...squad].sort((a, b) => ratingOf(b) - ratingOf(a)).map((p) => (
                       <li key={p.id}>
                         <span className="nl-slot-pos">{p.position}</span>
                         {p.name}<CaptainBadge name={p.name} />
-                        <span className="nl-ovr">{fmt(p.rating)}</span>
+                        <span className="nl-ovr">{fmt(ratingOf(p))}</span>
                       </li>
                     ))}
                   </ul>
@@ -509,10 +514,8 @@ function Side({ id, away }: { id: ClubId; away?: boolean }) {
 
 /* ---------------------------------------------------------------- table */
 
-function Table({ data }: { data: LeagueData | null }) {
+function Table({ data, draw }: { data: LeagueData | null; draw?: DrawResult | null }) {
   const rows = standings(data?.results ?? []);
-  const names = new Map((data?.entrants ?? []).map((e) => [e.id, e.name]));
-  const scorers = topScorers(data?.goals ?? []);
   return (
     <section id="table" className="nl-section" aria-labelledby="table-title">
       <h2 id="table-title" className="nl-h2">League table</h2>
@@ -555,23 +558,94 @@ function Table({ data }: { data: LeagueData | null }) {
           </table>
           <p className="nl-muted nl-note">Win 3, draw 1. Games count once they finish.</p>
         </div>
-        <div className="nl-scorers-board">
-          <h3 className="nl-h3">Top scorers</h3>
-          {scorers.length === 0 ? (
-            <p className="nl-muted">The first goal goes in on 15 November.</p>
-          ) : (
-            <ol>
-              {scorers.map(([id, n]) => (
-                <li key={id}>
-                  <span>{names.get(id) ?? "Unknown"}</span>
-                  <strong>{n}</strong>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        <Leaders data={data} draw={draw ?? null} />
       </div>
     </section>
+  );
+}
+
+type LeaderKind = "goals" | "assists" | "saves" | "cleanSheets" | "cards" | "rating";
+const LEADER_TABS: [LeaderKind, string][] = [
+  ["goals", "Goals"],
+  ["rating", "Rating"],
+  ["assists", "Assists"],
+  ["saves", "Saves"],
+  ["cleanSheets", "Clean sheets"],
+  ["cards", "Cards"],
+];
+
+/** Top five in each stat. Goals work from the results alone; the rest need the drawn squads. */
+function Leaders({ data, draw }: { data: LeagueData | null; draw: DrawResult | null }) {
+  const [kind, setKind] = useState<LeaderKind>("goals");
+  const names = useMemo(() => new Map((data?.entrants ?? []).map((e) => [e.id, e.name])), [data]);
+  const stats = useMemo(() => (draw && data ? leagueStats(draw, data) : null), [draw, data]);
+
+  const leaders: { id: number; value: number | string; note?: string }[] = useMemo(() => {
+    if (kind === "rating") {
+      return (stats?.lines ?? [])
+        .filter((l) => l.rating.nights.length > 0)
+        .sort((a, b) => b.rating.rating - a.rating.rating || a.player.name.localeCompare(b.player.name))
+        .slice(0, 5)
+        .map((l) => ({ id: l.player.id, value: fmt(l.rating.rating), note: fmtChange(l.rating.change) || undefined }));
+    }
+    if (kind === "cards") {
+      const tally = new Map<number, { y: number; r: number }>();
+      for (const r of data?.results ?? []) {
+        for (const c of r.events?.cards ?? []) {
+          const t = tally.get(c.playerId) ?? { y: 0, r: 0 };
+          if (c.type === "red") t.r++;
+          else t.y++;
+          tally.set(c.playerId, t);
+        }
+      }
+      return [...tally.entries()]
+        .map(([id, t]) => ({ id, value: t.y + t.r, note: [t.y && `${t.y} yellow`, t.r && `${t.r} red`].filter(Boolean).join(", "), weight: t.r * 3 + t.y }))
+        .sort((a, b) => b.weight - a.weight || b.value - a.value)
+        .slice(0, 5);
+    }
+    if (!stats) return kind === "goals" ? topScorers(data?.goals ?? []).map(([id, value]) => ({ id, value })) : [];
+    return stats.lines
+      .map((l) => ({ id: l.player.id, value: l[kind as Exclude<LeaderKind, "cards" | "rating">], tiebreak: l.goals + l.assists }))
+      .filter((l) => l.value > 0)
+      .sort((a, b) => b.value - a.value || b.tiebreak - a.tiebreak || (names.get(a.id) ?? "").localeCompare(names.get(b.id) ?? ""))
+      .slice(0, 5);
+  }, [kind, data, stats, names]);
+
+  const empty: Record<LeaderKind, string> = {
+    goals: "No goals yet.",
+    assists: "No assists yet.",
+    saves: "No saves yet.",
+    cleanSheets: "No clean sheets yet. Keepers and defenders get one when their club doesn't concede.",
+    cards: "No cards yet.",
+    rating: "No ratings yet. Everyone starts the league on 6.00 and moves once their first game finishes.",
+  };
+
+  return (
+    <div className="nl-scorers-board">
+      <h3 className="nl-h3">Leaders</h3>
+      <div className="nl-leader-tabs" role="tablist" aria-label="Stat">
+        {LEADER_TABS.map(([k, label]) => (
+          <button key={k} type="button" role="tab" aria-selected={kind === k} className={kind === k ? "is-active" : ""} onClick={() => setKind(k)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {leaders.length === 0 ? (
+        <p className="nl-muted">{empty[kind]}</p>
+      ) : (
+        <ol>
+          {leaders.map((l) => (
+            <li key={l.id}>
+              <span>
+                {names.get(l.id) ?? "Unknown"}
+                {l.note && <small className="nl-muted"> · {l.note}</small>}
+              </span>
+              <strong>{l.value}</strong>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }
 

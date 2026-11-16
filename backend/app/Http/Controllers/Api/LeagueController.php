@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClubSetting;
 use App\Models\LeagueGoal;
 use App\Models\LeagueResult;
 use App\Models\LeagueState;
@@ -314,6 +315,9 @@ class LeagueController extends Controller
                 'assistPlayerId' => $g->assist_player_id,
                 'ownGoal' => $g->own_goal,
             ])->values(),
+            // The club's rating weights, so the site can work out the league-only
+            // rating (league/rating.ts). Read only: no rating is stored or changed.
+            'ratingWeights' => ClubSetting::current()->ratingWeights(),
             'serverTime' => now()->toIso8601ZuluString('millisecond'),
         ];
     }

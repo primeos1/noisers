@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildSchedule, clubs, type ClubId, type ScheduledGame } from "../lib/league";
 import type { Entrant } from "./draw";
+import type { RatingWeights } from "./rating";
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
@@ -41,6 +42,8 @@ export interface LeagueData {
   liveNight: number | null;
   results: LeagueResult[];
   goals: LeagueGoal[];
+  /** The club's rating weights, for the league-only rating (rating.ts). */
+  ratingWeights?: RatingWeights;
   serverTime: string;
 }
 

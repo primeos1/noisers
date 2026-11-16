@@ -1,10 +1,12 @@
 // League-only player numbers and awards, worked out from the league's own
 // results and goals. Nothing here reads or writes Noisers match days or
-// ratings — the rating shown is the frozen one the draw used.
+// ratings. `rating` is the league-only rating (rating.ts), which starts
+// everyone on 6.00; the draw rating stays on player.rating.
 
 import type { ClubId } from "../lib/league";
 import { GAMES, standings, type LeagueData } from "./data";
 import type { DrawResult, Entrant } from "./draw";
+import { leagueRatings, type LeagueRating } from "./rating";
 
 export interface MatchLine {
   no: number;
@@ -36,6 +38,8 @@ export interface PlayerLine {
   hatTricks: number;
   /** Sundays they were Player of the Night. */
   nights: number;
+  /** League-only rating, from 6.00. */
+  rating: LeagueRating;
   matches: MatchLine[];
 }
 
@@ -59,10 +63,11 @@ export function leagueStats(draw: DrawResult, data: LeagueData): LeagueStats {
   const results = new Map(data.results.map((r) => [r.matchNo, r]));
   const lines: PlayerLine[] = [];
   const byId = new Map<number, PlayerLine>();
+  const ratings = leagueRatings(draw, data);
 
   for (const [club, squad] of Object.entries(draw.squads) as [ClubId, Entrant[]][]) {
     for (const player of squad) {
-      const line: PlayerLine = { player, club, played: 0, won: 0, drawn: 0, lost: 0, goals: 0, assists: 0, ownGoals: 0, cleanSheets: 0, saves: 0, hatTricks: 0, nights: 0, matches: [] };
+      const line: PlayerLine = { player, club, played: 0, won: 0, drawn: 0, lost: 0, goals: 0, assists: 0, ownGoals: 0, cleanSheets: 0, saves: 0, hatTricks: 0, nights: 0, rating: ratings.get(player.id)!, matches: [] };
       for (const g of GAMES) {
         if (g.home !== club && g.away !== club) continue;
         const home = g.home === club;
@@ -151,6 +156,8 @@ export interface AwardDef {
   value: (l: PlayerLine) => number;
   /** Who can win it. */
   eligible?: (l: PlayerLine) => boolean;
+  /** How the value is shown; whole numbers by default. */
+  format?: (v: number) => string;
 }
 
 export const AWARDS: AwardDef[] = [
@@ -161,6 +168,7 @@ export const AWARDS: AwardDef[] = [
   { id: "brick-wall", award: "Brick Wall", stat: "clean sheets", blurb: "The defender who kept the door shut.", value: (l) => l.cleanSheets, eligible: (l) => l.player.position === "DEF" },
   { id: "potn", award: "Player of the Night", stat: "nights", blurb: "Most Sundays as the night's best player.", value: (l) => l.nights },
   { id: "serial-winner", award: "Serial Winner", stat: "wins", blurb: "Their club just keeps winning.", value: (l) => l.won },
+  { id: "top-rated", award: "Top Rated", stat: "league rating", blurb: "The highest league rating. Everyone started on 6.00.", value: (l) => l.rating.rating, eligible: (l) => l.rating.nights.length > 0, format: (v) => v.toFixed(2) },
   { id: "wrong-end", award: "Wrong End", stat: "own goals", blurb: "Scored for the other lot. Most own goals.", value: (l) => l.ownGoals },
 ];
 

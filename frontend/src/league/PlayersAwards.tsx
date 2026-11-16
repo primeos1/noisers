@@ -5,6 +5,7 @@ import { ClubBadge, Shirt } from "./ClubBadge";
 import { CaptainBadge } from "./CaptainBadge";
 import { clubById, nightDate, type LeagueData } from "./data";
 import { fmt, type DrawResult, type Entrant } from "./draw";
+import { fmtChange, LEAGUE_RATING_START } from "./rating";
 import { AWARDS, champions, leagueStats, race, type LeagueStats, type PlayerLine } from "./stats";
 
 export const photoOf = (p: Entrant) => p.photoUrl || defaultPhoto;
@@ -27,7 +28,7 @@ export function PlayersPage({ draw, data }: { draw: DrawResult | null; data: Lea
     <section id="players" className="nl-section nl-page" aria-labelledby="players-title">
       <h1 id="players-title" className="nl-h2">Players</h1>
       <p className="nl-lede">
-        Every player's league numbers, game by game. These are league-only: they don't touch anyone's Noisers rating or stats.
+        Every player's league numbers, game by game, and a league rating that started everyone on 6.00. These are league-only: they don't touch anyone's Noisers rating, stats or FNL prices.
       </p>
       {stats ? (
         <PlayerList stats={stats} />
@@ -53,9 +54,10 @@ function EmptyPlayers({ entrants, loading }: { entrants: Entrant[]; loading: boo
               <Face player={p} />
               <span className="nl-pname">
                 <strong>{p.name}<CaptainBadge name={p.name} /></strong>
-                <small>Club to be drawn · {p.position} · {fmt(p.rating)}</small>
+                <small>Club to be drawn · {p.position}</small>
               </span>
             </span>
+            <span className="is-strong">{fmt(LEAGUE_RATING_START)}</span>
             {Array.from({ length: 6 }, (_, i) => (
               <span key={i} className={`nl-empty-cell ${i >= 4 ? "is-wide" : ""}`}>–</span>
             ))}
@@ -67,8 +69,8 @@ function EmptyPlayers({ entrants, loading }: { entrants: Entrant[]; loading: boo
               <span className="nl-face nl-ghost" />
               <span className="nl-ghost-line" />
             </span>
-            {Array.from({ length: 6 }, (_, j) => (
-              <span key={j} className={`nl-empty-cell ${j >= 4 ? "is-wide" : ""}`}>–</span>
+            {Array.from({ length: 7 }, (_, j) => (
+              <span key={j} className={`nl-empty-cell ${j >= 5 ? "is-wide" : ""}`}>–</span>
             ))}
           </div>
         ))}
@@ -77,10 +79,22 @@ function EmptyPlayers({ entrants, loading }: { entrants: Entrant[]; loading: boo
   );
 }
 
+/** A league rating with how far the last Sunday moved it. */
+export function RatingCell({ rating, change }: { rating: number; change: number }) {
+  const d = fmtChange(change);
+  return (
+    <span className="nl-rating-cell">
+      <span className="is-strong">{fmt(rating)}</span>
+      {d && <small className={change > 0 ? "is-up" : "is-down"}>{d}</small>}
+    </span>
+  );
+}
+
 function PlayerHead() {
   return (
     <div className="nl-prow nl-prow-head" aria-hidden="true">
       <span>Player</span>
+      <span title="League rating">Rtg</span>
       <span>P</span>
       <span>W-D-L</span>
       <span>G</span>
@@ -95,10 +109,15 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
   const [club, setClub] = useState<ClubId | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<number | null>(null);
+  const [sort, setSort] = useState<"ga" | "rating">("ga");
 
   const rows = stats.lines
     .filter((l) => (club === "all" || l.club === club) && l.player.name.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => b.goals + b.assists - (a.goals + a.assists) || b.goals - a.goals || b.player.rating - a.player.rating);
+    .sort((a, b) =>
+      sort === "rating"
+        ? b.rating.rating - a.rating.rating || b.goals + b.assists - (a.goals + a.assists) || a.player.name.localeCompare(b.player.name)
+        : b.goals + b.assists - (a.goals + a.assists) || b.goals - a.goals || b.rating.rating - a.rating.rating,
+    );
 
   return (
     <>
@@ -112,6 +131,10 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
               <span>{c.short}</span>
             </button>
           ))}
+        </div>
+        <div className="nl-chip-row" role="group" aria-label="Sort by">
+          <button type="button" aria-pressed={sort === "ga"} onClick={() => setSort("ga")}>Goals + assists</button>
+          <button type="button" aria-pressed={sort === "rating"} onClick={() => setSort("rating")}>League rating</button>
         </div>
       </div>
 
@@ -127,10 +150,11 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
                   <span className="nl-pname">
                     <strong>{l.player.name}<CaptainBadge name={l.player.name} /></strong>
                     <small>
-                      <ClubBadge id={l.club} size={14} /> {clubById.get(l.club)!.short} · {l.player.position} · {fmt(l.player.rating)}
+                      <ClubBadge id={l.club} size={14} /> {clubById.get(l.club)!.short} · {l.player.position}
                     </small>
                   </span>
                 </span>
+                <RatingCell rating={l.rating.rating} change={l.rating.change} />
                 <span className={none ? "nl-empty-cell" : ""}>{none ? "–" : l.played}</span>
                 <span className={none ? "nl-empty-cell" : ""}>{none ? "–" : `${l.won}-${l.drawn}-${l.lost}`}</span>
                 <span className={none ? "nl-empty-cell" : "is-strong"}>{none ? "–" : l.goals}</span>
@@ -144,7 +168,7 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
         })}
         {rows.length === 0 && <p className="nl-muted nl-pad">No one matches that.</p>}
       </div>
-      <p className="nl-muted nl-note">P played, CS clean sheets (defenders and keepers), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
+      <p className="nl-muted nl-note">Rtg league rating (everyone started on 6.00; it moves after each finished game, by the same rules as the Noisers rating), P played, CS clean sheets (defenders and keepers), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
     </>
   );
 }
@@ -155,13 +179,29 @@ function PlayerDetail({ line }: { line: PlayerLine }) {
   return (
     <div className="nl-pdetail">
       <dl className="nl-pstats">
+        <div><dt>League rating</dt><dd className="nl-gold">{fmt(line.rating.rating)}</dd></div>
         <div><dt>Goals</dt><dd>{line.goals}</dd></div>
         <div><dt>Assists</dt><dd>{line.assists}</dd></div>
         <div><dt>Wins</dt><dd>{line.won}</dd></div>
         {["GK", "DEF"].includes(line.player.position) && <div><dt>Clean sheets</dt><dd>{line.cleanSheets}</dd></div>}
         {line.player.position === "GK" && <div><dt>Saves</dt><dd>{line.saves}</dd></div>}
         {line.ownGoals > 0 && <div><dt>Own goals</dt><dd>{line.ownGoals}</dd></div>}
+        <div><dt>Draw rating</dt><dd>{fmt(line.player.rating)}</dd></div>
       </dl>
+      {line.rating.nights.length > 0 && (
+        <ol className="nl-rating-trail" aria-label="League rating by Sunday">
+          <li><span className="nl-muted">Start</span> {fmt(LEAGUE_RATING_START)}</li>
+          {line.rating.nights.map((n) => {
+            const d = fmtChange(n.after - n.before);
+            return (
+              <li key={n.night}>
+                <span className="nl-muted">Sun {n.night}</span> {fmt(n.after)}
+                {d && <small className={n.after > n.before ? "is-up" : "is-down"}>{d}</small>}
+              </li>
+            );
+          })}
+        </ol>
+      )}
       {played.length === 0 ? (
         <p className="nl-muted">
           No games yet.{next && ` First up: ${clubById.get(next.opp)!.name}, Sunday ${next.night} (${nightDate(next.night)}).`}
@@ -249,12 +289,12 @@ export function AwardsPage({ draw, data }: { draw: DrawResult | null; data: Leag
                       </p>
                     </div>
                     <p className="nl-award-value">
-                      {def.value(lead)}
+                      {(def.format ?? String)(def.value(lead))}
                       <small>{def.stat}</small>
                     </p>
                   </div>
                   {decided && <span className="nl-award-tag">Winner</span>}
-                  <RunnersUp rest={rest.map((l) => ({ id: l.player.id, name: l.player.name, value: def.value(l) }))} />
+                  <RunnersUp rest={rest.map((l) => ({ id: l.player.id, name: l.player.name, value: (def.format ?? String)(def.value(l)) }))} />
                 </>
               ) : (
                 <>
@@ -311,7 +351,7 @@ export function AwardsPage({ draw, data }: { draw: DrawResult | null; data: Leag
 }
 
 /** Places 2-4, with empty slots until someone fills them. */
-function RunnersUp({ rest }: { rest: { id: number; name: string; value: number }[] }) {
+function RunnersUp({ rest }: { rest: { id: number; name: string; value: number | string }[] }) {
   return (
     <ol className="nl-award-rest" start={2}>
       {[0, 1, 2].map((i) => {
