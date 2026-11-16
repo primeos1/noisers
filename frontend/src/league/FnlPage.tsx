@@ -852,7 +852,7 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
                   <th scope="col" title="Games played">GP</th>
                   <th scope="col" title="Goals">G</th>
                   <th scope="col" title="Assists">A</th>
-                  <th scope="col" title="Clean sheets" className="is-wide">CS</th>
+                  <th scope="col" title="Brick walls" className="is-wide">BW</th>
                   <th scope="col" title="Saves" className="is-wide">Sv</th>
                   <th scope="col" title="Bonus">B</th>
                   <th scope="col">Pts</th>
@@ -1065,7 +1065,7 @@ const STAT_ROWS: [keyof ReturnType<typeof seasonTotal>, string][] = [
   ["games", "Games played"],
   ["goals", "Goals"],
   ["assists", "Assists"],
-  ["cleanSheets", "Clean sheets"],
+  ["cleanSheets", "Brick walls"],
   ["conceded", "Goals conceded"],
   ["saves", "Saves"],
   ["penaltySaves", "Penalty saves"],
@@ -1149,7 +1149,7 @@ function PlayerProfile(props: { p: FnlPlayer; data: LeagueData; season: Season; 
                   <th scope="col" title="Games played">GP</th>
                   <th scope="col" title="Goals">G</th>
                   <th scope="col" title="Assists">A</th>
-                  <th scope="col" title="Clean sheets">CS</th>
+                  <th scope="col" title="Brick walls">BW</th>
                   <th scope="col" title={keeper ? "Saves" : "Cards"}>{keeper ? "Sv" : "Cards"}</th>
                   <th scope="col" title="Bonus">B</th>
                   <th scope="col">Pts</th>

@@ -99,7 +99,7 @@ function PlayerHead() {
       <span>W-D-L</span>
       <span>G</span>
       <span>A</span>
-      <span className="is-wide">CS</span>
+      <span className="is-wide">BW</span>
       <span className="is-wide">POTN</span>
     </div>
   );
@@ -168,7 +168,7 @@ function PlayerList({ stats }: { stats: LeagueStats }) {
         })}
         {rows.length === 0 && <p className="nl-muted nl-pad">No one matches that.</p>}
       </div>
-      <p className="nl-muted nl-note">Rtg league rating (everyone started on 6.00; it moves after each finished game, by the same rules as the Noisers rating), P played, CS clean sheets (defenders and keepers), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
+      <p className="nl-muted nl-note">Rtg league rating (everyone started on 6.00; it moves after each finished game, by the same rules as the Noisers rating), P played, BW brick walls (defenders and keepers whose club kept a clean sheet), POTN Player of the Night. Everyone in a squad counts in their club's games.</p>
     </>
   );
 }
@@ -183,7 +183,7 @@ function PlayerDetail({ line }: { line: PlayerLine }) {
         <div><dt>Goals</dt><dd>{line.goals}</dd></div>
         <div><dt>Assists</dt><dd>{line.assists}</dd></div>
         <div><dt>Wins</dt><dd>{line.won}</dd></div>
-        {["GK", "DEF"].includes(line.player.position) && <div><dt>Clean sheets</dt><dd>{line.cleanSheets}</dd></div>}
+        {["GK", "DEF"].includes(line.player.position) && <div><dt>Brick walls</dt><dd>{line.cleanSheets}</dd></div>}
         {line.player.position === "GK" && <div><dt>Saves</dt><dd>{line.saves}</dd></div>}
         {line.ownGoals > 0 && <div><dt>Own goals</dt><dd>{line.ownGoals}</dd></div>}
         <div><dt>Draw rating</dt><dd>{fmt(line.player.rating)}</dd></div>
