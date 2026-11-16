@@ -35,6 +35,10 @@ export interface PlayerLine {
   /** Defenders and keepers: finished games their club didn't concede. */
   cleanSheets: number;
   saves: number;
+  /** Finished games they're down as having played (the whole squad for games before line-ups were kept). */
+  apps: number;
+  yellows: number;
+  reds: number;
   hatTricks: number;
   /** Sundays they were Player of the Night. */
   nights: number;
@@ -67,7 +71,7 @@ export function leagueStats(draw: DrawResult, data: LeagueData): LeagueStats {
 
   for (const [club, squad] of Object.entries(draw.squads) as [ClubId, Entrant[]][]) {
     for (const player of squad) {
-      const line: PlayerLine = { player, club, played: 0, won: 0, drawn: 0, lost: 0, goals: 0, assists: 0, ownGoals: 0, cleanSheets: 0, saves: 0, hatTricks: 0, nights: 0, rating: ratings.get(player.id)!, matches: [] };
+      const line: PlayerLine = { player, club, played: 0, won: 0, drawn: 0, lost: 0, goals: 0, assists: 0, ownGoals: 0, cleanSheets: 0, saves: 0, apps: 0, yellows: 0, reds: 0, hatTricks: 0, nights: 0, rating: ratings.get(player.id)!, matches: [] };
       for (const g of GAMES) {
         if (g.home !== club && g.away !== club) continue;
         const home = g.home === club;
@@ -85,6 +89,12 @@ export function leagueStats(draw: DrawResult, data: LeagueData): LeagueStats {
           ownGoals: 0,
         };
         if (player.position === "GK" && m.status !== "scheduled") line.saves += r?.saves?.[player.id] ?? 0;
+        for (const c of r?.events?.cards ?? []) {
+          if (c.playerId !== player.id) continue;
+          if (c.type === "red") line.reds++;
+          else line.yellows++;
+        }
+        if (m.status === "final" && (!r?.events || r.events.appeared.includes(player.id))) line.apps++;
         line.matches.push(m);
         if (m.status === "final") {
           line.played++;

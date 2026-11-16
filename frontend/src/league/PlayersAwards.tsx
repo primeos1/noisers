@@ -5,6 +5,7 @@ import { ClubBadge, Shirt } from "./ClubBadge";
 import { CaptainBadge } from "./CaptainBadge";
 import { clubById, nightDate, type LeagueData } from "./data";
 import { fmt, type DrawResult, type Entrant } from "./draw";
+import { SeasonStandouts, WhosLeading } from "./LeagueBoards";
 import { fmtChange, LEAGUE_RATING_START } from "./rating";
 import { AWARDS, champions, leagueStats, race, type LeagueStats, type PlayerLine } from "./stats";
 
@@ -31,7 +32,11 @@ export function PlayersPage({ draw, data }: { draw: DrawResult | null; data: Lea
         Every player's league numbers, game by game, and a league rating that started everyone on 6.00. These are league-only: they don't touch anyone's Noisers rating, stats or FNL prices.
       </p>
       {stats ? (
-        <PlayerList stats={stats} />
+        <>
+          <SeasonStandouts stats={stats} />
+          <WhosLeading stats={stats} />
+          <PlayerList stats={stats} />
+        </>
       ) : (
         <EmptyPlayers entrants={data?.entrants ?? []} loading={!data} />
       )}

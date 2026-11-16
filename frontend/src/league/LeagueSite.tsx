@@ -6,6 +6,7 @@ import { CaptainBadge } from "./CaptainBadge";
 import { clubById, defaultNight, GAMES, nightDate, SEASON, standings, topScorers, useLeague, useResultsByNo, type LeagueData } from "./data";
 import { CLUB_ORDER, DEMO_PLAYERS, buildTimeline, fmt, runDraw, sha256Hex, verifyDraw, type DrawResult, type Entrant } from "./draw";
 import DrawStage from "./DrawStage";
+import { LeagueHonours } from "./LeagueBoards";
 import { AwardsPage, PlayersPage } from "./PlayersAwards";
 import { PlayPage } from "./PlayPage";
 import { leagueRatings, fmtChange } from "./rating";
@@ -205,6 +206,7 @@ export default function LeagueSite() {
         <>
           <Fixtures data={data} />
           <Table data={data} draw={official} />
+          <LeagueHonours draw={official} data={data} />
           <Clubs official={official} startMs={officialStart} speed={officialSpeed} now={now} data={data} />
           {fairPlay}
         </>

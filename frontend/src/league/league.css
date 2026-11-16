@@ -973,3 +973,116 @@ div.nl-kit-main { cursor: default; }
 .nl-gold { color: var(--gold); }
 .nl-rating-trail { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .85rem; font-variant-numeric: tabular-nums; }
 .nl-rating-trail li { display: flex; align-items: baseline; gap: 5px; }
+
+/* Season standouts + Who's leading (Players page and home page) */
+.nl-standouts, .nl-leading { margin: 0 0 48px; }
+.nl-x-head { margin-bottom: 20px; }
+.nl-x-eyebrow { margin: 0 0 6px; color: var(--gold); font-size: .72rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+.nl-x-chip {
+  display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px;
+  background: rgb(11 17 32 / .55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12); color: var(--paper);
+  font-size: .66rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+}
+.nl-lb-club { display: flex; align-items: center; gap: 5px; color: var(--mist); font-size: .74rem; white-space: nowrap; }
+
+/* standouts: portrait cards lit in the club's colour */
+.nl-honours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.nl-honour {
+  --c1: var(--line); --glow: transparent;
+  position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06), 0 18px 40px -24px var(--glow);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.nl-honour:not(.is-empty):hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .1), 0 24px 48px -22px var(--glow); }
+.nl-honour-media { position: relative; aspect-ratio: 1 / 1.05; overflow: hidden; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--c1) 55%, transparent), transparent 70%); }
+.nl-honour-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s ease; }
+.nl-honour:hover .nl-honour-media img { transform: scale(1.04); }
+.nl-honour-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, var(--panel) 100%); pointer-events: none; }
+.nl-honour-media .nl-x-chip { position: absolute; top: 12px; left: 12px; z-index: 1; }
+.nl-honour-blank { position: absolute; inset: 22% 28%; border-radius: 50%; background: var(--panel-2); box-shadow: inset 0 0 0 1.5px var(--line); }
+.nl-honour-body { position: relative; margin-top: -34px; padding: 0 16px 16px; display: grid; gap: 4px; }
+.nl-honour-name { margin: 0; font: 400 1.65rem/1 var(--display); letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nl-honour-value { margin: 8px 0 0; display: flex; align-items: baseline; gap: 6px; font: 400 2.4rem/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+.nl-honour-value small { font: 500 .72rem/1 var(--body); color: var(--mist); letter-spacing: .04em; }
+.nl-honour-wait { margin: 6px 0 0; font-size: .8rem; }
+
+/* hot head: a slim banner with a red glow */
+.nl-hothead {
+  display: flex; align-items: center; gap: 18px; margin-top: 14px; padding: 16px 20px; border-radius: 22px; overflow: hidden;
+  background: radial-gradient(90% 160% at 0% 50%, rgb(255 59 78 / .22), transparent 60%), linear-gradient(180deg, var(--panel-2), var(--panel));
+  box-shadow: inset 0 0 0 1px rgb(255 59 78 / .18);
+}
+.nl-hothead-face { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px rgb(255 59 78 / .6), 0 0 24px rgb(255 59 78 / .35); }
+.nl-hothead-text { display: grid; gap: 5px; min-width: 0; flex: 1; justify-items: start; }
+.nl-x-chip.is-hot { background: rgb(255 59 78 / .16); box-shadow: inset 0 0 0 1px rgb(255 59 78 / .35); color: #ff9aa4; }
+.nl-hothead-name { margin: 0; font: 400 2rem/1 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nl-hothead-cards { flex: none; display: grid; justify-items: end; gap: 6px; }
+.nl-hothead-cards small { color: var(--mist); font-size: .75rem; }
+.nl-cards { display: inline-flex; }
+.nl-cards i { width: 13px; height: 18px; border-radius: 3px; transform: rotate(-6deg); box-shadow: 0 4px 10px rgb(0 0 0 / .35); }
+.nl-cards i + i { margin-left: -3px; }
+.nl-cards .is-yellow { background: linear-gradient(160deg, #ffe07a, #f2b92c); }
+.nl-cards .is-red { background: linear-gradient(160deg, #ff6b78, #e0283a); }
+
+/* leaderboards: separate glassy cards, the leader lit in their club colour */
+.nl-lb-tabs { display: none; gap: 4px; overflow-x: auto; margin: 0 0 14px; padding: 4px; border-radius: 999px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); scrollbar-width: none; }
+.nl-lb-tabs::-webkit-scrollbar { display: none; }
+.nl-lb-tabs button { flex: none; padding: 8px 14px; border: 0; border-radius: 999px; background: none; color: var(--mist); font: 500 .82rem/1 var(--body); cursor: pointer; transition: background .2s, color .2s; }
+.nl-lb-tabs button[aria-selected="true"] { background: var(--paper); color: var(--navy); }
+.nl-lb-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.nl-lb {
+  --c1: var(--line); --glow: transparent;
+  display: flex; flex-direction: column; min-width: 0; overflow: hidden; border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06);
+}
+.nl-lb-title { margin: 0; padding: 16px 18px 0; color: var(--mist); font: 600 .68rem/1 var(--body); letter-spacing: .14em; text-transform: uppercase; }
+.nl-lb-empty { margin: 0; padding: 28px 18px 32px; font-size: .9rem; }
+.nl-lb-lead {
+  display: flex; align-items: center; gap: 14px; margin: 12px; padding: 14px; border-radius: 16px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--c1) 32%, transparent), transparent 75%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c1) 40%, transparent);
+}
+.nl-lb-lead-face { flex: none; width: 54px; height: 54px; border-radius: 50%; padding: 2px; background: linear-gradient(140deg, var(--gold-hi), color-mix(in srgb, var(--c1) 70%, var(--gold))); }
+.nl-lb-lead-face img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; background: var(--panel); }
+.nl-lb-who { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.nl-lb-who strong { font: 400 1.35rem/1 var(--display); letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nl-lb-lead-value { flex: none; display: grid; justify-items: end; gap: 3px; font: 400 2.1rem/.9 var(--display); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.nl-lb-lead-value small { font: 500 .66rem/1 var(--body); color: var(--mist); letter-spacing: .04em; }
+.nl-lb-rest { list-style: none; margin: 0; padding: 0 12px 12px; }
+.nl-lb-rest li { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 12px; transition: background .2s; }
+.nl-lb-rest li:hover { background: rgb(255 255 255 / .03); }
+.nl-lb-rank { width: 14px; color: var(--mist); font: 400 1rem/1 var(--display); text-align: center; font-variant-numeric: tabular-nums; }
+.nl-lb-face { flex: none; width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--panel); box-shadow: 0 0 0 1px var(--line); }
+.nl-lb-name { font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nl-lb-bar { display: block; height: 3px; border-radius: 2px; background: rgb(255 255 255 / .06); overflow: hidden; }
+.nl-lb-bar i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, rgb(201 168 90 / .35), var(--gold-hi)); }
+.nl-lb-value { flex: none; padding-left: 4px; font: 400 1.1rem/1 var(--display); font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-honour, .nl-honour-media img { transition: none; }
+  .nl-honour:hover, .nl-honour:hover .nl-honour-media img { transform: none; }
+}
+@media (max-width: 1000px) {
+  .nl-honours { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nl-lb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .nl-lb-tabs { display: flex; }
+  .nl-lb-grid { grid-template-columns: minmax(0, 1fr); }
+  .nl-lb.is-hidden-mobile { display: none; }
+}
+@media (max-width: 480px) {
+  .nl-honours { gap: 10px; }
+  .nl-honour { border-radius: 18px; }
+  .nl-honour-body { padding: 0 12px 12px; }
+  .nl-honour-name { font-size: 1.3rem; }
+  .nl-honour-value { font-size: 1.9rem; }
+  .nl-honour-media .nl-x-chip { top: 8px; left: 8px; font-size: .58rem; padding: 4px 8px; }
+  .nl-hothead { flex-wrap: wrap; gap: 14px; padding: 14px; }
+  .nl-hothead-face { width: 56px; height: 56px; }
+  .nl-hothead-name { font-size: 1.6rem; }
+  .nl-hothead-cards { width: 100%; grid-auto-flow: column; align-items: center; justify-content: start; gap: 10px; }
+}
