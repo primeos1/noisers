@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ClubId } from "../lib/league";
 import { ClubBadge, Shirt } from "./ClubBadge";
 import { clubById, nightDate, SEASON, type LeagueData } from "./data";
@@ -21,6 +21,7 @@ import {
   gwStarted,
   lineupFrom,
   scoreSeason,
+  seasonTotal,
   standings,
   teamGameweek,
   useFnl,
@@ -33,12 +34,13 @@ import {
   type Slot,
 } from "./fnl";
 
-type Tab = "pick" | "transfers" | "points" | "leagues" | "rules";
+type Tab = "pick" | "transfers" | "points" | "players" | "leagues" | "rules";
 
 const TABS: [Tab, string][] = [
   ["pick", "Pick team"],
   ["transfers", "Transfers"],
   ["points", "Points"],
+  ["players", "Player points"],
   ["leagues", "Leagues"],
   ["rules", "Rules"],
 ];
@@ -64,6 +66,7 @@ export function FnlPage({ draw, data }: { draw: DrawResult | null; data: LeagueD
   const [creds, setCreds] = useState<Credentials | null>(storedCredentials);
   const [mine, setMine] = useState<FnlMine | null>(null);
   const [viewTeam, setViewTeam] = useState<number | null>(null);
+  const [profile, setProfile] = useState<number | null>(null);
 
   useEffect(() => {
     if (!creds || mine) return;
@@ -122,8 +125,10 @@ export function FnlPage({ draw, data }: { draw: DrawResult | null; data: LeagueD
             setTab("points");
           }}
         />
+      ) : tab === "players" ? (
+        <PlayerPoints data={data} season={season} players={players} onPlayer={setProfile} />
       ) : tab === "points" ? (
-        <Points fnl={fnl} data={data} season={season} players={players} mine={mine} names={new Map((game?.players ?? []).map((p) => [p.id, p.name]))} teamId={viewTeam ?? mine?.team?.id ?? null} onTeam={setViewTeam} />
+        <Points fnl={fnl} data={data} season={season} players={players} mine={mine} names={new Map((game?.players ?? []).map((p) => [p.id, p.name]))} teamId={viewTeam ?? mine?.team?.id ?? null} onTeam={setViewTeam} onPlayer={setProfile} />
       ) : !creds || !mine ? (
         game ? (
           <SignIn
@@ -143,6 +148,10 @@ export function FnlPage({ draw, data }: { draw: DrawResult | null; data: LeagueD
         <p className="nl-muted">The last gameweek has started, so squads are locked for the season. Follow it on the Points tab.</p>
       ) : (
         <Manager key={`${mine.team.id}:${fnl.openGameweek}:${mine.entries.length}`} tab={tab} fnl={fnl} mine={mine} creds={creds} players={players} season={season} data={data} onSaved={onSaved} setTab={setTab} />
+      )}
+
+      {ready && profile !== null && players.has(profile) && (
+        <PlayerProfile p={players.get(profile)!} data={data} season={season} onClose={() => setProfile(null)} />
       )}
 
       {creds && mine && (
@@ -712,7 +721,7 @@ function MyUpcoming({ fnl, mine, players }: { fnl: FnlData; mine: FnlMine | null
   );
 }
 
-function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players: Map<number, FnlPlayer>; mine: FnlMine | null; names: Map<number, string>; teamId: number | null; onTeam: (id: number) => void }) {
+function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players: Map<number, FnlPlayer>; mine: FnlMine | null; names: Map<number, string>; teamId: number | null; onTeam: (id: number) => void; onPlayer: (id: number) => void }) {
   const { fnl, data, season, players } = props;
   const started = SEASON.map((n) => n.number).filter((gw) => gwStarted(gw, data));
   const [gwPick, setGwPick] = useState<number | null>(null);
@@ -783,6 +792,7 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
         dim={!line?.games || !counts}
         tag={line?.games ? (line.points * mult) : gwDone(gw, data) ? "DNP" : "–"}
         armband={p.player.id === result.captainId ? (mult === 3 ? "TC" : "C") : p.player.id === result.entry.viceId ? "V" : null}
+        onClick={() => props.onPlayer(p.player.id)}
       />
     );
   };
@@ -859,7 +869,9 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
                     <tr key={id} className={counts ? "" : "is-bench"}>
                       <th scope="row" className="is-club">
                         <ClubBadge id={p.club} size={22} />
-                        <span>{p.player.name}{id === result.captainId ? (mult === 3 ? " (TC)" : " (C)") : id === result.entry.viceId ? " (V)" : ""}</span>
+                        <button type="button" className="nl-fnl-playerlink" onClick={() => props.onPlayer(id)}>
+                          {p.player.name}{id === result.captainId ? (mult === 3 ? " (TC)" : " (C)") : id === result.entry.viceId ? " (V)" : ""}
+                        </button>
                       </th>
                       <td>{l?.games ?? 0}</td>
                       <td>{l?.goals ?? 0}</td>
@@ -878,6 +890,209 @@ function Points(props: { fnl: FnlData; data: LeagueData; season: Season; players
         </>
       )}
     </>
+  );
+}
+
+/* -------------------------------------------------------- player points */
+
+type PosFilter = Position | "ALL";
+
+/** Every player in the league, ranked by FNL points this season. */
+function PlayerPoints(props: { data: LeagueData; season: Season; players: Map<number, FnlPlayer>; onPlayer: (id: number) => void }) {
+  const { data, season, players } = props;
+  const [filter, setFilter] = useState<PosFilter>("ALL");
+  const [search, setSearch] = useState("");
+  const started = SEASON.map((n) => n.number).filter((gw) => gwStarted(gw, data));
+  const latest = started[started.length - 1] ?? null;
+
+  const ranked = [...players.values()]
+    .map((p) => ({ p, total: seasonTotal(season, p.player.id, started), gw: latest ? season(latest, p.player.id)?.points ?? 0 : 0 }))
+    .sort((a, b) => b.total.points - a.total.points || b.gw - a.gw || b.p.price - a.p.price || a.p.player.name.localeCompare(b.p.player.name));
+  // Places come from the full table (level points share a place), so filtering keeps each player's real rank.
+  const place = new Map<number, number>();
+  ranked.forEach((r, i) => {
+    const prev = ranked[i - 1];
+    place.set(r.p.player.id, prev && prev.total.points === r.total.points ? place.get(prev.p.player.id)! : i + 1);
+  });
+  const q = search.trim().toLowerCase();
+  const list = ranked.filter((r) => (filter === "ALL" || r.p.position === filter) && r.p.player.name.toLowerCase().includes(q));
+
+  return (
+    <>
+      {!latest && <p className="nl-muted nl-notice">Points start when gameweek 1 kicks off on {nightDate(1)}. Everyone is on zero until then.</p>}
+      <div className="nl-fnl-filters">
+        {(["ALL", "GK", "DEF", "MID", "FWD"] as PosFilter[]).map((pos) => (
+          <button key={pos} type="button" aria-pressed={filter === pos} className={filter === pos ? "is-on" : ""} onClick={() => setFilter(pos)}>
+            {pos === "ALL" ? "All" : pos}
+          </button>
+        ))}
+        <input type="search" placeholder="Search" aria-label="Search players" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+      <div className="nl-table-wrap">
+        <table className="nl-table nl-fnl-ptable">
+          <thead>
+            <tr>
+              <th scope="col" className="is-pos">#</th>
+              <th scope="col" className="is-club">Player</th>
+              <th scope="col" title="Games played" className="is-wide">GP</th>
+              <th scope="col" title="Goals" className="is-wide">G</th>
+              <th scope="col" title="Assists" className="is-wide">A</th>
+              <th scope="col" title="Price, in millions">Price</th>
+              <th scope="col" title={latest ? `Gameweek ${latest}` : "Latest gameweek"}>GW</th>
+              <th scope="col">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map(({ p, total, gw }) => (
+              <tr key={p.player.id}>
+                <td className="is-pos">{place.get(p.player.id)}</td>
+                <th scope="row" className="is-club">
+                  <button type="button" className="nl-fnl-prow" onClick={() => props.onPlayer(p.player.id)}>
+                    <span className="nl-fnl-listface">
+                      <img src={photoOf(p.player)} alt="" loading="lazy" />
+                      <ClubBadge id={p.club} size={18} />
+                    </span>
+                    <span className="nl-fnl-list-name">
+                      <strong>{p.player.name}</strong>
+                      <small>{clubById.get(p.club)!.short} · {p.position}{p.owned ? ` · ${p.owned}% picked` : ""}</small>
+                    </span>
+                  </button>
+                </th>
+                <td className="is-wide">{total.games}</td>
+                <td className="is-wide">{total.goals}</td>
+                <td className="is-wide">{total.assists}</td>
+                <td>{p.price.toFixed(1)}</td>
+                <td>{gw}</td>
+                <td className="is-pts">{total.points}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {list.length === 0 && <p className="nl-muted nl-note">No players match.</p>}
+        <p className="nl-muted nl-note">Tap a player to see their FNL profile.</p>
+      </div>
+    </>
+  );
+}
+
+const STAT_ROWS: [keyof ReturnType<typeof seasonTotal>, string][] = [
+  ["games", "Games played"],
+  ["goals", "Goals"],
+  ["assists", "Assists"],
+  ["cleanSheets", "Clean sheets"],
+  ["conceded", "Goals conceded"],
+  ["saves", "Saves"],
+  ["penaltySaves", "Penalty saves"],
+  ["penaltyMisses", "Penalty misses"],
+  ["yellows", "Yellow cards"],
+  ["reds", "Red cards"],
+  ["ownGoals", "Own goals"],
+  ["bonus", "Bonus points"],
+];
+/** Always shown; the rest only when they've happened, or matter for the position. */
+const CORE_STATS = new Set(["games", "goals", "assists", "bonus"]);
+const POSITION_NAME: Record<Position, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
+
+/** A player's FNL profile: price, ownership, season stats and points by gameweek. */
+function PlayerProfile(props: { p: FnlPlayer; data: LeagueData; season: Season; onClose: () => void }) {
+  const { p, data, season } = props;
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+  }, []);
+  const started = SEASON.map((n) => n.number).filter((gw) => gwStarted(gw, data));
+  const total = seasonTotal(season, p.player.id, started);
+  const ppg = total.games ? (total.points / total.games).toFixed(1) : "0.0";
+  const relevant = (k: string) =>
+    k === "saves" || k === "penaltySaves" ? p.position === "GK" : k === "cleanSheets" || k === "conceded" ? p.position !== "FWD" : false;
+  const shown = STAT_ROWS.filter(([k]) => CORE_STATS.has(k) || relevant(k) || total[k] !== 0);
+  const keeper = p.position === "GK";
+
+  return (
+    <dialog
+      ref={ref}
+      className="nl-fnl-profile"
+      aria-labelledby="fnl-profile-name"
+      onClose={props.onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) props.onClose();
+      }}
+    >
+      <div className="nl-fnl-profile-inner">
+        <button type="button" className="nl-fnl-profile-close" aria-label="Close" onClick={props.onClose}>×</button>
+        <header className="nl-fnl-profile-head">
+          <span className="nl-fnl-profile-face">
+            <img src={photoOf(p.player)} alt="" />
+            <ClubBadge id={p.club} size={26} />
+          </span>
+          <div>
+            <small>{POSITION_NAME[p.position]} · {clubById.get(p.club)!.name}</small>
+            <h2 id="fnl-profile-name">{p.player.name}</h2>
+          </div>
+        </header>
+
+        <div className="nl-fnl-profile-tiles">
+          <div><strong>{total.points}</strong><small>Total pts</small></div>
+          <div><strong>{ppg}</strong><small>Pts / game</small></div>
+          <div>
+            <strong>{m(p.price)}</strong>
+            <small>
+              {p.change !== 0 ? <span className={p.change > 0 ? "is-up" : "is-down"}>{p.change > 0 ? "▲" : "▼"} {Math.abs(p.change).toFixed(1)}m</span> : "Price"}
+            </small>
+          </div>
+          <div><strong>{p.owned}%</strong><small>Picked by</small></div>
+        </div>
+
+        <h3 className="nl-fnl-profile-h">Season</h3>
+        <dl className="nl-fnl-dl nl-fnl-profile-stats">
+          {shown.map(([k, label]) => (
+            <div key={k}><dt>{label}</dt><dd>{total[k]}</dd></div>
+          ))}
+        </dl>
+
+        <h3 className="nl-fnl-profile-h">By gameweek</h3>
+        {started.length === 0 ? (
+          <p className="nl-muted">No gameweeks played yet. Gameweek 1 kicks off on {nightDate(1)}.</p>
+        ) : (
+          <div className="nl-table-wrap">
+            <table className="nl-table">
+              <thead>
+                <tr>
+                  <th scope="col" className="is-club">GW</th>
+                  <th scope="col" title="Games played">GP</th>
+                  <th scope="col" title="Goals">G</th>
+                  <th scope="col" title="Assists">A</th>
+                  <th scope="col" title="Clean sheets">CS</th>
+                  <th scope="col" title={keeper ? "Saves" : "Cards"}>{keeper ? "Sv" : "Cards"}</th>
+                  <th scope="col" title="Bonus">B</th>
+                  <th scope="col">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {started.map((gw) => {
+                  const l = season(gw, p.player.id);
+                  return (
+                    <tr key={gw} className={l?.games ? "" : "is-bench"}>
+                      <th scope="row" className="is-club">
+                        <span>GW {gw}{data.liveNight === gw ? " · live" : ""}</span>
+                      </th>
+                      <td>{l?.games ?? 0}</td>
+                      <td>{l?.goals ?? 0}</td>
+                      <td>{l?.assists ?? 0}</td>
+                      <td>{l?.cleanSheets ?? 0}</td>
+                      <td>{keeper ? l?.saves ?? 0 : (l?.yellows ?? 0) + (l?.reds ?? 0)}</td>
+                      <td>{l?.bonus ?? 0}</td>
+                      <td className="is-pts">{l?.games ? l.points : gwDone(gw, data) ? "DNP" : "–"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </dialog>
   );
 }
 

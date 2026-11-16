@@ -254,6 +254,16 @@ export function scoreSeason(draw: DrawResult, data: LeagueData, players: Map<num
 
 export type Season = ReturnType<typeof scoreSeason>;
 
+/** A player's whole season so far: every gameweek's line added up. */
+export function seasonTotal(season: Season, id: number, gameweeks: number[]): PlayerGw {
+  const total = emptyLine();
+  for (const gw of gameweeks) {
+    const l = season(gw, id);
+    if (l) for (const k of Object.keys(l) as (keyof PlayerGw)[]) total[k] += l[k];
+  }
+  return total;
+}
+
 /** A gameweek has started once any of its games has kicked off. */
 export const gwStarted = (gw: number, data: LeagueData) =>
   data.liveNight === gw || GAMES.some((g) => g.night === gw && data.results.some((r) => r.matchNo === g.no && r.status !== "scheduled"));
