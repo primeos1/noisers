@@ -47,14 +47,20 @@ function board(
   };
 }
 
+/**
+ * Keepers level on saves: more clean sheets first, then the higher league
+ * rating. Ratings stay under 10, so /100 never outweighs a clean sheet.
+ */
+const keeperTiebreak = (l: PlayerLine) => l.cleanSheets + l.rating.rating / 100;
+
 function leagueBoards(stats: LeagueStats): Board[] {
   const ga = (l: PlayerLine) => l.goals + l.assists;
   return [
     board(stats, "rating", "Highest rated", "league rating", (l) => (l.rating.nights.length ? l.rating.rating : 0), ga, (l) => fmt(l.rating.rating)),
     board(stats, "goals", "Top scorers", "goals", (l) => l.goals, (l) => l.assists),
     board(stats, "assists", "Top assists", "assists", (l) => l.assists, (l) => l.goals),
-    board(stats, "clean-sheets", "Brick Wall", "brick walls", (l) => (["GK", "DEF"].includes(l.player.position) ? l.cleanSheets : 0), (l) => l.won),
-    board(stats, "saves", "Most saves", "saves", (l) => (l.player.position === "GK" ? l.saves : 0), (l) => l.cleanSheets),
+    board(stats, "clean-sheets", "Brick Wall", "brick walls", (l) => (l.player.position === "DEF" ? l.cleanSheets : 0), (l) => l.rating.rating),
+    board(stats, "saves", "Golden Glove", "saves", (l) => (l.player.position === "GK" ? l.saves : 0), keeperTiebreak),
     board(stats, "cards", "Hot heads of the league", "cards", (l) => l.yellows + l.reds, (l) => l.reds, cardsText),
   ];
 }
@@ -80,14 +86,14 @@ const cardWords = (l: PlayerLine) =>
   [l.yellows && `${l.yellows} yellow${l.yellows === 1 ? "" : "s"}`, l.reds && `${l.reds} red${l.reds === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
 
 export function SeasonStandouts({ stats }: { stats: LeagueStats }) {
-  const best = (eligible: (l: PlayerLine) => boolean, value: (l: PlayerLine) => number) =>
-    board(stats, "", "", "", (l) => (eligible(l) ? value(l) : 0), (l) => l.goals + l.assists, undefined, 1).rows[0] ?? null;
+  const best = (eligible: (l: PlayerLine) => boolean, value: (l: PlayerLine) => number, tiebreak: (l: PlayerLine) => number = (l) => l.goals + l.assists) =>
+    board(stats, "", "", "", (l) => (eligible(l) ? value(l) : 0), tiebreak, undefined, 1).rows[0] ?? null;
 
   const honours = [
     { title: "Top scorer", unit: "goals", row: best(() => true, (l) => l.goals) },
     { title: "Top assist", unit: "assists", row: best(() => true, (l) => l.assists) },
     { title: "Top defender", unit: "brick walls", row: best((l) => l.player.position === "DEF", (l) => l.cleanSheets) },
-    { title: "Top goalkeeper", unit: "brick walls", row: best((l) => l.player.position === "GK", (l) => l.cleanSheets) },
+    { title: "Golden Glove", unit: "saves", row: best((l) => l.player.position === "GK", (l) => l.saves, keeperTiebreak) },
   ];
   // Most cards; ties go to whoever has more reds.
   const hot = board(stats, "", "", "", (l) => l.yellows + l.reds, (l) => l.reds, undefined, 1).rows[0] ?? null;
