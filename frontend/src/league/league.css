@@ -815,15 +815,12 @@ div.nl-kit-main { cursor: default; }
 .nl-board-face { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; background: var(--panel-2); }
 
 /* FNL player points table + profile dialog */
-.nl-fnl-prow, .nl-fnl-playerlink {
+.nl-fnl-playerlink {
   appearance: none; border: 0; background: none; padding: 0; margin: 0; cursor: pointer;
   color: inherit; font: inherit; text-align: left;
 }
-.nl-fnl-prow { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 44px; }
-.nl-fnl-prow:hover strong, .nl-fnl-playerlink:hover { color: var(--gold-hi); }
+.nl-fnl-playerlink:hover { color: var(--gold-hi); }
 .nl-fnl-playerlink { text-decoration: underline; text-decoration-color: rgb(201 168 90 / .4); text-underline-offset: 3px; }
-.nl-fnl-ptable .is-club { max-width: 0; width: 100%; }
-@media (max-width: 560px) { .nl-fnl-ptable .is-wide { display: none; } }
 
 .nl-fnl-profile {
   width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: auto;
@@ -860,3 +857,103 @@ div.nl-kit-main { cursor: default; }
 .nl-fnl-profile-stats div { grid-template-columns: minmax(0, 1fr) auto; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .nl-fnl-profile-stats dd { color: var(--paper); font-weight: 700; }
 .nl-fnl-profile .nl-table-wrap { margin: 0; }
+
+/* FNL player points: leaders, podium, ranked rows */
+.nl-pp-leaders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+@media (max-width: 760px) { .nl-pp-leaders { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.nl-pp-leader {
+  appearance: none; cursor: pointer; text-align: left; color: inherit; font: inherit;
+  display: grid; gap: 6px; padding: 12px; border-radius: 14px; min-width: 0;
+  background: var(--panel); border: 1px solid var(--line); transition: border-color .15s ease, transform .15s ease;
+}
+.nl-pp-leader:hover:not(:disabled) { border-color: rgb(201 168 90 / .6); transform: translateY(-1px); }
+.nl-pp-leader:disabled { cursor: default; opacity: .6; }
+.nl-pp-leader > small { color: var(--mist); font: 700 .66rem/1 var(--body); letter-spacing: .12em; text-transform: uppercase; }
+.nl-pp-leader-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nl-pp-leader-who img { width: 32px; height: 32px; flex: none; border-radius: 50%; object-fit: cover; background: var(--panel-2); box-shadow: 0 0 0 1px var(--line); }
+.nl-pp-leader-who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
+.nl-pp-leader em { font: 400 1.25rem/1 var(--display); font-style: normal; color: var(--gold); letter-spacing: .02em; }
+
+.nl-pp-controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; margin-bottom: 14px; }
+.nl-pp-controls .nl-fnl-filters { flex: 1 1 320px; margin: 0; }
+.nl-pp-sort { display: flex; align-items: center; gap: 8px; color: var(--mist); font-size: .82rem; }
+.nl-pp-sort select { min-height: 40px; padding: 6px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--paper); }
+
+.nl-pp-pos {
+  display: inline-block; padding: 1px 5px; border-radius: 4px; vertical-align: 1px;
+  font: 800 .6rem/1.3 var(--body); letter-spacing: .04em; color: var(--navy);
+}
+.nl-pp-pos.is-gk { background: #f2b84b; }
+.nl-pp-pos.is-def { background: #45c486; }
+.nl-pp-pos.is-mid { background: #5aa9f2; }
+.nl-pp-pos.is-fwd { background: #ff7a85; }
+
+.nl-pp-podium {
+  list-style: none; margin: 0 0 14px; padding: 18px 12px 0; border-radius: 18px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end;
+  background:
+    radial-gradient(420px 180px at 50% 0%, rgb(201 168 90 / .25), transparent 70%),
+    linear-gradient(135deg, #1b2a52, #121a2e 60%);
+  border: 1px solid rgb(201 168 90 / .35); overflow: hidden;
+}
+.nl-pp-podium li.is-p1 { order: 2; }
+.nl-pp-podium li.is-p2 { order: 1; }
+.nl-pp-podium li.is-p3 { order: 3; }
+.nl-pp-podium button {
+  appearance: none; border: 0; cursor: pointer; color: inherit; font: inherit; width: 100%;
+  display: grid; justify-items: center; gap: 4px; padding: 12px 6px 14px; border-radius: 14px 14px 0 0;
+  background: rgb(11 17 32 / .5); box-shadow: inset 0 1px 0 rgb(255 255 255 / .06);
+}
+.nl-pp-podium li.is-p1 button { padding-top: 18px; padding-bottom: 26px; background: rgb(201 168 90 / .14); box-shadow: inset 0 1px 0 rgb(201 168 90 / .5); }
+.nl-pp-podium button:hover .nl-pp-podium-face img { transform: translateY(-2px); }
+.nl-pp-podium-place {
+  width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font: 800 .75rem/1 var(--body); color: var(--navy); background: #b8c0d4;
+}
+.is-p1 .nl-pp-podium-place { background: var(--gold); }
+.is-p3 .nl-pp-podium-place { background: #c98a5a; }
+.nl-pp-podium-face { position: relative; margin: 4px 0 2px; }
+.nl-pp-podium-face img {
+  width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--panel-2);
+  box-shadow: 0 0 0 2px #b8c0d4, 0 6px 14px rgb(0 0 0 / .4); transition: transform .15s ease;
+}
+.is-p1 .nl-pp-podium-face img { width: 84px; height: 84px; box-shadow: 0 0 0 3px var(--gold), 0 8px 18px rgb(0 0 0 / .45); }
+.is-p3 .nl-pp-podium-face img { box-shadow: 0 0 0 2px #c98a5a, 0 6px 14px rgb(0 0 0 / .4); }
+.nl-pp-podium-face .nl-badge { position: absolute; right: -4px; bottom: -2px; }
+.nl-pp-podium strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .95rem; }
+.nl-pp-podium small { color: var(--mist); font-size: .75rem; }
+.nl-pp-podium-pts { display: flex; align-items: baseline; gap: 4px; font: 400 2rem/1 var(--display); color: var(--gold); padding-top: 4px; }
+.is-p1 .nl-pp-podium-pts { font-size: 2.8rem; }
+.nl-pp-podium-pts i { font: 700 .65rem/1 var(--body); font-style: normal; color: var(--mist); letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 480px) {
+  .nl-pp-podium { padding: 14px 6px 0; gap: 6px; }
+  .nl-pp-podium-face img { width: 52px; height: 52px; }
+  .is-p1 .nl-pp-podium-face img { width: 68px; height: 68px; }
+  .nl-pp-podium strong { font-size: .82rem; }
+  .nl-pp-podium-pts { font-size: 1.6rem; }
+  .is-p1 .nl-pp-podium-pts { font-size: 2.2rem; }
+}
+
+.nl-pp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.nl-pp-row {
+  position: relative; overflow: hidden; isolation: isolate;
+  appearance: none; cursor: pointer; color: inherit; font: inherit; text-align: left; width: 100%;
+  display: grid; grid-template-columns: 28px auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
+  min-height: 60px; padding: 8px 14px 8px 10px; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--line); transition: border-color .15s ease, background .15s ease;
+}
+.nl-pp-row:hover { border-color: rgb(201 168 90 / .55); background: var(--panel-2); }
+.nl-pp-bar { position: absolute; inset: 0 auto 0 0; z-index: -1; background: linear-gradient(90deg, rgb(201 168 90 / .02), rgb(201 168 90 / .1)); border-right: 2px solid rgb(201 168 90 / .35); }
+.nl-pp-rank { font: 400 1.25rem/1 var(--display); color: var(--mist); text-align: center; padding-top: 2px; }
+.nl-pp-name { display: grid; gap: 3px; min-width: 0; }
+.nl-pp-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nl-pp-name small { color: var(--mist); font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nl-pp-stats { display: flex; gap: 6px; }
+.nl-pp-stats span { display: grid; justify-items: center; min-width: 34px; padding: 4px 2px; border-radius: 8px; background: rgb(11 17 32 / .55); color: var(--mist); font: 700 .58rem/1 var(--body); letter-spacing: .06em; }
+.nl-pp-stats b { font: 400 1.05rem/1 var(--display); color: var(--paper); padding-top: 2px; }
+.nl-pp-pts { display: grid; justify-items: end; min-width: 48px; font: 400 1.9rem/1 var(--display); color: var(--gold); padding-top: 3px; }
+.nl-pp-pts small { font: 700 .58rem/1 var(--body); color: var(--mist); letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 560px) {
+  .nl-pp-row { grid-template-columns: 22px auto minmax(0, 1fr) auto; gap: 10px; padding-right: 12px; }
+  .nl-pp-stats { display: none; }
+}

@@ -905,74 +905,160 @@ function PlayerPoints(props: { data: LeagueData; season: Season; players: Map<nu
   const started = SEASON.map((n) => n.number).filter((gw) => gwStarted(gw, data));
   const latest = started[started.length - 1] ?? null;
 
-  const ranked = [...players.values()]
-    .map((p) => ({ p, total: seasonTotal(season, p.player.id, started), gw: latest ? season(latest, p.player.id)?.points ?? 0 : 0 }))
-    .sort((a, b) => b.total.points - a.total.points || b.gw - a.gw || b.p.price - a.p.price || a.p.player.name.localeCompare(b.p.player.name));
-  // Places come from the full table (level points share a place), so filtering keeps each player's real rank.
+  const [sort, setSort] = useState<SortKey>("total");
+
+  type Row = { p: FnlPlayer; total: ReturnType<typeof seasonTotal>; gw: number };
+  const rows: Row[] = [...players.values()].map((p) => ({
+    p,
+    total: seasonTotal(season, p.player.id, started),
+    gw: latest ? season(latest, p.player.id)?.points ?? 0 : 0,
+  }));
+  const value: Record<SortKey, (r: Row) => number> = {
+    total: (r) => r.total.points,
+    gw: (r) => r.gw,
+    goals: (r) => r.total.goals,
+    assists: (r) => r.total.assists,
+    price: (r) => r.p.price,
+  };
+  const by = value[sort];
+  const ranked = rows
+    .filter((r) => filter === "ALL" || r.p.position === filter)
+    .sort((a, b) => by(b) - by(a) || b.total.points - a.total.points || b.gw - a.gw || a.p.player.name.localeCompare(b.p.player.name));
+  // Level on the sorted stat means a shared place.
   const place = new Map<number, number>();
   ranked.forEach((r, i) => {
     const prev = ranked[i - 1];
-    place.set(r.p.player.id, prev && prev.total.points === r.total.points ? place.get(prev.p.player.id)! : i + 1);
+    place.set(r.p.player.id, prev && by(prev) === by(r) ? place.get(prev.p.player.id)! : i + 1);
   });
   const q = search.trim().toLowerCase();
-  const list = ranked.filter((r) => (filter === "ALL" || r.p.position === filter) && r.p.player.name.toLowerCase().includes(q));
+  const list = q ? ranked.filter((r) => r.p.player.name.toLowerCase().includes(q)) : ranked;
+  const top = by(ranked[0] ?? rows[0]) || 1;
+  const podium = !q && latest && ranked.length >= 3 && by(ranked[0]) > 0 ? ranked.slice(0, 3) : null;
+  const rest = podium ? list.slice(3) : list;
+
+  const leader = (pick: (r: Row) => number) => {
+    const best = [...rows].sort((a, b) => pick(b) - pick(a) || b.total.points - a.total.points)[0];
+    return best && pick(best) > 0 ? best : null;
+  };
+  const leaders: { label: string; row: Row | null; stat: (r: Row) => string }[] = [
+    { label: latest ? `Top in GW ${latest}` : "Top this gameweek", row: leader((r) => r.gw), stat: (r) => `${r.gw} pts` },
+    { label: "Most goals", row: leader((r) => r.total.goals), stat: (r) => `${r.total.goals} goals` },
+    { label: "Most assists", row: leader((r) => r.total.assists), stat: (r) => `${r.total.assists} assists` },
+    { label: "Most picked", row: leader((r) => r.p.owned), stat: (r) => `${r.p.owned}% of teams` },
+  ];
+  const statOf = (r: Row) => (sort === "price" ? m(r.p.price) : String(by(r)));
+  const unit = SORTS.find(([k]) => k === sort)![2];
 
   return (
     <>
       {!latest && <p className="nl-muted nl-notice">Points start when gameweek 1 kicks off on {nightDate(1)}. Everyone is on zero until then.</p>}
-      <div className="nl-fnl-filters">
-        {(["ALL", "GK", "DEF", "MID", "FWD"] as PosFilter[]).map((pos) => (
-          <button key={pos} type="button" aria-pressed={filter === pos} className={filter === pos ? "is-on" : ""} onClick={() => setFilter(pos)}>
-            {pos === "ALL" ? "All" : pos}
-          </button>
-        ))}
-        <input type="search" placeholder="Search" aria-label="Search players" value={search} onChange={(e) => setSearch(e.target.value)} />
-      </div>
-      <div className="nl-table-wrap">
-        <table className="nl-table nl-fnl-ptable">
-          <thead>
-            <tr>
-              <th scope="col" className="is-pos">#</th>
-              <th scope="col" className="is-club">Player</th>
-              <th scope="col" title="Games played" className="is-wide">GP</th>
-              <th scope="col" title="Goals" className="is-wide">G</th>
-              <th scope="col" title="Assists" className="is-wide">A</th>
-              <th scope="col" title="Price, in millions">Price</th>
-              <th scope="col" title={latest ? `Gameweek ${latest}` : "Latest gameweek"}>GW</th>
-              <th scope="col">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map(({ p, total, gw }) => (
-              <tr key={p.player.id}>
-                <td className="is-pos">{place.get(p.player.id)}</td>
-                <th scope="row" className="is-club">
-                  <button type="button" className="nl-fnl-prow" onClick={() => props.onPlayer(p.player.id)}>
-                    <span className="nl-fnl-listface">
-                      <img src={photoOf(p.player)} alt="" loading="lazy" />
-                      <ClubBadge id={p.club} size={18} />
-                    </span>
-                    <span className="nl-fnl-list-name">
-                      <strong>{p.player.name}</strong>
-                      <small>{clubById.get(p.club)!.short} · {p.position}{p.owned ? ` · ${p.owned}% picked` : ""}</small>
-                    </span>
-                  </button>
-                </th>
-                <td className="is-wide">{total.games}</td>
-                <td className="is-wide">{total.goals}</td>
-                <td className="is-wide">{total.assists}</td>
-                <td>{p.price.toFixed(1)}</td>
-                <td>{gw}</td>
-                <td className="is-pts">{total.points}</td>
-              </tr>
+
+      {latest && (
+        <div className="nl-pp-leaders">
+          {leaders.map(({ label, row, stat }) => (
+            <button key={label} type="button" className="nl-pp-leader" disabled={!row} onClick={() => row && props.onPlayer(row.p.player.id)}>
+              <small>{label}</small>
+              {row ? (
+                <>
+                  <span className="nl-pp-leader-who">
+                    <img src={photoOf(row.p.player)} alt="" loading="lazy" />
+                    <strong>{row.p.player.name}</strong>
+                  </span>
+                  <em>{stat(row)}</em>
+                </>
+              ) : (
+                <em>Nobody yet</em>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="nl-pp-controls">
+        <div className="nl-fnl-filters">
+          {(["ALL", "GK", "DEF", "MID", "FWD"] as PosFilter[]).map((pos) => (
+            <button key={pos} type="button" aria-pressed={filter === pos} className={filter === pos ? "is-on" : ""} onClick={() => setFilter(pos)}>
+              {pos === "ALL" ? "All" : pos}
+            </button>
+          ))}
+          <input type="search" placeholder="Search players" aria-label="Search players" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <label className="nl-pp-sort">
+          <span>Sort by</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            {SORTS.map(([k, label]) => (
+              <option key={k} value={k}>{label}</option>
             ))}
-          </tbody>
-        </table>
-        {list.length === 0 && <p className="nl-muted nl-note">No players match.</p>}
-        <p className="nl-muted nl-note">Tap a player to see their FNL profile.</p>
+          </select>
+        </label>
       </div>
+
+      {podium && (
+        <ol className="nl-pp-podium" aria-label="Top three">
+          {podium.map((r, i) => (
+            <li key={r.p.player.id} className={`is-p${i + 1}`}>
+              <button type="button" onClick={() => props.onPlayer(r.p.player.id)}>
+                <span className="nl-pp-podium-place">{place.get(r.p.player.id)}</span>
+                <span className="nl-pp-podium-face">
+                  <img src={photoOf(r.p.player)} alt="" loading="lazy" />
+                  <ClubBadge id={r.p.club} size={i === 0 ? 28 : 22} />
+                </span>
+                <strong>{r.p.player.name}</strong>
+                <small><PosTag pos={r.p.position} /> {clubById.get(r.p.club)!.short}</small>
+                <span className="nl-pp-podium-pts">{statOf(r)}<i>{unit}</i></span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <ul className="nl-pp-list">
+        {rest.map((r) => (
+          <li key={r.p.player.id}>
+            <button type="button" className="nl-pp-row" onClick={() => props.onPlayer(r.p.player.id)}>
+              <span className="nl-pp-bar" style={{ width: `${Math.max(0, (by(r) / top) * 100)}%` }} aria-hidden />
+              <span className="nl-pp-rank">{place.get(r.p.player.id)}</span>
+              <span className="nl-fnl-listface">
+                <img src={photoOf(r.p.player)} alt="" loading="lazy" />
+                <ClubBadge id={r.p.club} size={18} />
+              </span>
+              <span className="nl-pp-name">
+                <strong>{r.p.player.name}</strong>
+                <small>
+                  <PosTag pos={r.p.position} /> {clubById.get(r.p.club)!.short} · {m(r.p.price)}
+                  {r.p.owned ? ` · ${r.p.owned}%` : ""}
+                </small>
+              </span>
+              <span className="nl-pp-stats" aria-label={`${r.total.goals} goals, ${r.total.assists} assists, ${r.gw} points last gameweek`}>
+                <span><b>{r.total.goals}</b>G</span>
+                <span><b>{r.total.assists}</b>A</span>
+                <span><b>{r.gw}</b>GW</span>
+              </span>
+              <span className="nl-pp-pts">
+                {statOf(r)}
+                <small>{unit}</small>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {list.length === 0 && <p className="nl-muted nl-note">No players match.</p>}
+      <p className="nl-muted nl-note">Tap a player to see their FNL profile.</p>
     </>
   );
+}
+
+type SortKey = "total" | "gw" | "goals" | "assists" | "price";
+const SORTS: [SortKey, string, string][] = [
+  ["total", "Total points", "pts"],
+  ["gw", "Latest gameweek", "GW pts"],
+  ["goals", "Goals", "goals"],
+  ["assists", "Assists", "assists"],
+  ["price", "Price", "price"],
+];
+
+function PosTag({ pos }: { pos: Position }) {
+  return <span className={`nl-pp-pos is-${pos.toLowerCase()}`}>{pos}</span>;
 }
 
 const STAT_ROWS: [keyof ReturnType<typeof seasonTotal>, string][] = [
