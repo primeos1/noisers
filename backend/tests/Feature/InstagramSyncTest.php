@@ -26,6 +26,7 @@ class InstagramSyncTest extends TestCase
             'feeds.behold.so/*' => Http::response(['username' => 'noisersfc', 'posts' => [
                 [
                     'id' => '111', 'mediaType' => 'VIDEO', 'isReel' => true,
+                    'mediaUrl' => 'https://cdn.example/111.mp4',
                     'thumbnailUrl' => 'https://cdn.example/111-thumb.jpg',
                     'sizes' => ['large' => ['mediaUrl' => 'https://cdn.example/111-large.jpg']],
                     'permalink' => 'https://www.instagram.com/reel/AAA/',
@@ -34,7 +35,8 @@ class InstagramSyncTest extends TestCase
                 ],
                 ['id' => '222', 'mediaType' => 'IMAGE', 'mediaUrl' => 'https://cdn.example/222.jpg', 'permalink' => 'https://www.instagram.com/p/BBB/'],
             ]]),
-            'cdn.example/*' => Http::response('jpeg-bytes'),
+            // A fresh response per request: the cover and the video each read one.
+            'cdn.example/*' => fn () => Http::response('media-bytes'),
         ]);
     }
 
@@ -49,6 +51,8 @@ class InstagramSyncTest extends TestCase
         $this->assertSame('Last-minute winner', $video->caption);
         $this->assertSame('https://www.instagram.com/reel/AAA/', $video->permalink);
         Storage::disk(config('filesystems.media_disk'))->assertExists('media/instagram/111.jpg');
+        Storage::disk(config('filesystems.media_disk'))->assertExists('media/instagram/111.mp4');
+        $this->assertStringEndsWith('media/instagram/111.mp4', $video->fresh()->video_url);
     }
 
     public function test_highlights_list_syncs_when_stale(): void

@@ -110,7 +110,7 @@ export default function HighlightsScreen() {
 
   function openTile(h: Highlight) {
     if (h.type === "video") {
-      const url = h.link ?? resolveMediaUrl(h.src);
+      const url = h.video ?? h.link ?? resolveMediaUrl(h.src);
       if (url) WebBrowser.openBrowserAsync(url).catch(() => undefined);
       return;
     }

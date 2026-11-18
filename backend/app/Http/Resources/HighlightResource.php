@@ -24,6 +24,8 @@ class HighlightResource extends JsonResource
             'sortOrder' => $this->sort_order,
             // The post a video plays from; set on ones synced from Instagram.
             'link' => $this->permalink,
+            // A playable file for synced Instagram videos.
+            'video' => $this->video_url,
             'source' => $this->source,
         ];
     }

@@ -19,6 +19,7 @@ class Highlight extends Model
         'external_id',
         'permalink',
         'hidden',
+        'video_url',
     ];
 
     protected function casts(): array

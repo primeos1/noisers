@@ -201,6 +201,8 @@ export interface Highlight {
   sortOrder: number;
   // The Instagram post a synced video plays from.
   link?: string | null;
+  // Our copy of a synced Instagram video.
+  video?: string | null;
 }
 
 export type LiveStatId = "squad" | "match_days" | "games" | "goals";

@@ -26,6 +26,9 @@ class InstagramSync
     /** How long a sync stays fresh before the next page view runs another. */
     private const STALE_AFTER_MINUTES = 30;
 
+    /** How many video files one run copies over. */
+    private const DOWNLOADS_PER_RUN = 3;
+
     public static function syncIfStale(): void
     {
         if (! self::feedUrl()) {
@@ -36,7 +39,7 @@ class InstagramSync
             return;
         }
 
-        Cache::lock('instagram-sync', 120)->get(fn () => self::sync());
+        Cache::lock('instagram-sync', 600)->get(fn () => self::sync());
     }
 
     /**
@@ -62,15 +65,29 @@ class InstagramSync
             }
 
             $added = 0;
+            $downloads = 0;
             foreach ($response->json('posts', []) as $post) {
                 if (($post['mediaType'] ?? null) !== 'VIDEO' || empty($post['id'])) {
                     continue;
                 }
-                if (Highlight::where('external_id', $post['id'])->exists()) {
-                    continue;
-                }
-                if (self::import($post)) {
+
+                $highlight = Highlight::where('external_id', $post['id'])->first();
+                if (! $highlight) {
+                    $highlight = self::import($post);
+                    if (! $highlight) {
+                        continue;
+                    }
                     $added++;
+                }
+
+                // Videos are big, so fetch a few per run; the rest follow
+                // on the next one while they're still in the feed.
+                if (! $highlight->video_url && $downloads < self::DOWNLOADS_PER_RUN) {
+                    $downloads++;
+                    $video = self::storeVideo($post['id'], $post['mediaUrl'] ?? null);
+                    if ($video) {
+                        $highlight->update(['video_url' => $video]);
+                    }
                 }
             }
 
@@ -85,18 +102,18 @@ class InstagramSync
     /**
      * @param  array<string, mixed>  $post
      */
-    private static function import(array $post): bool
+    private static function import(array $post): ?Highlight
     {
         // Instagram's CDN links expire, so keep our own copy of the cover.
         $cover = $post['sizes']['large']['mediaUrl'] ?? $post['thumbnailUrl'] ?? null;
         $thumbnail = self::storeThumbnail($post['id'], $cover);
         if (! $thumbnail) {
-            return false;
+            return null;
         }
 
         $caption = trim(preg_replace('/\s+/', ' ', (string) ($post['prunedCaption'] ?? $post['caption'] ?? '')));
 
-        Highlight::create([
+        return Highlight::create([
             'source' => 'instagram',
             'external_id' => $post['id'],
             'permalink' => $post['permalink'] ?? null,
@@ -106,9 +123,41 @@ class InstagramSync
             'caption' => $caption === '' ? null : Str::limit($caption, 250),
             'category' => 'Matchday',
             'occurred_on' => isset($post['timestamp']) ? substr($post['timestamp'], 0, 10) : null,
+            // Reels are portrait, so give them a tall tile.
+            'tall' => true,
         ]);
+    }
 
-        return true;
+    private static function storeVideo(string $id, ?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+
+        // Stream to a temp file rather than holding the video in memory.
+        $tmp = tempnam(sys_get_temp_dir(), 'ig');
+        try {
+            $response = Http::timeout(90)->sink($tmp)->get($url);
+            if (! $response->successful() || filesize($tmp) === 0) {
+                return null;
+            }
+
+            $disk = config('filesystems.media_disk');
+            $path = 'media/instagram/'.preg_replace('/\W/', '', $id).'.mp4';
+            $stream = fopen($tmp, 'r');
+            Storage::disk($disk)->put($path, $stream, ['visibility' => 'public', 'ContentType' => 'video/mp4']);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            return Storage::disk($disk)->url($path);
+        } catch (Throwable $e) {
+            Log::warning('Instagram video download failed', ['id' => $id, 'error' => $e->getMessage()]);
+
+            return null;
+        } finally {
+            @unlink($tmp);
+        }
     }
 
     private static function storeThumbnail(string $id, ?string $url): ?string

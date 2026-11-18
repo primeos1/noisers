@@ -155,7 +155,17 @@ export default function Highlights() {
             className="max-h-[85vh] max-w-4xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {active.link ? (
+            {active.video ? (
+              <video
+                key={active.id}
+                src={active.video}
+                poster={active.src}
+                controls
+                autoPlay
+                playsInline
+                className="mx-auto block max-h-[70vh] w-auto max-w-full bg-ink"
+              />
+            ) : active.link && embedFor(active.link).youtube ? (
               (() => {
                 const embed = embedFor(active.link);
                 return (

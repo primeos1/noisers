@@ -26,6 +26,8 @@ export interface HighlightItem {
   tall?: boolean;
   // The Instagram post a synced video plays from.
   link?: string;
+  // Our copy of a synced Instagram video, played in the lightbox.
+  video?: string;
 }
 
 export const highlights: HighlightItem[] = [
