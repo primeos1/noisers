@@ -4,3 +4,4 @@ export const WHATSAPP_NUMBER = "+2348140383301";
 export const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, "")}`;
 export const INSTAGRAM_HANDLE = "noisersfc";
 export const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_HANDLE}`;
+export const YOUTUBE_URL = "https://www.youtube.com/channel/UC9cT_wA_yArG3qKDkNN7jNg";

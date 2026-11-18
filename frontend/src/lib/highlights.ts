@@ -28,6 +28,8 @@ export interface HighlightItem {
   link?: string;
   // Our copy of a synced Instagram video, played in the lightbox.
   video?: string;
+  // Where it came from: "manual" (added in admin), "instagram" or "youtube".
+  source?: string;
 }
 
 export const highlights: HighlightItem[] = [

@@ -14,6 +14,7 @@ interface ApiHighlight {
   sortOrder: number;
   link: string | null;
   video: string | null;
+  source: string;
 }
 
 function fromApi(h: ApiHighlight): HighlightItem {
@@ -28,6 +29,7 @@ function fromApi(h: ApiHighlight): HighlightItem {
     tall: h.tall,
     link: h.link ?? undefined,
     video: h.video ?? undefined,
+    source: h.source,
   };
 }
 
