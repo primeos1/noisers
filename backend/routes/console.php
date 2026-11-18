@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 // Opens the Wednesday/Sunday match day (see MatchDaySchedule) wherever a
 // scheduler runs; the match day list also does it on read without one.
 Schedule::command('matchdays:open')->everyFifteenMinutes();
+Schedule::command('instagram:sync')->everyThirtyMinutes();
+Schedule::command('youtube:sync')->everyThirtyMinutes();

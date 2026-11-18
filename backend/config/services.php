@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'instagram' => [
+        // The club's Behold JSON feed (https://feeds.behold.so/…), set to
+        // videos and reels only.
+        'feed_url' => env('INSTAGRAM_FEED_URL'),
+    ],
+
+    'youtube' => [
+        // The channel's id (starts "UC"), from youtube.com/account_advanced.
+        'channel_id' => env('YOUTUBE_CHANNEL_ID'),
+    ],
+
 ];

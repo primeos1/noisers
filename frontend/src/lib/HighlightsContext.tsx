@@ -12,6 +12,7 @@ interface ApiHighlight {
   date: string | null;
   tall: boolean;
   sortOrder: number;
+  link: string | null;
 }
 
 function fromApi(h: ApiHighlight): HighlightItem {
@@ -24,6 +25,7 @@ function fromApi(h: ApiHighlight): HighlightItem {
     category: h.category,
     date: h.date ?? "",
     tall: h.tall,
+    link: h.link ?? undefined,
   };
 }
 

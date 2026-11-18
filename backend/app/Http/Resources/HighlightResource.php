@@ -22,6 +22,9 @@ class HighlightResource extends JsonResource
             'date' => $this->occurred_on?->format('d M Y'),
             'tall' => $this->tall,
             'sortOrder' => $this->sort_order,
+            // The post a video plays from; set on ones synced from Instagram.
+            'link' => $this->permalink,
+            'source' => $this->source,
         ];
     }
 }

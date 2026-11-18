@@ -199,6 +199,8 @@ export interface Highlight {
   date: string | null;
   tall: boolean;
   sortOrder: number;
+  // The Instagram post a synced video plays from.
+  link?: string | null;
 }
 
 export type LiveStatId = "squad" | "match_days" | "games" | "goals";

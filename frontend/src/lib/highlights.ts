@@ -24,6 +24,8 @@ export interface HighlightItem {
   category: HighlightCategory;
   date: string;
   tall?: boolean;
+  // The Instagram post a synced video plays from.
+  link?: string;
 }
 
 export const highlights: HighlightItem[] = [

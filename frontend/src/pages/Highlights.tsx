@@ -8,6 +8,16 @@ type Filter = "All" | "Videos" | HighlightCategory;
 
 const filters: Filter[] = ["All", "Videos", ...categories];
 
+// The player for a synced video's post: YouTube watch links become the
+// privacy-enhanced embed; Instagram posts get /embed on the end.
+function embedFor(link: string): { src: string; youtube: boolean } {
+  const youtubeId = link.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1];
+  if (youtubeId) {
+    return { src: `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0`, youtube: true };
+  }
+  return { src: link.split("?")[0].replace(/\/?$/, "/") + "embed", youtube: false };
+}
+
 export default function Highlights() {
   const { highlights } = useHighlights();
   const [filter, setFilter] = useState<Filter>("All");
@@ -145,15 +155,44 @@ export default function Highlights() {
             className="max-h-[85vh] max-w-4xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={active.src}
-              alt={active.alt}
-              className="duotone max-h-[70vh] w-full object-contain"
-            />
+            {active.link ? (
+              (() => {
+                const embed = embedFor(active.link);
+                return (
+                  <iframe
+                    key={active.id}
+                    src={embed.src}
+                    title={active.caption || "Video"}
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    className={
+                      embed.youtube
+                        ? "mx-auto block aspect-video w-[min(56rem,calc(100vw-2rem))] max-h-[70vh] border-0 bg-ink"
+                        : "mx-auto block h-[70vh] w-[min(26rem,calc(100vw-2rem))] border-0 bg-paper"
+                    }
+                  />
+                );
+              })()
+            ) : (
+              <img
+                src={active.src}
+                alt={active.alt}
+                className="duotone max-h-[70vh] w-full object-contain"
+              />
+            )}
             <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink-line pt-4">
               <p className="text-paper">{active.caption}</p>
               <p className="text-sm text-mist">
-                {active.category} · {active.date}
+                {active.category}
+                {active.date ? ` · ${active.date}` : ""}
+                {active.link && (
+                  <>
+                    {" · "}
+                    <a href={active.link} target="_blank" rel="noreferrer" className="underline hover:text-paper">
+                      {embedFor(active.link).youtube ? "Watch on YouTube" : "View on Instagram"}
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </div>

@@ -24,7 +24,7 @@ function Tile({ h, width, onOpen }: { h: Highlight; width: number; onOpen: () =>
   return (
     <Tilt onPress={onOpen} accessibilityLabel={`${video ? "Video" : "Photo"}: ${h.caption || h.alt || h.category}`} max={7}>
       <View style={[styles.tile, { width, height: h.tall ? width * 1.5 : width }]}>
-        {video ? (
+        {video && !h.link ? (
           <LinearGradient colors={["#1b2440", colors.inkDeep]} style={StyleSheet.absoluteFill} />
         ) : (
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} recyclingKey={uri} />
@@ -110,7 +110,7 @@ export default function HighlightsScreen() {
 
   function openTile(h: Highlight) {
     if (h.type === "video") {
-      const url = resolveMediaUrl(h.src);
+      const url = h.link ?? resolveMediaUrl(h.src);
       if (url) WebBrowser.openBrowserAsync(url).catch(() => undefined);
       return;
     }

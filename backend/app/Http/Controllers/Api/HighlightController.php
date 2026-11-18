@@ -5,17 +5,29 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\HighlightResource;
 use App\Models\Highlight;
+use App\Support\InstagramSync;
+use App\Support\YouTubeSync;
 use Illuminate\Http\Request;
 
 class HighlightController extends Controller
 {
     /**
-     * Public — powers the Highlights page.
+     * Public — powers the Highlights page. Pulls any new Instagram videos
+     * once the response is sent, so they show from the next visit on.
      */
     public function index()
     {
+        dispatch(function () {
+            InstagramSync::syncIfStale();
+            YouTubeSync::syncIfStale();
+        })->afterResponse();
+
         return HighlightResource::collection(
-            Highlight::orderBy('sort_order')->orderByDesc('occurred_on')->get()
+            Highlight::where('hidden', false)
+                ->orderBy('sort_order')
+                ->orderByDesc('occurred_on')
+                ->orderByDesc('id')
+                ->get()
         );
     }
 
@@ -45,7 +57,12 @@ class HighlightController extends Controller
     {
         $this->authorize('delete', $highlight);
 
-        $highlight->delete();
+        // A synced video would just come back on the next sync, so hide it.
+        if ($highlight->source !== 'manual') {
+            $highlight->update(['hidden' => true]);
+        } else {
+            $highlight->delete();
+        }
 
         return response()->noContent();
     }

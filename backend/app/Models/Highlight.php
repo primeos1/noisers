@@ -15,6 +15,10 @@ class Highlight extends Model
         'occurred_on',
         'tall',
         'sort_order',
+        'source',
+        'external_id',
+        'permalink',
+        'hidden',
     ];
 
     protected function casts(): array
@@ -22,6 +26,7 @@ class Highlight extends Model
         return [
             'occurred_on' => 'date',
             'tall' => 'boolean',
+            'hidden' => 'boolean',
         ];
     }
 }

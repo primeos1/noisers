@@ -47,6 +47,8 @@ class ClubSetting extends Model
             'rating_max_swing' => 'float',
             'vale_auto_awards' => 'boolean',
             'player_passcode' => 'encrypted',
+            'instagram_synced_at' => 'datetime',
+            'youtube_synced_at' => 'datetime',
         ];
     }
 
