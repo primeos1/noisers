@@ -163,6 +163,8 @@ export interface MatchDayGame {
    * shootout itself isn't recorded, so the result still counts as a draw.
    */
   penaltyWinner?: 0 | 1 | null;
+  /** Set when this game is a league fixture; those run the full clock. */
+  leagueMatchNo?: number | null;
 }
 
 export interface MatchDayEvent {

@@ -536,7 +536,8 @@ function LiveGame({
     if (scorer === null) return;
     const goal = { id: `g${Date.now()}`, teamIndex: goalTeam, playerId: scorer, assistPlayerId: !ownGoal ? assist : null, ownGoal, minute: timer.minute };
     const withGoal = (g: MatchDayGame) => ({ ...g, goals: [...g.goals, goal] });
-    const won = (g: MatchDayGame) => scoreOf(g, 0) >= winGoals || scoreOf(g, 1) >= winGoals;
+    // League fixtures run the full clock; only club games end at the winning goal.
+    const won = (g: MatchDayGame) => !g.leagueMatchNo && (scoreOf(g, 0) >= winGoals || scoreOf(g, 1) >= winGoals);
     const endsGame = won(withGoal(game));
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => undefined);
     patch((e) => {
@@ -604,7 +605,7 @@ function LiveGame({
             <Txt style={styles.bigScore}>{scoreOf(game, 0)}</Txt>
           </View>
           <View style={styles.clockBox}>
-            <Txt style={styles.clockHint}>{timer.isFinished ? "Time's up" : `First to ${winGoals}`}</Txt>
+            <Txt style={styles.clockHint}>{timer.isFinished ? "Time's up" : game.leagueMatchNo ? `League game ${game.leagueMatchNo}` : `First to ${winGoals}`}</Txt>
             <Txt style={[styles.clock, timer.running ? null : { color: colors.paperDim }]} accessibilityLabel={`${formatClock(timer.secondsLeft)} left`}>
               {formatClock(timer.secondsLeft)}
             </Txt>
