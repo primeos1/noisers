@@ -9,6 +9,7 @@ use App\Http\Resources\PlayerResource;
 use App\Models\Card;
 use App\Models\Fixture;
 use App\Models\Player;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -16,9 +17,11 @@ class DashboardController extends Controller
     /**
      * Season-at-a-glance summary for the admin dashboard home.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $this->authorize('viewAny', Card::class);
+        // Committee only — card reads are public, so they can't gate this,
+        // and the stat analyst's login is for Match Day alone.
+        abort_unless($request->user()->isCommittee(), 403);
 
         $nextFixture = Fixture::where('status', 'scheduled')
             ->orderBy('kickoff_at')

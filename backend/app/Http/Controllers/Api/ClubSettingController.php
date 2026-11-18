@@ -79,8 +79,11 @@ class ClubSettingController extends Controller
      * The squad passcode, so staff can read it out to players. Any signed-in
      * staff member can see it; only admins can change it.
      */
-    public function passcode()
+    public function passcode(Request $request)
     {
+        // Committee only: the stat analyst's login doesn't open the portal.
+        abort_unless($request->user()->isCommittee(), 403);
+
         return response()->json(['passcode' => ClubSetting::current()->playerPasscode()]);
     }
 

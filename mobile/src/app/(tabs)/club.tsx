@@ -178,6 +178,52 @@ function Dashboard() {
     { label: "Settings", href: "/admin/settings", icon: "settings-outline", meta: "Fines, match rules, ratings" },
   ];
 
+  // The stat analyst's login runs Match Day and nothing else (the API
+  // refuses every other write), so they get just that and a way out.
+  if (user?.role === "analyst") {
+    return (
+      <>
+        <PageTitle eyebrow="Noisers FC" title="Club" />
+        <SectionHeader title="Stat analyst" />
+        <View style={[styles.hero, shadow.card]}>
+          <LinearGradient colors={["rgba(47,158,138,0.25)", "rgba(19,26,43,0.4)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <Image source={require("../../../assets/brand/logo-white.png")} style={styles.heroCrest} contentFit="contain" />
+          <Txt style={styles.heroDate}>{today}</Txt>
+          <Txt style={styles.heroTitle} accessibilityRole="header">
+            {greeting()}
+            {firstName ? `, ${firstName}` : ""}
+          </Txt>
+          <Txt style={[text.dim, styles.heroSub]}>
+            {liveEvent
+              ? `${liveEvent.title} is live${liveEvent.venue ? ` at ${liveEvent.venue}` : ""}.`
+              : "Pick who's here, arrange the teams and record the stats."}
+          </Txt>
+          <View style={styles.actions}>
+            <View style={styles.flex}>
+              <Button
+                label={liveEvent ? "Resume" : "Match day"}
+                icon={liveEvent ? "radio-button-on" : "play"}
+                onPress={() => router.push("/admin/matchday")}
+              />
+            </View>
+          </View>
+        </View>
+        <Group title="Account">
+          <PrivacyRow />
+          <Row onPress={refresh} chevron={false}>
+            <Ionicons name="refresh" size={18} color={colors.paperDim} />
+            <Txt style={[text.body, styles.flex]}>Reload club data</Txt>
+          </Row>
+          <Row onPress={() => confirm("Sign out?", "You'll need your analyst login to record a match day again.", "Sign out", signOut)} chevron={false}>
+            <Ionicons name="log-out-outline" size={18} color={colors.loss} />
+            <Txt style={[text.body, styles.flex, { color: colors.loss }]}>Sign out</Txt>
+          </Row>
+        </Group>
+        <Txt style={[text.small, styles.server]}>{`${user.name} · Stat analyst`}</Txt>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle eyebrow="Noisers FC" title="Club" />

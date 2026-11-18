@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import logoWhite from "../../assets/brand/logo-white.png";
 import { useAuth } from "../../lib/AuthContext";
 import TabBar from "../TabBar";
@@ -57,6 +57,10 @@ const sidebarAfter = links.slice(cmsIndex).filter((l) => !isCms(l.to));
 const moreBefore = sidebarBefore.filter((l) => !primary.includes(l.to));
 const moreAfter = sidebarAfter.filter((l) => !primary.includes(l.to));
 
+// The stat analyst's login opens Match Day and nothing else.
+const ANALYST_HOME = "/admin/matchday";
+const analystLinks = links.filter((l) => l.to === ANALYST_HOME);
+
 const rowClass = "flex w-full items-center gap-3.5 px-4 py-3.5 text-left text-[0.95rem]";
 const rowIconClass = "flex h-8 w-8 items-center justify-center rounded-lg";
 
@@ -65,6 +69,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const analyst = user?.role === "analyst";
 
   const current = links.find((l) => matchPath({ path: l.to, end: l.end }, pathname));
   const onMorePage = moreLinks.some((l) => l.to === current?.to);
@@ -90,6 +95,10 @@ export default function AdminLayout() {
     navigate("/");
   }
 
+  if (analyst && !matchPath({ path: ANALYST_HOME, end: false }, pathname)) {
+    return <Navigate to={ANALYST_HOME} replace />;
+  }
+
   return (
     <div className="flex min-h-dvh bg-ink">
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto border-r border-ink-line bg-ink-raised md:flex">
@@ -99,12 +108,16 @@ export default function AdminLayout() {
             <p className="font-display text-lg leading-none text-paper">
               NOISERS FC
             </p>
-            <p className="mt-1 text-xs text-mist">Committee tools</p>
+            <p className="mt-1 text-xs text-mist">{analyst ? "Stat analyst" : "Committee tools"}</p>
           </div>
         </div>
 
         <nav className="flex-1 px-3 py-6">
           <ul className="space-y-1">
+            {analyst ? (
+              analystLinks.map((link) => <SidebarLink key={link.to} link={link} />)
+            ) : (
+              <>
             {sidebarBefore.map((link) => (
               <SidebarLink key={link.to} link={link} />
             ))}
@@ -134,6 +147,8 @@ export default function AdminLayout() {
             {sidebarAfter.map((link) => (
               <SidebarLink key={link.to} link={link} />
             ))}
+              </>
+            )}
           </ul>
         </nav>
 
@@ -151,7 +166,7 @@ export default function AdminLayout() {
         {/* Phones: translucent title bar naming the current screen */}
         <header className="pt-safe glass-bar sticky top-0 z-30 border-b border-ink-line/70 md:hidden">
           <div className="flex h-14 items-center justify-between gap-3 px-4">
-            <Link to="/admin" className="flex min-w-0 items-center gap-2.5">
+            <Link to={analyst ? ANALYST_HOME : "/admin"} className="flex min-w-0 items-center gap-2.5">
               <img src={logoWhite} alt="Noisers FC crest" className="h-7 w-7" />
               <span className="truncate font-display text-xl leading-none text-paper">
                 {current?.label ?? "Committee"}
@@ -184,11 +199,12 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <main key={pathname} className="screen-in pb-tabbar min-w-0 flex-1 px-4 pt-6 md:px-10 md:py-10">
+        <main key={pathname} className={`screen-in ${analyst ? "pb-safe" : "pb-tabbar"} min-w-0 flex-1 px-4 pt-6 md:px-10 md:py-10`}>
           <Outlet />
         </main>
       </div>
 
+      {!analyst && (
       <TabBar
         tabs={tabLinks}
         label="Committee tools"
@@ -199,8 +215,9 @@ export default function AdminLayout() {
           onClick: () => setMoreOpen(true),
         }}
       />
+      )}
 
-      {moreOpen && (
+      {!analyst && moreOpen && (
         <div className="sheet-backdrop md:hidden" onClick={() => setMoreOpen(false)}>
           <div className="sheet" role="dialog" aria-label="More" onClick={(e) => e.stopPropagation()}>
             <p className="px-1 text-xs text-mist">

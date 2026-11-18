@@ -58,4 +58,19 @@ class User extends Authenticatable
     {
         return in_array($this->role, ['admin', 'committee'], true);
     }
+
+    /**
+     * The team stat analyst: signs in to run Match Day (pick who's present,
+     * arrange the teams, record goals, assists, cards and saves) and nothing
+     * else. Every other write stays committee-only.
+     */
+    public function isAnalyst(): bool
+    {
+        return $this->role === 'analyst';
+    }
+
+    public function canRunMatchDay(): bool
+    {
+        return $this->isCommittee() || $this->isAnalyst();
+    }
 }

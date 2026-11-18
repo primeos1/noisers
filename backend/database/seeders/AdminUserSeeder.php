@@ -34,5 +34,20 @@ class AdminUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        // No fallback password outside local dev: without ANALYST_PASSWORD
+        // the stat analyst's login simply isn't made.
+        $analystPassword = env('ANALYST_PASSWORD', app()->isLocal() ? 'password' : null);
+        if ($analystPassword) {
+            User::firstOrCreate(
+                ['email' => env('ANALYST_EMAIL', 'analyst@noisersfc.com')],
+                [
+                    'name' => 'Stat Analyst',
+                    'password' => Hash::make($analystPassword),
+                    'role' => 'analyst',
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
     }
 }

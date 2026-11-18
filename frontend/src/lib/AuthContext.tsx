@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { apiFetch, setToken } from "./api";
 
-export type UserRole = "admin" | "player";
+/** "analyst" is the team stat analyst — signed in to run Match Day only. */
+export type UserRole = "admin" | "analyst" | "player";
 
 export interface AuthUser {
   name: string;
@@ -13,7 +14,7 @@ export interface AuthUser {
 
 interface LoginResponse {
   token: string;
-  user: { id: number; name: string; email: string; role: "admin" | "committee" };
+  user: { id: number; name: string; email: string; role: "admin" | "committee" | "analyst" };
 }
 
 interface AuthContextValue {
@@ -81,7 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email: email.trim(), password, device_name: "web" }),
     });
     setToken(token);
-    persist({ name: staff.name, email: staff.email, role: "admin", staffRole: staff.role });
+    persist(
+      staff.role === "analyst"
+        ? { name: staff.name, email: staff.email, role: "analyst" }
+        : { name: staff.name, email: staff.email, role: "admin", staffRole: staff.role },
+    );
   }
 
   // Checked by the API, so a passcode changed in Settings applies on every device.

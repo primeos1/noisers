@@ -14,8 +14,10 @@ class MediaController extends Controller
      * Display a listing of the resource — newest first, powers the admin
      * media picker grid.
      */
-    public function index()
+    public function index(Request $request)
     {
+        abort_unless($request->user()->isCommittee(), 403);
+
         return MediaResource::collection(
             Media::query()->orderByDesc('created_at')->paginate(24)
         );

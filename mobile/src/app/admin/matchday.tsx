@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useClub, type EventEdit } from "../../lib/club";
+import { useAuth } from "../../lib/auth";
 import { errorMessage } from "../../lib/api";
 import { participantName, plural, scoreOf } from "../../lib/derive";
 import {
@@ -192,6 +193,8 @@ function Setup({
   onBackToGame: () => void;
 }) {
   const { players, settings } = useClub();
+  // Adding to the squad is the committee's; the analyst adds walk-ins as guests.
+  const analyst = useAuth().user?.role === "analyst";
   const [mode, setMode] = useState<TeamMode>(settings.matchDefaultTeamMode);
   const [sides, setSides] = useState<[number, number]>([0, 1]);
   const teamSize = settings.matchTeamSize;
@@ -299,10 +302,12 @@ function Setup({
             </Row>
           );
         })}
-        <Row onPress={() => router.push({ pathname: "/admin/player", params: { present: event.id } })}>
-          <Ionicons name="person-add-outline" size={20} color={colors.paper} />
-          <Txt style={[text.body, styles.flex]}>Add a new player</Txt>
-        </Row>
+        {analyst ? null : (
+          <Row onPress={() => router.push({ pathname: "/admin/player", params: { present: event.id } })}>
+            <Ionicons name="person-add-outline" size={20} color={colors.paper} />
+            <Txt style={[text.body, styles.flex]}>Add a new player</Txt>
+          </Row>
+        )}
       </Group>
 
       <Group

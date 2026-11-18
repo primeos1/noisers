@@ -233,7 +233,8 @@ export interface StaffUser {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "committee";
+  /** "analyst" is the team stat analyst: Match Day only. */
+  role: "admin" | "committee" | "analyst";
 }
 
 // Who's out — injured, travelling, suspended or otherwise unavailable

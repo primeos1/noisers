@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSquad } from "../../lib/SquadContext";
+import { useAuth } from "../../lib/AuthContext";
 import { useCards } from "../../lib/CardsContext";
 import { useValeContent } from "../../lib/ValeContentContext";
 import { nextJerseyNumber, positionCodes, type Player } from "../../lib/clubData";
@@ -82,6 +83,7 @@ export default function MatchDay() {
   // Keep up with other admins recording the same match day.
   useEffect(() => watchLive(), [watchLive]);
   const { settings } = useSettings();
+  const analyst = useAuth().user?.role === "analyst";
   const TEAM_SIZE = settings.matchTeamSize;
   const WIN_GOALS = settings.matchWinGoals;
 
@@ -616,13 +618,16 @@ export default function MatchDay() {
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-2xl text-paper">Who's present?</h2>
-              <button
-                type="button"
-                onClick={() => setAddingPlayer(true)}
-                className="border border-ink-line px-3 py-1.5 text-sm text-paper-dim hover:text-paper"
-              >
-                + Add new player
-              </button>
+              {/* Adding to the squad is the committee's; the analyst adds walk-ins as guests. */}
+              {!analyst && (
+                <button
+                  type="button"
+                  onClick={() => setAddingPlayer(true)}
+                  className="border border-ink-line px-3 py-1.5 text-sm text-paper-dim hover:text-paper"
+                >
+                  + Add new player
+                </button>
+              )}
             </div>
             <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-mist">{activeEvent.presentPlayers.length} squad selected</p>
