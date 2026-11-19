@@ -184,14 +184,14 @@ export function buildSchedule(rounds: Fixture[][] = buildFixtures()): MatchNight
 
 /**
  * Sundays 2-5 in playing order (home, away, round), as fairNights() dealt
- * them. Kept as a list so the page doesn't redo the search on every load;
+ * them with Bulwark set to meet Islanders and Sentinel on 22 Nov. Kept as a list so the page doesn't redo the search on every load;
  * rerun fairNights(rest of the pool, played Sundays) to regenerate.
  */
 const FAIR_NIGHTS: [ClubId, ClubId, number][][] = [
-  [["coastal", "islanders", 5], ["bulwark", "citadel", 5], ["castellers", "sentinel", 10], ["bulwark", "coastal", 11], ["sentinel", "citadel", 4], ["castellers", "islanders", 8], ["coastal", "citadel", 13], ["bulwark", "castellers", 7], ["islanders", "sentinel", 11]],
-  [["citadel", "sentinel", 9], ["coastal", "castellers", 14], ["bulwark", "islanders", 9], ["sentinel", "coastal", 7], ["castellers", "bulwark", 12], ["citadel", "islanders", 7], ["sentinel", "castellers", 5], ["coastal", "islanders", 15], ["bulwark", "citadel", 15]],
-  [["islanders", "castellers", 13], ["sentinel", "citadel", 14], ["coastal", "bulwark", 6], ["citadel", "castellers", 6], ["islanders", "bulwark", 14], ["coastal", "sentinel", 12], ["islanders", "citadel", 12], ["castellers", "coastal", 9], ["sentinel", "bulwark", 8]],
-  [["bulwark", "sentinel", 13], ["castellers", "citadel", 11], ["islanders", "bulwark", 4], ["citadel", "coastal", 8], ["sentinel", "castellers", 15], ["islanders", "coastal", 10], ["citadel", "bulwark", 10], ["sentinel", "islanders", 6], ["coastal", "castellers", 4]],
+  [["castellers", "sentinel", 10], ["islanders", "bulwark", 4], ["coastal", "citadel", 13], ["sentinel", "bulwark", 8], ["citadel", "islanders", 7], ["coastal", "castellers", 4], ["islanders", "sentinel", 11], ["castellers", "citadel", 11], ["bulwark", "coastal", 11]],
+  [["citadel", "coastal", 8], ["sentinel", "castellers", 15], ["coastal", "islanders", 15], ["bulwark", "castellers", 7], ["sentinel", "citadel", 14], ["islanders", "bulwark", 14], ["coastal", "castellers", 14], ["sentinel", "islanders", 6], ["citadel", "bulwark", 10]],
+  [["sentinel", "citadel", 4], ["castellers", "bulwark", 12], ["islanders", "coastal", 10], ["bulwark", "sentinel", 13], ["islanders", "citadel", 12], ["castellers", "coastal", 9], ["bulwark", "citadel", 15], ["coastal", "sentinel", 12], ["islanders", "castellers", 13]],
+  [["bulwark", "islanders", 9], ["sentinel", "coastal", 7], ["citadel", "castellers", 6], ["coastal", "islanders", 5], ["bulwark", "citadel", 5], ["sentinel", "castellers", 5], ["coastal", "bulwark", 6], ["citadel", "sentinel", 9], ["castellers", "islanders", 8]],
 ];
 
 /** Sundays already played with the original order; their fixture numbers (and results) stay put. */
