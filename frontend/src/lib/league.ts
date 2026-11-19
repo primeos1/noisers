@@ -201,22 +201,61 @@ function shuffled<T>(items: T[], rand: () => number): T[] {
   return out;
 }
 
-/** A random order of a night's games in which no club plays two in a row (and the opener passes `canOpen`), or null. */
-function restedOrder<G extends Fixture>(games: G[], rand: () => number, canOpen: (g: G) => boolean = () => true): G[] | null {
-  const clash = (a: G, b: G) => a.home === b.home || a.home === b.away || a.away === b.home || a.away === b.away;
+/**
+ * The most one-game rests a night can get away with. A club rests two games
+ * between matches wherever possible, but with six clubs and nine games a
+ * full two-game rest every time would mean the same three pairings playing
+ * each other three times over, so four one-game rests a night is the floor.
+ */
+const SHORT_RESTS_PER_NIGHT = 4;
+
+/** One-game rests a club may have across the reshuffled Sundays (16 shared by six clubs). */
+const SHORT_RESTS_PER_CLUB = 3;
+
+/**
+ * A random order of a night's games in which no club plays two in a row,
+ * clubs rest two games between matches except for SHORT_RESTS_PER_NIGHT
+ * one-game rests (at most one per club a night, and within `shortSoFar`'s
+ * season cap), and the opener passes `canOpen`. Null if there is none.
+ * Records each club's one-game rests in `shortSoFar` on success.
+ */
+function restedOrder<G extends Fixture>(
+  games: G[],
+  rand: () => number,
+  canOpen: (g: G) => boolean = () => true,
+  shortSoFar: Map<ClubId, number> = new Map(),
+): G[] | null {
   const order: G[] = [];
+  const last = new Map<ClubId, number>();
+  const short = new Map<ClubId, number>();
+  let shortTotal = 0;
   const place = (left: G[]): boolean => {
     if (left.length === 0) return true;
+    const slot = order.length;
     for (const g of shuffled(left, rand)) {
-      const prev = order[order.length - 1];
-      if (prev ? clash(prev, g) : !canOpen(g)) continue;
+      if (slot === 0 && !canOpen(g)) continue;
+      const ids = [g.home, g.away];
+      const gaps = ids.map((id) => (last.has(id) ? slot - last.get(id)! : Infinity));
+      if (gaps.some((gap) => gap < 2)) continue;
+      const shortIds = ids.filter((_, k) => gaps[k] === 2);
+      if (shortTotal + shortIds.length > SHORT_RESTS_PER_NIGHT) continue;
+      if (shortIds.some((id) => (short.get(id) ?? 0) > 0 || (shortSoFar.get(id) ?? 0) >= SHORT_RESTS_PER_CLUB)) continue;
+      const prevLast = ids.map((id) => last.get(id));
       order.push(g);
+      ids.forEach((id) => last.set(id, slot));
+      shortIds.forEach((id) => short.set(id, 1));
+      shortTotal += shortIds.length;
       if (place(left.filter((x) => x !== g))) return true;
       order.pop();
+      ids.forEach((id, k) => (prevLast[k] === undefined ? last.delete(id) : last.set(id, prevLast[k]!)));
+      shortIds.forEach((id) => short.delete(id));
+      shortTotal -= shortIds.length;
     }
     return false;
   };
-  return place(games) ? order : null;
+  if (!place(games)) return null;
+  for (const [id, n] of short) shortSoFar.set(id, (shortSoFar.get(id) ?? 0) + n);
+  return order;
 }
 
 /**
@@ -232,8 +271,9 @@ const OPENER_NIGHTS: Partial<Record<ClubId, number>> = { bulwark: 5 };
  * The Sundays after the played ones, fully random: every remaining game goes
  * into one pool and is dealt onto a random Sunday in a random slot. The only
  * rules are fairness ones: each club plays three games a night, two clubs
- * meet at most once a night, nobody plays two in a row, and no club plays
- * the first game of the night more than OPENER_LIMITS allows. Home and away
+ * meet at most once a night, nobody plays two in a row, clubs rest two
+ * games between matches bar the few one-game rests restedOrder allows, and
+ * no club plays the first game of the night more than OPENER_LIMITS allows. Home and away
  * are kept as drawn.
  */
 function shuffledNights(pool: ScheduledGame[], offset: number): MatchNight[] {
@@ -244,6 +284,7 @@ function shuffledNights(pool: ScheduledGame[], offset: number): MatchNight[] {
     let left = shuffled(pool, rand);
     const nights: MatchNight[] = [];
     const opened = new Map<ClubId, number>();
+    const shortRests = new Map<ClubId, number>();
     const canOpen = (night: number) => (g: Fixture) => {
       const ids = [g.home, g.away];
       const fixed = (Object.keys(OPENER_NIGHTS) as ClubId[]).filter((id) => OPENER_NIGHTS[id] === night);
@@ -270,7 +311,7 @@ function shuffledNights(pool: ScheduledGame[], offset: number): MatchNight[] {
         count.set(g.home, (count.get(g.home) ?? 0) + 1);
         count.set(g.away, (count.get(g.away) ?? 0) + 1);
       }
-      const dealt = games.length === Math.min(GAMES_PER_NIGHT, left.length) ? restedOrder(games, rand, canOpen(offset + nights.length + 1)) : null;
+      const dealt = games.length === Math.min(GAMES_PER_NIGHT, left.length) ? restedOrder(games, rand, canOpen(offset + nights.length + 1), shortRests) : null;
       if (!dealt) break;
       for (const id of [dealt[0].home, dealt[0].away]) opened.set(id, (opened.get(id) ?? 0) + 1);
       const n = offset + nights.length;
