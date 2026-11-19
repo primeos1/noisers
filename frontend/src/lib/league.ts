@@ -184,14 +184,14 @@ export function buildSchedule(rounds: Fixture[][] = buildFixtures()): MatchNight
 
 /**
  * Sundays 2-5 in playing order (home, away, round), as fairNights() dealt
- * them with Bulwark set to meet Islanders and Sentinel on 22 Nov. Kept as a list so the page doesn't redo the search on every load;
+ * them: laps in order, Bulwark meeting Islanders and Sentinel on 22 Nov. Kept as a list so the page doesn't redo the search on every load;
  * rerun fairNights(rest of the pool, played Sundays) to regenerate.
  */
 const FAIR_NIGHTS: [ClubId, ClubId, number][][] = [
-  [["castellers", "sentinel", 10], ["islanders", "bulwark", 4], ["coastal", "citadel", 13], ["sentinel", "bulwark", 8], ["citadel", "islanders", 7], ["coastal", "castellers", 4], ["islanders", "sentinel", 11], ["castellers", "citadel", 11], ["bulwark", "coastal", 11]],
-  [["citadel", "coastal", 8], ["sentinel", "castellers", 15], ["coastal", "islanders", 15], ["bulwark", "castellers", 7], ["sentinel", "citadel", 14], ["islanders", "bulwark", 14], ["coastal", "castellers", 14], ["sentinel", "islanders", 6], ["citadel", "bulwark", 10]],
-  [["sentinel", "citadel", 4], ["castellers", "bulwark", 12], ["islanders", "coastal", 10], ["bulwark", "sentinel", 13], ["islanders", "citadel", 12], ["castellers", "coastal", 9], ["bulwark", "citadel", 15], ["coastal", "sentinel", 12], ["islanders", "castellers", 13]],
-  [["bulwark", "islanders", 9], ["sentinel", "coastal", 7], ["citadel", "castellers", 6], ["coastal", "islanders", 5], ["bulwark", "citadel", 5], ["sentinel", "castellers", 5], ["coastal", "bulwark", 6], ["citadel", "sentinel", 9], ["castellers", "islanders", 8]],
+  [["sentinel", "castellers", 5], ["coastal", "islanders", 5], ["bulwark", "citadel", 5], ["coastal", "castellers", 4], ["islanders", "bulwark", 4], ["sentinel", "citadel", 4], ["castellers", "islanders", 8], ["citadel", "coastal", 8], ["sentinel", "bulwark", 8]],
+  [["citadel", "sentinel", 9], ["castellers", "coastal", 9], ["bulwark", "islanders", 9], ["castellers", "sentinel", 10], ["citadel", "bulwark", 10], ["islanders", "coastal", 10], ["citadel", "castellers", 6], ["sentinel", "islanders", 6], ["coastal", "bulwark", 6]],
+  [["citadel", "islanders", 7], ["sentinel", "coastal", 7], ["bulwark", "castellers", 7], ["sentinel", "citadel", 14], ["coastal", "castellers", 14], ["islanders", "bulwark", 14], ["coastal", "citadel", 13], ["bulwark", "sentinel", 13], ["islanders", "castellers", 13]],
+  [["castellers", "bulwark", 12], ["islanders", "citadel", 12], ["coastal", "sentinel", 12], ["castellers", "citadel", 11], ["bulwark", "coastal", 11], ["islanders", "sentinel", 11], ["bulwark", "citadel", 15], ["coastal", "islanders", 15], ["sentinel", "castellers", 15]],
 ];
 
 /** Sundays already played with the original order; their fixture numbers (and results) stay put. */
@@ -237,7 +237,10 @@ const SHORT_REST_CAPS: Record<ClubId, number> = { bulwark: 4, islanders: 4, coas
  * one-game rests (at most one per club a night, and within `shortSoFar`'s
  * season cap), the opener passes `canOpen` and the last game passes
  * `canClose`. Null if there is none.
- * Records each club's one-game rests in `shortSoFar` on success.
+ * Clubs also play their meetings in order (see legOf): nobody starts a
+ * new lap of opponents before finishing the last, so `legSoFar` holds each
+ * club's current lap. Records each club's one-game rests in `shortSoFar`
+ * and laps in `legSoFar` on success.
  */
 function restedOrder<G extends Fixture>(
   games: G[],
@@ -245,8 +248,10 @@ function restedOrder<G extends Fixture>(
   canOpen: (g: G) => boolean = () => true,
   shortSoFar: Map<ClubId, number> = new Map(),
   canClose: (g: G) => boolean = () => true,
+  legSoFar: Map<ClubId, number> = new Map(),
 ): G[] | null {
   const order: G[] = [];
+  const leg = new Map(legSoFar);
   const last = new Map<ClubId, number>();
   const short = new Map<ClubId, number>();
   let shortTotal = 0;
@@ -259,16 +264,20 @@ function restedOrder<G extends Fixture>(
       const ids = [g.home, g.away];
       const gaps = ids.map((id) => (last.has(id) ? slot - last.get(id)! : Infinity));
       if (gaps.some((gap) => gap < 2)) continue;
+      if (ids.some((id) => legOf(g) < (leg.get(id) ?? 1))) continue;
       const shortIds = ids.filter((_, k) => gaps[k] === 2);
       if (shortTotal + shortIds.length > SHORT_RESTS_PER_NIGHT) continue;
       if (shortIds.some((id) => (short.get(id) ?? 0) > 0 || (shortSoFar.get(id) ?? 0) >= SHORT_REST_CAPS[id])) continue;
       const prevLast = ids.map((id) => last.get(id));
+      const prevLeg = ids.map((id) => leg.get(id));
+      ids.forEach((id) => leg.set(id, legOf(g)));
       order.push(g);
       ids.forEach((id) => last.set(id, slot));
       shortIds.forEach((id) => short.set(id, 1));
       shortTotal += shortIds.length;
       if (place(left.filter((x) => x !== g))) return true;
       order.pop();
+      ids.forEach((id, k) => (prevLeg[k] === undefined ? leg.delete(id) : leg.set(id, prevLeg[k]!)));
       ids.forEach((id, k) => (prevLast[k] === undefined ? last.delete(id) : last.set(id, prevLast[k]!)));
       shortIds.forEach((id) => short.delete(id));
       shortTotal -= shortIds.length;
@@ -277,8 +286,21 @@ function restedOrder<G extends Fixture>(
   };
   if (!place(games)) return null;
   for (const [id, n] of short) shortSoFar.set(id, (shortSoFar.get(id) ?? 0) + n);
+  for (const [id, l] of leg) legSoFar.set(id, l);
   return order;
 }
+
+/**
+ * Which meeting of the two clubs a game is (1st, 2nd or 3rd): rounds 1-5
+ * are the first lap of the round robin, 6-10 the second, 11-15 the third.
+ * Every club plays everybody once before meeting anyone again.
+ */
+function legOf(g: Fixture & { round?: number }) {
+  return Math.ceil((g.round ?? 1) / (clubs.length - 1));
+}
+
+/** Pairs that must meet on a given Sunday (1-5): Bulwark v Sentinel on 22 Nov, alongside Islanders. */
+const MUST_MEET: Record<number, [ClubId, ClubId][]> = { 2: [["bulwark", "sentinel"], ["bulwark", "islanders"]] };
 
 /** Most times a club may play the first, or the last, game of a night across the season (ten of each). */
 const OPENS_PER_CLUB = 2;
@@ -316,7 +338,8 @@ function nightStats(nights: MatchNight[]) {
  * The Sundays after the played ones, fully random: every remaining game goes
  * into one pool and is dealt onto a random Sunday in a random slot, then
  * the season is kept only if it is fair. The rules, counting the played
- * Sundays too: each club plays three games a night, two clubs meet at most
+ * Sundays too: every club plays everybody once before meeting anyone again
+ * (laps, see legOf), MUST_MEET pairs meet on their Sunday, each club plays three games a night, two clubs meet at most
  * once a night, nobody plays two in a row, clubs rest two games between
  * matches bar the one-game rests SHORT_REST_CAPS sets,
  * nobody opens or closes a night more than twice, the clubs' total rest is within REST_SPREAD games and Castellers get
@@ -334,6 +357,7 @@ export function fairNights(pool: ScheduledGame[], played: MatchNight[]): MatchNi
     const opened = new Map<ClubId, number>([...before].map(([id, s]) => [id, s.opens]));
     const closed = new Map<ClubId, number>([...before].map(([id, s]) => [id, s.closes]));
     const shortRests = new Map<ClubId, number>([...before].map(([id, s]) => [id, s.short]));
+    const legs = new Map<ClubId, number>(clubs.map((c) => [c.id, Math.max(1, ...played.flatMap((n) => n.games).filter((g) => g.home === c.id || g.away === c.id).map(legOf))]));
     const canOpen = (night: number) => (g: Fixture) => {
       const ids = [g.home, g.away];
       const fixed = (Object.keys(OPENER_NIGHTS) as ClubId[]).filter((id) => OPENER_NIGHTS[id] === night);
@@ -346,6 +370,10 @@ export function fairNights(pool: ScheduledGame[], played: MatchNight[]): MatchNi
     const canClose = (g: Fixture) =>
       [g.home, g.away].every((id) => (closed.get(id) ?? 0) < CLOSES_PER_CLUB);
     while (left.length > 0) {
+      // Earlier laps first, then the pairs that must meet tonight, so the deal can keep laps in order.
+      const must = (MUST_MEET[offset + nights.length + 1] ?? []).map((p) => [...p].sort().join());
+      const rank = (g: ScheduledGame) => (legOf(g) === 1 ? 0 : must.includes(pair(g)) ? 1 : 1 + legOf(g));
+      left = [...left].sort((a, b) => rank(a) - rank(b));
       const count = new Map<ClubId, number>();
       const pairs = new Set<string>();
       const games: ScheduledGame[] = [];
@@ -363,7 +391,7 @@ export function fairNights(pool: ScheduledGame[], played: MatchNight[]): MatchNi
         count.set(g.away, (count.get(g.away) ?? 0) + 1);
       }
       const dealt = games.length === Math.min(GAMES_PER_NIGHT, left.length)
-        ? restedOrder(games, rand, canOpen(offset + nights.length + 1), shortRests, canClose)
+        ? (must.every((p) => games.some((g) => pair(g) === p)) ? restedOrder(games, rand, canOpen(offset + nights.length + 1), shortRests, canClose, legs) : null)
         : null;
       if (!dealt) break;
       for (const id of [dealt[0].home, dealt[0].away]) opened.set(id, (opened.get(id) ?? 0) + 1);
