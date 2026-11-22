@@ -276,9 +276,19 @@ export default function MatchDay() {
   function leagueGame(e: MatchDayEvent, fixture: NumberedGame): MatchDayGame | null {
     const home = e.groups.find((t) => t.name === clubName(fixture.home));
     const away = e.groups.find((t) => t.name === clubName(fixture.away));
-    // The first TEAM_SIZE of each club start; the rest are on the bench for subs.
-    const starting = (t: MatchDayTeam) => ({ ...t, players: t.players.slice(0, TEAM_SIZE) });
-    return home && away ? { ...newGame(starting(home), starting(away)), leagueMatchNo: fixture.no } : null;
+    const starting = (t: MatchDayTeam): MatchDayTeam => {
+      const leagueSquad = Object.values(leagueDraw?.squads ?? {}).flat();
+      const keeper = t.players.find((id) => {
+        const leaguePlayer = leagueSquad.find((p) => p.id === id);
+        return (leaguePlayer?.position ?? players.find((p) => p.id === id)?.position) === "GK";
+      });
+      const starters = t.players.slice(0, TEAM_SIZE);
+      if (keeper !== undefined && !starters.includes(keeper)) starters[starters.length - 1] = keeper;
+      return { ...t, players: starters };
+    };
+    const homeStart = home && starting(home);
+    const awayStart = away && starting(away);
+    return homeStart && awayStart ? { ...newGame(homeStart, awayStart), leagueMatchNo: fixture.no } : null;
   }
 
   function setUpLeagueTeams() {
