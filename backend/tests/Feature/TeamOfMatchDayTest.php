@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\MatchDayEvent;
+use App\Models\LeagueResult;
 use App\Models\Player;
 use App\Support\MatchDayFinalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,23 @@ class TeamOfMatchDayTest extends TestCase
         $this->assertSame('Islanders', array_key_first($table));
         $this->assertSame(5, $table['Islanders']['points']);
         $this->assertSame(4, $table['Bulwark']['points']);
+    }
+
+    public function test_substituted_league_scorer_gets_match_day_award_credit(): void
+    {
+        [$scorer, $other] = Player::factory()->count(2)->create(['position' => 'DEF'])->pluck('id')->all();
+        $result = LeagueResult::create(['match_no' => 14, 'status' => 'final']);
+        $result->events = ['appeared' => [$scorer, $other]];
+        $result->save();
+        $event = new MatchDayEvent(['games' => [[
+            'status' => 'finished', 'leagueMatchNo' => 14,
+            'teams' => [['name' => 'Reds', 'players' => []], ['name' => 'Blues', 'players' => [$other]]],
+            'goals' => [['teamIndex' => 0, 'playerId' => $scorer]], 'cards' => [],
+        ]]]);
+        $ranking = (new \ReflectionMethod(MatchDayFinalizer::class, 'rankPlayers'))->invoke(null, collect([$event]), [$scorer, $other]);
+        $this->assertSame(1, $ranking['stats'][$scorer]['appearances']);
+        $this->assertSame(1, $ranking['stats'][$scorer]['cleanSheets']);
+        $this->assertSame($scorer, $ranking['ranked'][0]);
     }
 
     public function test_a_stand_in_from_another_team_is_not_in_the_team_of_the_match_day(): void

@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Card;
 use App\Models\ClubSetting;
 use App\Models\MatchDayEvent;
+use App\Models\LeagueResult;
 use App\Models\Player;
 use App\Models\PlayerRatingChange;
 use App\Models\ValeContent;
@@ -554,6 +555,32 @@ class MatchDayFinalizer
     {
         $players = Player::query()->whereIn('id', $squadIds)->get()->keyBy('id');
         $weights = ClubSetting::current()->ratingWeights();
+        // The final lineup can omit a scorer who was substituted. For league
+        // games, restore a scorer only when the saved appearance history also
+        // confirms they played; the goal records which side they played for.
+        $days = $days->map(function (MatchDayEvent $day) {
+            $games = $day->games ?? [];
+            $numbers = array_filter(array_column($games, 'leagueMatchNo'));
+            $results = $numbers ? LeagueResult::whereIn('match_no', $numbers)->get()->keyBy('match_no') : collect();
+            foreach ($games as &$game) {
+                $appeared = $results->get($game['leagueMatchNo'] ?? 0)?->events['appeared'] ?? [];
+                foreach ($game['goals'] ?? [] as $goal) {
+                    $id = $goal['playerId'] ?? null;
+                    $side = ($goal['teamIndex'] ?? 0) === 1 ? 1 : 0;
+                    if (! empty($goal['ownGoal'])) {
+                        $side = 1 - $side;
+                    }
+                    if (is_int($id) && in_array($id, $appeared, true) && isset($game['teams'][$side]) && ! in_array($id, $game['teams'][$side]['players'] ?? [], true)) {
+                        $game['teams'][$side]['players'][] = $id;
+                    }
+                }
+            }
+            unset($game);
+            $copy = clone $day;
+            $copy->games = $games;
+
+            return $copy;
+        });
         $points = [];
         foreach ($days as $day) {
             foreach (PlayerRatings::points($day, fn (int $id) => $players[$id]->position ?? null, $weights) as $id => $p) {
