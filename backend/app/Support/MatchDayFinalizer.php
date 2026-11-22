@@ -826,7 +826,7 @@ class MatchDayFinalizer
      * a matching group fall back to whoever lined up in its games.
      *
      * @param  array<int, int>  $squadIds
-     * Ranked like the Live Match page's day table: most wins, then goal
+     * Ranked like the Live Match page: league points (otherwise wins), then goal
      * difference, then goals scored, then name.
      *
      * @return array<string, array{won: int, played: int, gd: int, goalsFor: int, cleanSheets: int, players: int[], rival: string, score: string}>
@@ -841,6 +841,7 @@ class MatchDayFinalizer
         }
 
         $teams = [];
+        $league = collect($event->games ?? [])->contains(fn ($game) => ! empty($game['leagueMatchNo']));
         foreach (($event->games ?? []) as $game) {
             if (($game['status'] ?? null) !== 'finished') {
                 continue;
@@ -851,10 +852,11 @@ class MatchDayFinalizer
             }
             foreach ([0, 1] as $i) {
                 $name = $game['teams'][$i]['name'] ?? "Team {$i}";
-                $teams[$name] ??= ['won' => 0, 'played' => 0, 'gd' => 0, 'goalsFor' => 0, 'cleanSheets' => 0, 'players' => [], 'rival' => '', 'score' => ''];
+                $teams[$name] ??= ['won' => 0, 'points' => 0, 'played' => 0, 'gd' => 0, 'goalsFor' => 0, 'cleanSheets' => 0, 'players' => [], 'rival' => '', 'score' => ''];
                 $t = &$teams[$name];
                 $t['played']++;
                 $t['won'] += $score[$i] > $score[1 - $i] ? 1 : 0;
+                $t['points'] += $score[$i] > $score[1 - $i] ? 3 : ($score[$i] === $score[1 - $i] ? 1 : 0);
                 $t['gd'] += $score[$i] - $score[1 - $i];
                 $t['goalsFor'] += $score[$i];
                 $t['cleanSheets'] += $score[1 - $i] === 0 ? 1 : 0;
@@ -867,8 +869,8 @@ class MatchDayFinalizer
                 unset($t);
             }
         }
-        uksort($teams, fn ($a, $b) => [$teams[$b]['won'], $teams[$b]['gd'], $teams[$b]['goalsFor']]
-            <=> [$teams[$a]['won'], $teams[$a]['gd'], $teams[$a]['goalsFor']] ?: strcmp($a, $b));
+        uksort($teams, fn ($a, $b) => [$teams[$b][$league ? 'points' : 'won'], $teams[$b]['gd'], $teams[$b]['goalsFor']]
+            <=> [$teams[$a][$league ? 'points' : 'won'], $teams[$a]['gd'], $teams[$a]['goalsFor']] ?: strcmp($a, $b));
 
         return $teams;
     }

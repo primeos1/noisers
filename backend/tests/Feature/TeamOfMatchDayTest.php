@@ -12,6 +12,27 @@ class TeamOfMatchDayTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_league_team_of_the_match_day_uses_points_including_draws(): void
+    {
+        $game = fn ($home, $away, $scores) => [
+            'status' => 'finished', 'leagueMatchNo' => 1,
+            'teams' => [['name' => $home, 'players' => []], ['name' => $away, 'players' => []]],
+            'goals' => array_map(fn ($side) => ['teamIndex' => $side], $scores),
+        ];
+        $event = new MatchDayEvent(['games' => [
+            $game('Islanders', 'Bulwark', [0]),
+            $game('Bulwark', 'Citadel', [0, 0]),
+            $game('Bulwark', 'Coastal', [0, 1]),
+            $game('Islanders', 'Coastal', [0, 1]),
+            $game('Islanders', 'Sentinel', [0, 1]),
+        ]]);
+
+        $table = (new \ReflectionMethod(MatchDayFinalizer::class, 'teamTable'))->invoke(null, $event, []);
+        $this->assertSame('Islanders', array_key_first($table));
+        $this->assertSame(5, $table['Islanders']['points']);
+        $this->assertSame(4, $table['Bulwark']['points']);
+    }
+
     public function test_a_stand_in_from_another_team_is_not_in_the_team_of_the_match_day(): void
     {
         [$a, $b, $c, $d, $sub] = Player::factory()->count(5)->create()->pluck('id')->all();

@@ -53,10 +53,11 @@ interface TeamLine {
 }
 
 // The day's table from finished games, ranked the way the club picks its
-// team of the match day (MatchDayFinalizer::teamTable): most wins, then goal
+// team of the match day: league points (otherwise wins), then goal
 // difference, then goals scored. Games are matched to teams by name, as in
 // the rotation (see nextFixture).
 function dayTable(teams: MatchDayTeam[], games: MatchDayGame[]): TeamLine[] {
+  const league = games.some((game) => !!game.leagueMatchNo);
   const lines = teams.map((team) => ({ team, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0 }));
   for (const game of games) {
     if (game.status !== "finished") continue;
@@ -75,7 +76,7 @@ function dayTable(teams: MatchDayTeam[], games: MatchDayGame[]): TeamLine[] {
   }
   return lines.sort(
     (a, b) =>
-      b.won - a.won ||
+      (league ? pointsOf(b) - pointsOf(a) : b.won - a.won) ||
       b.goalsFor - b.goalsAgainst - (a.goalsFor - a.goalsAgainst) ||
       b.goalsFor - a.goalsFor ||
       a.team.name.localeCompare(b.team.name),
@@ -124,16 +125,18 @@ function NowPlaying({ game, number, name }: { game: MatchDayGame; number: number
   );
 }
 
+const pointsOf = (l: TeamLine) => l.won * 3 + l.drawn;
 const gdOf = (l: TeamLine) => l.goalsFor - l.goalsAgainst;
 const signed = (n: number) => `${n > 0 ? "+" : ""}${n}`;
 
 /** Every team in the running for team of the match day, leader first. */
-function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: MatchDayGame | null; ended: boolean }) {
+function TeamRace({ table, liveGame, ended, league }: { table: TeamLine[]; liveGame: MatchDayGame | null; ended: boolean; league: boolean }) {
   const leader = table[0];
   const started = table.some((l) => l.played > 0);
-  const level = (l: TeamLine) => l.won === leader.won && gdOf(l) === gdOf(leader);
+  const value = (l: TeamLine) => league ? pointsOf(l) : l.won;
+  const level = (l: TeamLine) => value(l) === value(leader) && gdOf(l) === gdOf(leader) && l.goalsFor === leader.goalsFor;
   const sharedLead = started && table.filter(level).length > 1;
-  const maxWins = Math.max(1, ...table.map((l) => l.won));
+  const maxValue = Math.max(1, ...table.map(value));
 
   // How a team stands in the game being played right now, if it's in it.
   const playing = (name: string) => {
@@ -151,9 +154,11 @@ function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: Mat
       if (sharedLead) return "Level at the top";
       return ended ? "Team of the match day" : "In front";
     }
-    const wins = leader.won - l.won;
-    if (wins > 0) return `${wins} win${wins === 1 ? "" : "s"} behind`;
-    return `${gdOf(leader) - gdOf(l)} goal${gdOf(leader) - gdOf(l) === 1 ? "" : "s"} behind on difference`;
+    const gap = value(leader) - value(l);
+    if (gap > 0) return `${gap} ${league ? "point" : "win"}${gap === 1 ? "" : "s"} behind`;
+    const gdGap = gdOf(leader) - gdOf(l);
+    if (gdGap > 0) return `${gdGap} goal${gdGap === 1 ? "" : "s"} behind on difference`;
+    return "Behind on goals scored";
   };
 
   return (
@@ -181,8 +186,8 @@ function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: Mat
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block font-display text-2xl font-bold leading-none tabular-nums text-paper">
-                    {l.won}
-                    <span className="ml-0.5 text-xs font-medium text-mist">W</span>
+                    {value(l)}
+                    <span className="ml-0.5 text-xs font-medium text-mist">{league ? "pts" : "W"}</span>
                   </span>
                   <span className="block text-xs tabular-nums text-mist">
                     {l.played} played · GD {signed(gdOf(l))}
@@ -192,7 +197,7 @@ function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: Mat
               <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-ink" aria-hidden="true">
                 <div
                   className={`h-full rounded-full transition-[width] duration-700 ${front ? "bg-justice" : "bg-paper-dim/60"}`}
-                  style={{ width: `${Math.max(3, (l.won / maxWins) * 100)}%` }}
+                  style={{ width: `${Math.max(3, (value(l) / maxValue) * 100)}%` }}
                 />
               </div>
             </li>
@@ -200,7 +205,7 @@ function TeamRace({ table, liveGame, ended }: { table: TeamLine[]; liveGame: Mat
         })}
       </ol>
       <p className="border-t border-ink-line/70 px-4 py-2.5 text-xs text-mist">
-        Most wins takes it; level teams are split on goal difference. Only finished games count.
+        {league ? "Most points takes it" : "Most wins takes it"}; level teams are split on goal difference, then goals scored. Only finished games count.
       </p>
     </div>
   );
@@ -336,7 +341,7 @@ export default function LiveMatch() {
                 <h2 className="mb-2 px-1 text-sm font-semibold text-paper-dim">
                   {live ? "Race for team of the match day" : "Team of the match day"}
                 </h2>
-                <TeamRace table={table} liveGame={liveGame} ended={!live} />
+                <TeamRace table={table} liveGame={liveGame} ended={!live} league={event.games.some((game) => !!game.leagueMatchNo)} />
               </div>
             )}
 
