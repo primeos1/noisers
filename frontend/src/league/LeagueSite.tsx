@@ -572,7 +572,7 @@ const LEADER_TABS: [LeaderKind, string][] = [
   ["rating", "Rating"],
   ["assists", "Assists"],
   ["saves", "Saves"],
-  ["cleanSheets", "Brick wall"],
+  ["cleanSheets", "Clean sheets"],
   ["cards", "Cards"],
 ];
 
@@ -617,7 +617,7 @@ function Leaders({ data, draw }: { data: LeagueData | null; draw: DrawResult | n
     goals: "No goals yet.",
     assists: "No assists yet.",
     saves: "No saves yet.",
-    cleanSheets: "No brick walls yet. Keepers and defenders get one when their club doesn't concede.",
+    cleanSheets: "No clean sheets yet. Keepers and defenders get one when their club doesn't concede.",
     cards: "No cards yet.",
     rating: "No ratings yet. Everyone starts the league on 6.00 and moves once their first game finishes.",
   };
