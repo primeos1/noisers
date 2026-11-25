@@ -175,7 +175,7 @@ export const AWARDS: AwardDef[] = [
   { id: "playmaker", award: "Playmaker", stat: "assists", blurb: "Most goals set up for someone else.", value: (l) => l.assists },
   { id: "talisman", award: "Talisman", stat: "goals + assists", blurb: "Most goals scored or set up.", value: (l) => l.goals + l.assists },
   { id: "golden-glove", award: "Golden Glove", stat: "saves", blurb: "The safest pair of hands between the sticks.", value: (l) => l.saves, eligible: (l) => l.player.position === "GK" },
-  { id: "brick-wall", award: "Clean Sheets", stat: "clean sheets", blurb: "The defender who kept the door shut.", value: (l) => l.cleanSheets, eligible: (l) => l.player.position === "DEF" },
+  { id: "brick-wall", award: "Brick Wall", stat: "clean sheets", blurb: "The defender who kept the door shut.", value: (l) => l.cleanSheets, eligible: (l) => l.player.position === "DEF" },
   { id: "potn", award: "Player of the Night", stat: "nights", blurb: "Most Sundays as the night's best player.", value: (l) => l.nights },
   { id: "top-rated", award: "Top Rated", stat: "league rating", blurb: "The highest league rating. Everyone started on 6.00.", value: (l) => l.rating.rating, eligible: (l) => l.rating.nights.length > 0, format: (v) => v.toFixed(2) },
   { id: "wrong-end", award: "Wrong End", stat: "own goals", blurb: "Scored for the other lot. Most own goals.", value: (l) => l.ownGoals },
