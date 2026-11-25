@@ -139,7 +139,7 @@ export const SCORING: [string, string][] = [
   ["Played a game", "1 each"],
   ["Goal", "Keeper or defender 6, midfielder 5, forward 4"],
   ["Assist", "3"],
-  ["Brick wall", "Keeper or defender 4, midfielder 1"],
+  ["Clean sheet", "Keeper or defender 4, midfielder 1"],
   ["Every 3 saves in a game", "1"],
   ["Penalty save", "5"],
   ["Every 2 goals conceded", "−1 (keeper or defender)"],
