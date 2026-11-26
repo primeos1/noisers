@@ -23,12 +23,18 @@ class LeagueController extends Controller
     /** 6 clubs, every pair three times. */
     public const MATCHES = 45;
 
-    /**
-     * Players who joined after the draw was sealed. They're sent with the
-     * entrants so the league site can place them (see league/draw.ts), but
-     * they never feed the draw itself.
-     */
-    private const LATE_SIGNINGS = [70]; // Buchi
+    /** Players who joined after the draw was sealed; they never feed the draw itself. */
+    private static function lateSigningIds(): array
+    {
+        // Resolve these by their squad name so the roster stays correct if IDs
+        // differ between local, staging, and production databases.
+        $named = Player::query()
+            ->whereIn(DB::raw("LOWER(SUBSTRING_INDEX(name, ' ', 1))"), ['nene', 'pato', 'adrian'])
+            ->pluck('id')
+            ->all();
+
+        return array_values(array_unique([70, ...array_map('intval', $named)])); // Buchi plus the three additions
+    }
 
     /** Moved into goal for the league after the draw. */
     private const LATE_KEEPERS = [50]; // Shubby
@@ -41,7 +47,7 @@ class LeagueController extends Controller
         $state = LeagueState::current();
         $drawn = $state->draw_entrants ? array_column($state->draw_entrants, 'id') : ($state->entrant_ids ?? []);
 
-        return array_values(array_unique(array_map('intval', [...$drawn, ...self::LATE_SIGNINGS])));
+        return array_values(array_unique(array_map('intval', [...$drawn, ...self::lateSigningIds()])));
     }
 
     /**
@@ -299,7 +305,7 @@ class LeagueController extends Controller
             'keeperIds' => $state->keeper_ids ?? [],
             // The frozen list once the draw is sealed, the live one before.
             'entrants' => $state->draw_entrants
-                ? [...$state->draw_entrants, ...$this->entrantPlayers(array_values(array_diff(self::LATE_SIGNINGS, array_column($state->draw_entrants, 'id'))))]
+                ? [...$state->draw_entrants, ...$this->entrantPlayers(array_values(array_diff(self::lateSigningIds(), array_column($state->draw_entrants, 'id'))))]
                 : $this->entrantPlayers($state->entrant_ids ?? [], $state->keeper_ids ?? []),
             'draw' => $draw,
             'liveNight' => $state->live_night,
