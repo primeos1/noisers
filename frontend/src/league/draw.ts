@@ -42,6 +42,8 @@ const POST_DRAW_FIRST_NAMES: Readonly<Record<string, ClubId>> = {
   pato: "castellers",
   adrian: "islanders",
 };
+const isPostDrawAddition = (player: Entrant) =>
+  player.id in POST_DRAW_CLUBS || firstName(player) in POST_DRAW_FIRST_NAMES;
 /** Joined after the draw; the server sends their details with the entrants. */
 const LATE_SIGNINGS: Readonly<Record<number, ClubId>> = {
   70: "castellers", // Buchi
@@ -161,7 +163,9 @@ export interface DrawResult {
  */
 export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawResult> {
   const rand = await seededRandom(seed);
-  const drawn = entrants.filter((e) => !(e.id in LATE_SIGNINGS));
+  // Post-draw additions are included in the API roster but must not perturb
+  // the sealed draw or reassign any existing player.
+  const drawn = entrants.filter((e) => !(e.id in LATE_SIGNINGS) && !isPostDrawAddition(e));
   const pots = buildPots([...drawn].sort((a, b) => a.id - b.id));
   const squads = Object.fromEntries(CLUB_ORDER.map((c) => [c, [] as Entrant[]])) as Record<ClubId, Entrant[]>;
   const rounds: Round[] = [];
@@ -209,14 +213,8 @@ export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawRe
   // Changes since the draw shape the squads, not the draw's own record.
   const withRole = (player: Entrant) => (LEAGUE_POSITIONS[player.id] ? { ...player, position: LEAGUE_POSITIONS[player.id]! } : player);
   for (const id of CLUB_ORDER) squads[id] = squads[id].map(withRole);
-  // Apply post-draw club assignments without changing the sealed draw record.
-  for (const id of CLUB_ORDER) {
-    squads[id] = squads[id].filter((player) => {
-      const target = POST_DRAW_CLUBS[player.id] ?? POST_DRAW_FIRST_NAMES[firstName(player)];
-      if (target && target !== id) return false;
-      return true;
-    });
-  }
+  // Add the requested players after the sealed draw, leaving every drawn
+  // player in the same club.
   for (const player of entrants) {
     const club = POST_DRAW_CLUBS[player.id] ?? POST_DRAW_FIRST_NAMES[firstName(player)];
     if (club && !squads[club].some((member) => member.id === player.id)) squads[club].push(withRole(player));
