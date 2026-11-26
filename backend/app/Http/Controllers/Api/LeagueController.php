@@ -33,9 +33,6 @@ class LeagueController extends Controller
     /** Moved into goal for the league after the draw. */
     private const LATE_KEEPERS = [50]; // Shubby
 
-    /** Left the league after the draw (see league/draw.ts RELEASED). */
-    private const RELEASED = [68]; // Abbey
-
     public const NIGHTS = 5;
 
     /** @return int[] everyone in a league squad today */
@@ -44,7 +41,7 @@ class LeagueController extends Controller
         $state = LeagueState::current();
         $drawn = $state->draw_entrants ? array_column($state->draw_entrants, 'id') : ($state->entrant_ids ?? []);
 
-        return array_values(array_diff(array_map('intval', [...$drawn, ...self::LATE_SIGNINGS]), self::RELEASED));
+        return array_values(array_unique(array_map('intval', [...$drawn, ...self::LATE_SIGNINGS])));
     }
 
     /**

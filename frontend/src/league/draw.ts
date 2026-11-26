@@ -20,6 +20,7 @@ const POT_SIZE = CLUB_ORDER.length;
 
 const TEAMMATE_NAMES = new Set(["kingjery", "kingjerry", "osemiles", "ebenezer", "scottie", "scotty"]);
 const normalizedName = (player: Entrant) => player.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+const firstName = (player: Entrant) => player.name.trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]/g, "");
 const isLockedTeammate = (player: Entrant) => TEAMMATE_NAMES.has(normalizedName(player));
 
 // Permanent league transfers, applied after the seeded draw and teammate rule.
@@ -32,10 +33,15 @@ const PERMANENT_CLUBS: Readonly<Partial<Record<string, ClubId>>> = {
 
 // Squad changes made after the draw, by player id. The draw itself (pots,
 // picks and the reveal) is left as it was sealed, so it still verifies.
-/** Left the league. */
-const RELEASED = new Set<number>([
-  68, // Abbey
-]);
+/** Players added to a club after the sealed draw. */
+const POST_DRAW_CLUBS: Readonly<Record<number, ClubId>> = {
+  68: "coastal", // Abbey
+};
+const POST_DRAW_FIRST_NAMES: Readonly<Record<string, ClubId>> = {
+  nene: "citadel",
+  pato: "castellers",
+  adrian: "islanders",
+};
 /** Joined after the draw; the server sends their details with the entrants. */
 const LATE_SIGNINGS: Readonly<Record<number, ClubId>> = {
   70: "castellers", // Buchi
@@ -201,12 +207,23 @@ export async function runDraw(seed: string, entrants: Entrant[]): Promise<DrawRe
   }
 
   // Changes since the draw shape the squads, not the draw's own record.
-  const inLeague = (player: Entrant) => !RELEASED.has(player.id);
   const withRole = (player: Entrant) => (LEAGUE_POSITIONS[player.id] ? { ...player, position: LEAGUE_POSITIONS[player.id]! } : player);
-  for (const id of CLUB_ORDER) squads[id] = squads[id].filter(inLeague).map(withRole);
+  for (const id of CLUB_ORDER) squads[id] = squads[id].map(withRole);
+  // Apply post-draw club assignments without changing the sealed draw record.
+  for (const id of CLUB_ORDER) {
+    squads[id] = squads[id].filter((player) => {
+      const target = POST_DRAW_CLUBS[player.id] ?? POST_DRAW_FIRST_NAMES[firstName(player)];
+      if (target && target !== id) return false;
+      return true;
+    });
+  }
+  for (const player of entrants) {
+    const club = POST_DRAW_CLUBS[player.id] ?? POST_DRAW_FIRST_NAMES[firstName(player)];
+    if (club && !squads[club].some((member) => member.id === player.id)) squads[club].push(withRole(player));
+  }
   for (const player of [...entrants].sort((a, b) => a.id - b.id)) {
     const club = LATE_SIGNINGS[player.id];
-    if (club && inLeague(player)) squads[club].push(withRole(player));
+    if (club && !squads[club].some((member) => member.id === player.id)) squads[club].push(withRole(player));
   }
   return { rounds, picks, squads };
 }
