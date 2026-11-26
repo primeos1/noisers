@@ -41,6 +41,7 @@ const POST_DRAW_FIRST_NAMES: Readonly<Record<string, ClubId>> = {
   nene: "citadel",
   pato: "castellers",
   adrian: "islanders",
+  ojay: "castellers",
 };
 const isPostDrawAddition = (player: Entrant) =>
   player.id in POST_DRAW_CLUBS || firstName(player) in POST_DRAW_FIRST_NAMES;

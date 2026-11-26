@@ -27,7 +27,7 @@ class LeagueController extends Controller
     private static function lateSigningIds(): array
     {
         $named = Player::query()
-            ->whereIn(DB::raw("LOWER(SUBSTRING_INDEX(name, ' ', 1))"), ['nene', 'pato', 'adrian'])
+            ->whereIn(DB::raw("LOWER(SUBSTRING_INDEX(name, ' ', 1))"), ['nene', 'pato', 'adrian', 'ojay'])
             ->pluck('id')
             ->all();
 
