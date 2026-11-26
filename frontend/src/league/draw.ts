@@ -36,6 +36,7 @@ const PERMANENT_CLUBS: Readonly<Partial<Record<string, ClubId>>> = {
 /** Players added to a club after the sealed draw. */
 const POST_DRAW_CLUBS: Readonly<Record<number, ClubId>> = {
   68: "coastal", // Abbey
+  47: "citadel", // CP Odogwu
 };
 const POST_DRAW_FIRST_NAMES: Readonly<Record<string, ClubId>> = {
   nene: "citadel",
